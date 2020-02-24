@@ -8,8 +8,11 @@ import matplotlib.pyplot as plt
 
 dataPath = '../Takeout/Location History/Location History.json'
 a = 10
-chj = 67
-dl = 667
+
+chj = 64
+dl = 664
+
+ddd = 11
 
 with open(dataPath) as f:
     data = json.load(f)
