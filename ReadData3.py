@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt; plt.rcdefaults()
 import matplotlib.pyplot as plt
 
 dataPath = '../Takeout/Location History/Location History.json'
+a = 10
 
 with open(dataPath) as f:
     data = json.load(f)
