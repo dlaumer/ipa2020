@@ -1,6 +1,6 @@
 # Interdisciplinary Project Work 2020
 
-Title: Location Diary//
+Title: Location Diary
 Authors: Haojun Cai and Daniel Laumer
 
 ## Getting Started
