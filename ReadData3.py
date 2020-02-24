@@ -17,6 +17,6 @@ df['datetime'] = pd.to_datetime(df['timestampMs'],  unit='ms')
 df = df.set_index('datetime')
 df.drop(['timestampMs'], axis=1, inplace=True)
 
-ax = df.plot.hist(bins=18)
+ax = df.plot.hist(bins=10)
 
 # This is a test blablabla
