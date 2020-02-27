@@ -17,10 +17,17 @@ from pandas.io.json import json_normalize
 
 # Local files
 import help_functions as hlp
+#import noiserm_functions as nrm
 
 dataPathLocs = '../Takeout/Location History/Location History.json'
 
 locs = hlp.parseLocs(dataPathLocs)
 
-dataPathTrips = '../Takeout/Location History/Semantic Location History/2019'
+dataPathTrips = '../Takeout/Location History/Semantic Location History'
+
+trips = hlp.parseTrips(dataPathTrips)
+
+#locsFiltered = nrm（locs)
+
+
 
