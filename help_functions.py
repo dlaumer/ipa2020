@@ -21,8 +21,9 @@ def parseLocs(dataPath):
         data = json.load(f)
     f.close()
     df = json_normalize(data, 'locations')
-    df['datetime'] = pd.to_datetime(df['timestampMs'],  unit='ms')
-    df = df.set_index('datetime')
+    df['datetimeUTC'] = pd.to_datetime(df['timestampMs'],  unit='ms')
+    df['datetimeCH'] = df['datetimeUTC'] + pd.DateOffset(hours=1)
+    df = df.set_index('datetimeCH')
     return df
 
 def parseTrips(dataPath):
