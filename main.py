@@ -19,11 +19,12 @@ from pandas.io.json import json_normalize
 import help_functions as hlp
 #import noiserm_functions as nrm
 
-dataPathLocs = '../Takeout/Location History/Location History.json'
+dataPathLocs = '../Takeout_Feb/Location History/Location History.json'
 
 locs = hlp.parseLocs(dataPathLocs)
 
-dataPathTrips = '../Takeout/Location History/Semantic Location History/'
+dataPathTrips = '../Takeout_Feb/Location History/Semantic Location History/'
 
 trips, tripdf = hlp.parseTrips(dataPathTrips)
 
+hlp.stats(locs, trips)
