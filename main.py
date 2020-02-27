@@ -22,5 +22,7 @@ dataPathLocs = '../Takeout/Location History/Location History.json'
 
 locs = hlp.parseLocs(dataPathLocs)
 
-dataPathTrips = '../Takeout/Location History/Semantic Location History/2019'
+dataPathTrips = '../Takeout/Location History/Semantic Location History/'
+
+trips = hlp.parseTrips(dataPathTrips)
 
