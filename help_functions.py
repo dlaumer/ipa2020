@@ -10,6 +10,7 @@
     
 """
 
+import os
 import json
 import pandas as pd
 from pandas.io.json import json_normalize  
@@ -22,15 +23,29 @@ def parseLocs(dataPath):
     df = json_normalize(data, 'locations')
     df['datetime'] = pd.to_datetime(df['timestampMs'],  unit='ms')
     df = df.set_index('datetime')
-    df.drop(['timestampMs'], axis=1, inplace=True)
     return df
 
 def parseTrips(dataPath):
-    with open(dataPath) as f:
-        data = json.load(f)
-    f.close()
-    df = json_normalize(data, 'locations')
-    df['datetime'] = pd.to_datetime(df['timestampMs'],  unit='ms')
-    df = df.set_index('datetime')
-    df.drop(['timestampMs'], axis=1, inplace=True)
-    return df
+    
+    allData = {}
+    d = []
+    dirs = os.listdir(dataPath)
+    for year in dirs:
+        if year.isdigit():
+            dataPathYear = os.path.join(dataPath, year)
+            allData[year] = {}
+            for root, dirs, files in os.walk(dataPathYear):
+                for fil in files:
+                    if fil != 'Icon\r':
+                        dataPathFile = os.path.join(dataPathYear, fil)
+                        with open(dataPathFile) as f:
+                            month = fil[5:-5]
+                            data = json.load(f)
+                            allData[year][month] = data['timelineObjects']
+                            for obj in data['timelineObjects']:
+                                tempData = {'Year':year, 'Month': month, 'Type':obj.keys()[0]}
+                                tempData.update(obj[obj.keys()[0]])
+                                d.append(tempData)
+                        f.close()                       
+    df = pd.DataFrame(d)
+    return allData
