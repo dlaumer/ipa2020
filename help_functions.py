@@ -24,3 +24,13 @@ def parseLocs(dataPath):
     df = df.set_index('datetime')
     df.drop(['timestampMs'], axis=1, inplace=True)
     return df
+
+def parseTrips(dataPath):
+    with open(dataPath) as f:
+        data = json.load(f)
+    f.close()
+    df = json_normalize(data, 'locations')
+    df['datetime'] = pd.to_datetime(df['timestampMs'],  unit='ms')
+    df = df.set_index('datetime')
+    df.drop(['timestampMs'], axis=1, inplace=True)
+    return df
