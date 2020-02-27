@@ -25,5 +25,5 @@ locs = hlp.parseLocs(dataPathLocs)
 
 dataPathTrips = '../Takeout/Location History/Semantic Location History/'
 
-trips = hlp.parseTrips(dataPathTrips)
+trips, tripdf = hlp.parseTrips(dataPathTrips)
 

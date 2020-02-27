@@ -36,16 +36,16 @@ def parseTrips(dataPath):
             allData[year] = {}
             for root, dirs, files in os.walk(dataPathYear):
                 for fil in files:
-                    if fil != 'Icon\r':
+                    if fil.endswith('.json'):
                         dataPathFile = os.path.join(dataPathYear, fil)
                         with open(dataPathFile) as f:
                             month = fil[5:-5]
                             data = json.load(f)
                             allData[year][month] = data['timelineObjects']
                             for obj in data['timelineObjects']:
-                                tempData = {'Year':year, 'Month': month, 'Type':obj.keys()[0]}
-                                tempData.update(obj[obj.keys()[0]])
+                                tempData = {'Year':year, 'Month': month, 'Type':list(obj)[0]}
+                                tempData.update(obj[list(obj)[0]])
                                 d.append(tempData)
                         f.close()                       
     df = pd.DataFrame(d)
-    return allData
+    return allData, df
