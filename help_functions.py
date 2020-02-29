@@ -10,6 +10,7 @@
     
 """
 
+from math import radians, cos, sin, asin, sqrt
 import os
 import json
 import pandas as pd
@@ -95,6 +96,46 @@ def pieChartInfo(trips):
                     elif event['activitySegment']['activityType'] in ('IN_BUS','IN_FERRY','IN_TRAIN','IN_SUBWAY','IN_TRAM'): countPublic = countPublic + dist
                     elif event['activitySegment']['activityType'] in ('IN_PASSENGER_VEHICLE'): countCar = countCar + dist
                     else: countRest = countRest + dist
-    
-    
     return [countPublic, countCar, countCycle, countRest]
+
+
+def pieChartInfoPlus(trips):
+    labels = ["IN_PASSENGER_VEHICLE","STILL","WALKING","IN_BUS","CYCLING","FLYING","RUNNING","IN_FERRY","IN_TRAIN","SKIING","SAILING","IN_SUBWAY","IN_TRAM","IN_VEHICLE"]
+    data = {}
+    for year in trips:
+        for month in trips[year]:        
+            for event in trips[year][month]:
+                if list(event)[0] == 'activitySegment':
+                    try:
+                        dist = event['activitySegment']['distance']
+                    except:
+                        print('There is no distance!')
+                    for label in labels:
+                        if label == event['activitySegment']['activityType']:
+                            data[label] = data.get(label,0) + dist
+    
+    
+    return list(data), list(data.values())
+
+def checkTrips(trips):
+    previousTimeStamp = None
+    for year in trips:
+        for month in trips[year]:   
+            for event in trips[year][month]:
+                timeStamp = event[list(event)[0]]['duration']['startTimestampMs'] 
+                if previousTimeStamp:
+                    if previousTimeStamp != timeStamp:
+                        if (int(timeStamp)-int(previousTimeStamp)) > 0:
+                            print('There is a gap between ' + str(pd.to_datetime(previousTimeStamp,  unit='ms')) + ' and ' + str(pd.to_datetime(timeStamp,  unit='ms'))) 
+                        else:
+                            print('There is an overlap between ' + str(pd.to_datetime(previousTimeStamp,  unit='ms')) + ' and ' + str(pd.to_datetime(timeStamp,  unit='ms'))) 
+                previousTimeStamp = event[list(event)[0]]['duration']['endTimestampMs'] 
+
+
+def haversine(lat1,lon1,lat2,lon2):
+    dlon = lon2 - lon1 
+    dlat = lat2 - lat1 
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a)) 
+    km = 6367 * c
+    return km
