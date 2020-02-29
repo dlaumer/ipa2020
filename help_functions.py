@@ -23,6 +23,8 @@ def parseLocs(dataPath):
     df['datetimeUTC'] = pd.to_datetime(df['timestampMs'],  unit='ms')
     df['datetimeCH'] = df['datetimeUTC'] + pd.DateOffset(hours=1)
     df = df.set_index('datetimeCH')
+    df['latitudeE7'] = df['latitudeE7'].astype(float)/10000000
+    df['longitudeE7'] = df['longitudeE7'].astype(float)/10000000
     return df
 
 def parseTrips(dataPath):
@@ -75,3 +77,24 @@ def stats(locs, trips):
     print('Number of stays (placeVisit): '+ str(countPlace))
     print('Number of trips (activitySegment): ' + str(countAct))
     print('Number of points in the trip file: ' + str(countPoints))
+    
+def pieChartInfo(trips):
+    countPublic = 0
+    countCar = 0
+    countCycle = 0 
+    countRest = 0
+    for year in trips:
+        for month in trips[year]:        
+            for event in trips[year][month]:
+                if list(event)[0] == 'activitySegment':
+                    try:
+                        dist = event['activitySegment']['distance']
+                    except:
+                        print(1)
+                    if event['activitySegment']['activityType'] in ('CYCLING'): countCycle = countCycle + dist
+                    elif event['activitySegment']['activityType'] in ('IN_BUS','IN_FERRY','IN_TRAIN','IN_SUBWAY','IN_TRAM'): countPublic = countPublic + dist
+                    elif event['activitySegment']['activityType'] in ('IN_PASSENGER_VEHICLE'): countCar = countCar + dist
+                    else: countRest = countRest + dist
+    
+    
+    return [countPublic, countCar, countCycle, countRest]
