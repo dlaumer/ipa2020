@@ -11,8 +11,11 @@ These instructions will get you a copy of the project up and running on your loc
 
 What things you need to install the software and how to install them
 
+Thw following python packages are required:
 ```
-Give examples
+* pandas
+* plotly
+* shapefile
 ```
 
 ### Installing
