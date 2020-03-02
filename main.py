@@ -13,6 +13,7 @@
 
 import json
 import pandas as pd
+import math
 from pandas.io.json import json_normalize
 
 # Local files
@@ -27,3 +28,27 @@ dataPathTrips = '../Takeout/Location History/Semantic Location History/'
 
 trips, tripdf = hlp.parseTrips(dataPathTrips)
 
+tripdf['startLat'] = ''
+tripdf['startLon'] = ''
+tripdf['endLat'] = ''
+tripdf['endLon'] = ''
+
+startLoc = tripdf['startLocation']
+for i in range(0,len(startLoc)):
+    if(type(startLoc[i]) == dict):
+        tripdf['startLat'].iloc[i] = startLoc[i].get('latitudeE7')
+        tripdf['startLon'].iloc[i] = startLoc[i].get('longitudeE7')
+        print(i)
+
+endLoc = tripdf['endLocation']
+for i in range(0,len(endLoc)):
+    if(type(endLoc[i]) == dict):
+        tripdf['endLat'].iloc[i] = endLoc[i].get('latitudeE7')
+        tripdf['endLon'].iloc[i] = endLoc[i].get('longitudeE7')
+        print(i)
+    
+#flag = tripdf['startLat']
+        
+
+
+    
