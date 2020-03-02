@@ -3,7 +3,8 @@
 """
 Created on Thu Feb 27 10:09:23 2020
 
-@author: dlaumer
+Authors:    Daniel Laumer (laumerd@ethz.ch)
+            Haojun Cai (caihao@ethz.ch)
 """
 import pandas as pd
 import numpy as np
@@ -65,7 +66,6 @@ fig.add_trace(
            y=list(perDay),
            name="Number of points per day"
            ),
-    #go.Histogram(x=locs['d_diff'].tolist()),
     row=1, col=1
     )
 
@@ -96,7 +96,6 @@ fig.update_geos(
         showcountries = True,         
 )
 fig.show()
-
 
 fig2 = px.histogram(locs, x="d_diff")
 fig2.show()

@@ -21,6 +21,18 @@ import shapefile # To create ESRI shp formated files (to use in ArcMap or QGIS)
 
 
 def parseLocs(dataPath):
+    """
+    Parse the location file
+
+    Parameters
+    ----------
+    dataPath : str - (relative) path to the location file
+
+    Returns
+    -------
+    gdf : gpd - geopandas dataframe of the data
+
+    """
     with open(dataPath) as f:
         data = json.load(f)
     f.close()
@@ -36,7 +48,19 @@ def parseLocs(dataPath):
     return gdf
 
 def parseTrips(dataPath):
-    
+    """
+    Parse the trips file
+
+    Parameters
+    ----------
+    dataPath : str - (relative) path to the location file
+
+    Returns
+    -------
+    allData: dict - nested dict of the trips file
+    df : df - pandas dataframe of the data
+
+    """
     allData = {}
     d = []
     dirs = os.listdir(dataPath)
@@ -61,6 +85,20 @@ def parseTrips(dataPath):
     return allData, df
 
 def stats(locs, trips):
+    """
+    Get some statistics of the files 
+    TODO: Add more statistics
+
+    Parameters
+    ----------
+    locs : gdf - individual location data
+    trips : dict - Semantic information (nested)
+
+    Returns
+    -------
+    None.
+
+    """
     countPlace = 0
     countAct = 0
     countPoints = 0
@@ -86,27 +124,22 @@ def stats(locs, trips):
     print('Number of trips (activitySegment): ' + str(countAct))
     print('Number of points in the trip file: ' + str(countPoints))
     
-def pieChartInfo(trips):
-    countPublic = 0
-    countCar = 0
-    countCycle = 0 
-    countRest = 0
-    for year in trips:
-        for month in trips[year]:        
-            for event in trips[year][month]:
-                if list(event)[0] == 'activitySegment':
-                    try:
-                        dist = event['activitySegment']['distance']
-                    except:
-                        print(1)
-                    if event['activitySegment']['activityType'] in ('CYCLING'): countCycle = countCycle + dist
-                    elif event['activitySegment']['activityType'] in ('IN_BUS','IN_FERRY','IN_TRAIN','IN_SUBWAY','IN_TRAM'): countPublic = countPublic + dist
-                    elif event['activitySegment']['activityType'] in ('IN_PASSENGER_VEHICLE'): countCar = countCar + dist
-                    else: countRest = countRest + dist
-    return [countPublic, countCar, countCycle, countRest]
 
 
 def pieChartInfoPlus(trips):
+    """
+    Calculates the total distance per activity mode
+
+    Parameters
+    ----------
+    trips : dict - Semantic information (nested)
+
+    Returns
+    -------
+    list(data): list - labels of the activity modes
+    list(data.values()): list - distance per activity mode
+
+    """
     labels = ["IN_PASSENGER_VEHICLE","STILL","WALKING","IN_BUS","CYCLING","FLYING","RUNNING","IN_FERRY","IN_TRAIN","SKIING","SAILING","IN_SUBWAY","IN_TRAM","IN_VEHICLE"]
     data = {}
     for year in trips:
@@ -126,12 +159,13 @@ def pieChartInfoPlus(trips):
 
 def checkTrips(trips):
     """
-    This function does
+    This function checks if the endtime of one activity is the same as the 
+    starttimes in the nect activity. 
+    If there is a gap or an overlap, it is printed to the prompt
 
     Parameters
     ----------
-    trips : TYPE
-        DESCRIPTION.
+    trips : dict - Semantic information (nested)
 
     Returns
     -------
@@ -139,33 +173,70 @@ def checkTrips(trips):
 
     """
     previousTimeStamp = None
-    for year in trips:
-        for month in trips[year]:   
-            for event in trips[year][month]:
+    for year in trips: # Loop over years
+        for month in trips[year]:  # Loop over months 
+            for event in trips[year][month]: # Loop over entries
                 timeStamp = event[list(event)[0]]['duration']['startTimestampMs'] 
                 if previousTimeStamp:
                     if previousTimeStamp != timeStamp:
+                        # Compare previous and current timestamp
                         if (int(timeStamp)-int(previousTimeStamp)) > 0:
                             print('There is a gap between ' + str(pd.to_datetime(previousTimeStamp,  unit='ms')) + ' and ' + str(pd.to_datetime(timeStamp,  unit='ms'))) 
                         else:
                             print('There is an overlap between ' + str(pd.to_datetime(previousTimeStamp,  unit='ms')) + ' and ' + str(pd.to_datetime(timeStamp,  unit='ms'))) 
                 previousTimeStamp = event[list(event)[0]]['duration']['endTimestampMs'] 
 
+
 def calculateVelocity(locs):
+    """
+    This function calculates the velocity of two consecutive points in 
+    the location data. It calculates the quotient between the time 
+    difference and the distance difference.
+
+    Parameters
+    ----------
+    locs : gdf - individual location data
+
+    Returns
+    -------
+    locs : dict - individual location data, added columns t_diff, d_diff and
+    velocity
+
+    """
+    # Get time difference
     locs['t_diff'] = locs.index.to_series().diff().dt.seconds
 
+    # Extract location
     lat1 = locs['latitudeE7'].iloc[:-1]
     lon1 = locs['longitudeE7'].iloc[:-1]
     lat2 = locs['latitudeE7'].iloc[1:]
     lon2 = locs['longitudeE7'].iloc[1:]
+    # Get vectorized version of the haversine function
     haver_vec = np.vectorize(haversine, otypes=[np.int16])
     locs['d_diff'] = 0
+    # Calculate distance
     locs['d_diff'].iloc[1:] = (haver_vec(lat1,lon1,lat2,lon2))
+    # Calculate velocity
     locs['velocity_calc'] = locs['d_diff']/locs['t_diff']
     return locs
 
 
 def haversine(lat1,lon1,lat2,lon2):
+    """
+    This function calculates the distance between two points on a sphere
+
+    Parameters
+    ----------
+    lat1 : float - latitude of point 1
+    lon1 : float - longitude of point 1
+    lat2 : float - latitude of point 2
+    lon2 : float - longitude of point 2
+
+    Returns
+    -------
+    km : float - Distance between points in km (m?)
+
+    """
     dlon = lon2 - lon1 
     dlat = lat2 - lat1 
     a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
@@ -174,11 +245,22 @@ def haversine(lat1,lon1,lat2,lon2):
     return km
 
 def df2shp(locs, filename):
-        """ This function exports the dataset in the shp format.
-        
-        """
-        locsExport = locs
-        locsExport = locsExport.drop('activity', axis=1)
-        locsExport['date'] = locsExport['date'].astype(str)
-        locsExport['datetimeUTC'] = locsExport['datetimeUTC'].astype(str)
-        locsExport.to_file(filename +'.shp')
+    """
+    This function saves the location data to a shapefile
+
+    Parameters
+    ----------
+    locs : TYPE
+        DESCRIPTION.
+    filename : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    """
+    locs = locs.drop('activity', axis=1)
+    locs['date'] = locs['date'].astype(str)
+    locs['datetimeUTC'] = locs['datetimeUTC'].astype(str)
+    locs.to_file(filename +'.shp')
