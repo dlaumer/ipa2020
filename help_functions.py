@@ -12,8 +12,12 @@
 
 from math import radians, cos, sin, asin, sqrt
 import os
+import numpy as np
+
 import json
 import pandas as pd
+import geopandas
+import shapefile # To create ESRI shp formated files (to use in ArcMap or QGIS)
 
 
 def parseLocs(dataPath):
@@ -23,10 +27,13 @@ def parseLocs(dataPath):
     df = pd.json_normalize(data, 'locations')
     df['datetimeUTC'] = pd.to_datetime(df['timestampMs'],  unit='ms')
     df['datetimeCH'] = df['datetimeUTC'] + pd.DateOffset(hours=1)
+    df['date'] = df['datetimeUTC'].dt.date
     df = df.set_index('datetimeCH')
     df['latitudeE7'] = df['latitudeE7'].astype(float)/10000000
     df['longitudeE7'] = df['longitudeE7'].astype(float)/10000000
-    return df
+    gdf = geopandas.GeoDataFrame(
+    df, geometry=geopandas.points_from_xy(df['longitudeE7'], df['latitudeE7']))
+    return gdf
 
 def parseTrips(dataPath):
     
@@ -118,6 +125,19 @@ def pieChartInfoPlus(trips):
     return list(data), list(data.values())
 
 def checkTrips(trips):
+    """
+    This function does
+
+    Parameters
+    ----------
+    trips : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    """
     previousTimeStamp = None
     for year in trips:
         for month in trips[year]:   
@@ -131,6 +151,19 @@ def checkTrips(trips):
                             print('There is an overlap between ' + str(pd.to_datetime(previousTimeStamp,  unit='ms')) + ' and ' + str(pd.to_datetime(timeStamp,  unit='ms'))) 
                 previousTimeStamp = event[list(event)[0]]['duration']['endTimestampMs'] 
 
+def calculateVelocity(locs):
+    locs['t_diff'] = locs.index.to_series().diff().dt.seconds
+
+    lat1 = locs['latitudeE7'].iloc[:-1]
+    lon1 = locs['longitudeE7'].iloc[:-1]
+    lat2 = locs['latitudeE7'].iloc[1:]
+    lon2 = locs['longitudeE7'].iloc[1:]
+    haver_vec = np.vectorize(haversine, otypes=[np.int16])
+    locs['d_diff'] = 0
+    locs['d_diff'].iloc[1:] = (haver_vec(lat1,lon1,lat2,lon2))
+    locs['velocity_calc'] = locs['d_diff']/locs['t_diff']
+    return locs
+
 
 def haversine(lat1,lon1,lat2,lon2):
     dlon = lon2 - lon1 
@@ -139,3 +172,13 @@ def haversine(lat1,lon1,lat2,lon2):
     c = 2 * asin(sqrt(a)) 
     km = 6367 * c
     return km
+
+def df2shp(locs, filename):
+        """ This function exports the dataset in the shp format.
+        
+        """
+        locsExport = locs
+        locsExport = locsExport.drop('activity', axis=1)
+        locsExport['date'] = locsExport['date'].astype(str)
+        locsExport['datetimeUTC'] = locsExport['datetimeUTC'].astype(str)
+        locsExport.to_file(filename +'.shp')

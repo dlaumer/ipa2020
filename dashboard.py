@@ -9,42 +9,49 @@ import pandas as pd
 import numpy as np
 import math
 
+import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.io as pio
 pio.renderers.default = "browser"
 
-
 # Local files
 import help_functions as hlp
 #import noiserm_functions as nrm
 
-dataPathLocs = '../Takeout_Haojun_Feb/Takeout/Location History/Location History.json'
-#dataPathLocs = '../Takeout_Lauro_Mar/Standortverlauf/Standortverlauf.json'
-locs = hlp.parseLocs(dataPathLocs)
+dataName = 'Daniel'
 
-dataPathTrips = '../Takeout_Haojun_Feb/Takeout/Location History/Semantic Location History/'
-#dataPathTrips = '../Takeout_Haojun_Feb/Standortverlauf/Semantic Location History/'
+""" IMPORT DATA """""""""""""""""""""""""""""""""""""""""""""""""""""
+
+if dataName == 'Daniel':
+    dataPathLocs = '../Takeout_Daniel_Feb/Location History/Location History.json'
+    dataPathTrips = '../Takeout_Daniel_Feb/Location History/Semantic Location History/'
+elif dataName == 'Haojun':
+    dataPathLocs = '../Takeout_Haojun_Feb/Location History/Location History.json'
+    dataPathTrips = '../Takeout_Haojun_Feb/Location History/Semantic Location History/'
+elif dataName == 'Lauro':
+    dataPathLocs = '../Takeout_Lauro_Mar/Standortverlauf/Standortverlauf.json'
+    dataPathTrips = '../Takeout_Lauro_Mar/Standortverlauf/Semantic Location History/'
+
+locs = hlp.parseLocs(dataPathLocs)
 trips, tripdf = hlp.parseTrips(dataPathTrips)
 
-locs['t_diff'] = locs.index.to_series().diff().dt.seconds
+""" EXPORT SHP """""""""""""""""""""""""""""""""""""""""""""""""""""
+hlp.df2shp(locs, '../shp/Loc_'+dataName)
 
-lat1 = locs['latitudeE7'].iloc[:-1]
-lon1 = locs['longitudeE7'].iloc[:-1]
-lat2 = locs['latitudeE7'].iloc[1:]
-lon2 = locs['longitudeE7'].iloc[1:]
-haver_vec = np.vectorize(hlp.haversine, otypes=[np.int16])
-locs['d_diff'] = 0
-locs['d_diff'].iloc[1:] = (haver_vec(lat1,lon1,lat2,lon2))
-locs['velocity_calc'] = locs['d_diff']/locs['t_diff']
 
+""" ANALYSIS """""""""""""""""""""""""""""""""""""""""""""""""""""
+
+locs = hlp.calculateVelocity(locs)
 labels, values = hlp.pieChartInfoPlus(trips)
-
 hlp.checkTrips(trips)
 
 idx = pd.date_range(locs.index[0].date(), locs.index[-1].date())
 perDay = (locs.groupby(locs.index.date).count()['timestampMs'])
 perDay = perDay.reindex(idx, fill_value=0)
+
+
+""" PLOT """""""""""""""""""""""""""""""""""""""""""""""""""""
 
 fig = make_subplots(
     rows=2, cols=2,
@@ -52,7 +59,6 @@ fig = make_subplots(
     row_heights=[0.4, 0.6],
     specs=[[{"type": "Bar", "colspan": 2}, None],
            [ {"type": "scattergeo"}    , {"type": "Pie"}]])
-
 
 fig.add_trace( 
     go.Bar(x=list(perDay.index), 
@@ -79,7 +85,6 @@ fig.add_trace(
     row=2, col=1
     )
 
-
 fig.update_geos(
         showland = True,
         landcolor = "rgb(212, 212, 212)",
@@ -91,3 +96,7 @@ fig.update_geos(
         showcountries = True,         
 )
 fig.show()
+
+
+fig2 = px.histogram(locs, x="d_diff")
+fig2.show()
