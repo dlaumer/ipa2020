@@ -20,9 +20,9 @@ pio.renderers.default = "browser"
 import help_functions as hlp
 #import noiserm_functions as nrm
 
-dataName = 'Daniel'
+dataName = 'Lauro'
 
-""" IMPORT DATA """""""""""""""""""""""""""""""""""""""""""""""""""""
+#%% IMPORT DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if dataName == 'Daniel':
     dataPathLocs = '../Takeout_Daniel_Feb/Location History/Location History.json'
@@ -35,24 +35,29 @@ elif dataName == 'Lauro':
     dataPathTrips = '../Takeout_Lauro_Mar/Standortverlauf/Semantic Location History/'
 
 locs = hlp.parseLocs(dataPathLocs)
-trips, tripdf = hlp.parseTrips(dataPathTrips)
+trips, tripdf, tripsgdf = hlp.parseTrips(dataPathTrips)
 
-""" EXPORT SHP """""""""""""""""""""""""""""""""""""""""""""""""""""
-hlp.df2shp(locs, '../shp/Loc_'+dataName)
+#%% EXPORT SHP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#hlp.loc2shp(locs, dataName)
+hlp.trip2shp(tripsgdf, dataName)
 
-
-""" ANALYSIS """""""""""""""""""""""""""""""""""""""""""""""""""""
-
+#%% ANALYSIS  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Velovity
 locs = hlp.calculateVelocity(locs)
 labels, values = hlp.pieChartInfoPlus(trips)
 hlp.checkTrips(trips)
 
+# Number of points per day
 idx = pd.date_range(locs.index[0].date(), locs.index[-1].date())
 perDay = (locs.groupby(locs.index.date).count()['timestampMs'])
 perDay = perDay.reindex(idx, fill_value=0)
 
+#Accuracy
+for i in [30,40,50,60,70]:
+    #print('Lower then '+str(i)+'m: '+str(round(100*len(locs[locs['accuracy'].lt(i)])/len(locs),2)))
+    pass
 
-""" PLOT """""""""""""""""""""""""""""""""""""""""""""""""""""
+#%% PLOT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 fig = make_subplots(
     rows=2, cols=2,
@@ -95,7 +100,7 @@ fig.update_geos(
         showsubunits = True,
         showcountries = True,         
 )
-fig.show()
+#fig.show()
 
-fig2 = px.histogram(locs, x="d_diff")
-fig2.show()
+fig2 = px.histogram(locs, x="accuracy")
+#fig2.show()

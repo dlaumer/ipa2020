@@ -16,9 +16,9 @@ import numpy as np
 
 import json
 import pandas as pd
-import geopandas
-import shapefile # To create ESRI shp formated files (to use in ArcMap or QGIS)
-
+import geopandas as gpd
+from shapely.geometry import Point, LineString
+import fiona
 
 def parseLocs(dataPath):
     """
@@ -43,8 +43,8 @@ def parseLocs(dataPath):
     df = df.set_index('datetimeCH')
     df['latitudeE7'] = df['latitudeE7'].astype(float)/10000000
     df['longitudeE7'] = df['longitudeE7'].astype(float)/10000000
-    gdf = geopandas.GeoDataFrame(
-    df, geometry=geopandas.points_from_xy(df['longitudeE7'], df['latitudeE7']))
+    gdf = gpd.GeoDataFrame(
+    df, geometry=gpd.points_from_xy(df['longitudeE7'], df['latitudeE7']))
     return gdf
 
 def parseTrips(dataPath):
@@ -61,9 +61,13 @@ def parseTrips(dataPath):
     df : df - pandas dataframe of the data
 
     """
+    gdf = gpd.GeoDataFrame()
+    gdf['geometry'] = None
+
     allData = {}
     d = []
     dirs = os.listdir(dataPath)
+    i = 0
     for year in dirs:
         if year.isdigit():
             dataPathYear = os.path.join(dataPath, year)
@@ -77,12 +81,48 @@ def parseTrips(dataPath):
                             data = json.load(f)
                             allData[year][month] = data['timelineObjects']
                             for obj in data['timelineObjects']:
-                                tempData = {'Year':year, 'Month': month, 'Type':list(obj)[0]}
+                                typ = list(obj)[0]
+                                tempData = {'Year':year, 'Month': month, 'Type':typ}
                                 tempData.update(obj[list(obj)[0]])
                                 d.append(tempData)
+                                
+                                gdf.loc[i,'Year'] = year
+                                gdf.loc[i,'Month'] = month
+                                gdf.loc[i,'Type'] = typ
+                                entry = obj[typ]                                
+                                gdf.loc[i,'startTime'] = pd.to_datetime(entry['duration']['startTimestampMs'],  unit='ms') + pd.DateOffset(hours=1)
+                                gdf.loc[i,'endTime'] = pd.to_datetime(entry['duration']['endTimestampMs'],  unit='ms') + pd.DateOffset(hours=1)
+                                if typ == 'activitySegment':
+                                    coordinates = []
+                                    try:
+                                        coordinates.append((entry['startLocation']['longitudeE7']/10000000,entry['startLocation']['latitudeE7']/10000000))
+                                        if 'waypointPath' in list(entry):
+                                            for point in entry['waypointPath']['waypoints']:
+                                                coordinates.append((point['lngE7']/10000000,point['latE7']/10000000))
+                                        coordinates.append((entry['endLocation']['longitudeE7']/10000000,entry['endLocation']['latitudeE7']/10000000))
+                                        shape = LineString(coordinates)
+                                    except: 
+                                        shape = LineString()
+                                    gdf.loc[i,'distance'] = entry.get('distance',None)
+                                    gdf.loc[i,'actType'] = entry['activityType']
+                                    gdf.loc[i,'confidence'] = entry.get('confidence',None)
+                                else:
+                                    pass
+                                    gdf.loc[i,'confidence'] = entry.get('placeConfidence',None)
+                                    try:
+                                        coordinates = (entry['centerLngE7']/10000000,entry['centerLatE7']/10000000)
+                                        shape = Point(coordinates)
+                                    except:
+                                        try:
+                                            coordinates = (entry['location']['longitudeE7']/10000000,entry['location']['latitudeE7']/10000000)
+                                            shape = Point(coordinates)
+                                        except:
+                                            shape = Point()
+                                gdf.loc[i, 'geometry'] = shape
+                                i = i + 1
                         f.close()                       
     df = pd.DataFrame(d)
-    return allData, df
+    return allData, df, gdf
 
 def stats(locs, trips):
     """
@@ -244,7 +284,7 @@ def haversine(lat1,lon1,lat2,lon2):
     km = 6367 * c
     return km
 
-def df2shp(locs, filename):
+def loc2shp(locs, dataName):
     """
     This function saves the location data to a shapefile
 
@@ -260,7 +300,32 @@ def df2shp(locs, filename):
     None.
 
     """
-    locs = locs.drop('activity', axis=1)
+    try:
+        locs = locs.drop('activity', axis=1)
+    except:
+        pass
     locs['date'] = locs['date'].astype(str)
     locs['datetimeUTC'] = locs['datetimeUTC'].astype(str)
-    locs.to_file(filename +'.shp')
+    locs.to_file('../shp/Loc_'+dataName +'.shp')
+    
+def trip2shp(trips, dataName):
+    """
+    This function saves the location data to a shapefile
+
+    Parameters
+    ----------
+    locs : TYPE
+        DESCRIPTION.
+    filename : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    """
+    trips['startTime'] = trips['startTime'].astype(str)
+    trips['endTime'] = trips['endTime'].astype(str)
+
+    trips[trips['Type']=='activitySegment'].to_file('../shp/Trip_'+dataName +'.shp')  
+    trips[trips['Type']=='placeVisit'].to_file('../shp/Place_'+dataName +'.shp')
