@@ -45,7 +45,7 @@ def parseLocs(dataPath):
     df['longitudeE7'] = df['longitudeE7'].astype(float)/10000000
     gdf = gpd.GeoDataFrame(
     df, geometry=gpd.points_from_xy(df['longitudeE7'], df['latitudeE7']))
-    return gdf
+    return df, gdf
 
 def parseTrips(dataPath):
     """
@@ -260,7 +260,7 @@ def calculateVelocity(locs):
     locs['velocity_calc'] = locs['d_diff']/locs['t_diff']
     return locs
 
-
+#%%
 def haversine(lat1,lon1,lat2,lon2):
     """
     This function calculates the distance between two points on a sphere
@@ -274,16 +274,19 @@ def haversine(lat1,lon1,lat2,lon2):
 
     Returns
     -------
-    km : float - Distance between points in km (m?)
+    m : float - Distance between points in m
 
     """
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+    
     dlon = lon2 - lon1 
     dlat = lat2 - lat1 
     a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
     c = 2 * asin(sqrt(a)) 
-    km = 6367 * c
-    return km
+    m = 6367 * c * 1000
+    return m
 
+#%%
 def loc2shp(locs, dataName):
     """
     This function saves the location data to a shapefile
@@ -327,5 +330,5 @@ def trip2shp(trips, dataName):
     trips['startTime'] = trips['startTime'].astype(str)
     trips['endTime'] = trips['endTime'].astype(str)
 
-    trips[trips['Type']=='activitySegment'].to_file('../shp/Trip_'+dataName +'.shp')  
-    trips[trips['Type']=='placeVisit'].to_file('../shp/Place_'+dataName +'.shp')
+    trips[trips['Type']=='activitySegment'].to_file('..\shp\Trip_'+dataName +'.shp')  
+    trips[trips['Type']=='placeVisit'].to_file('..\shp\Place_'+dataName +'.shp')
