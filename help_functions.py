@@ -260,6 +260,8 @@ def calculateVelocity(locs):
     locs['velocity_calc'] = locs['d_diff']/locs['t_diff']
     return locs
 
+def findStayPoints(locs):
+    pass
 
 def haversine(lat1,lon1,lat2,lon2):
     """
@@ -290,10 +292,8 @@ def loc2shp(locs, dataName):
 
     Parameters
     ----------
-    locs : TYPE
-        DESCRIPTION.
-    filename : TYPE
-        DESCRIPTION.
+    locs : gdf - individual location data
+    dataName : str - Name of the dataset
 
     Returns
     -------
@@ -314,10 +314,8 @@ def trip2shp(trips, dataName):
 
     Parameters
     ----------
-    locs : TYPE
-        DESCRIPTION.
-    filename : TYPE
-        DESCRIPTION.
+    trips : gdf - Semantic information (points and lines)
+    dataName : str - Name of the dataset
 
     Returns
     -------
