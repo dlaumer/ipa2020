@@ -20,7 +20,13 @@ pio.renderers.default = "browser"
 import help_functions as hlp
 #import noiserm_functions as nrm
 
-dataName = 'Lauro'
+dataName = 'Haojun'
+SAVE_SHP =          False
+CHECK_VELO =        False
+FIND_STAY_POINTS =  False
+CHECK_NB_POINTS =   False
+CHECK_ACCURACY =    False
+PLOT =              False
 
 #%% IMPORT DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -38,69 +44,79 @@ locs = hlp.parseLocs(dataPathLocs)
 trips, tripdf, tripsgdf = hlp.parseTrips(dataPathTrips)
 
 #%% EXPORT SHP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#hlp.loc2shp(locs, dataName)
-hlp.trip2shp(tripsgdf, dataName)
+if SAVE_SHP:
+    hlp.loc2shp(locs, dataName)
+    hlp.trip2shp(tripsgdf, dataName)
 
 #%% ANALYSIS  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Velovity
-locs = hlp.calculateVelocity(locs)
-labels, values = hlp.pieChartInfoPlus(trips)
-hlp.checkTrips(trips)
+if CHECK_VELO:
+    locs = hlp.calculateVelocity(locs)
 
-# Number of points per day
-idx = pd.date_range(locs.index[0].date(), locs.index[-1].date())
-perDay = (locs.groupby(locs.index.date).count()['timestampMs'])
-perDay = perDay.reindex(idx, fill_value=0)
+if FIND_STAY_POINTS:
+    th_dist = 300
+    th_time = 30*60*1000
+    stayPoints = hlp.findStayPoints(locs, th_dist, th_time)
 
 #Accuracy
-for i in [30,40,50,60,70]:
-    #print('Lower then '+str(i)+'m: '+str(round(100*len(locs[locs['accuracy'].lt(i)])/len(locs),2)))
-    pass
+if CHECK_ACCURACY:
+    for i in [30,40,50,60,70]:
+        print('Lower then '+str(i)+'m: '+str(round(100*len(locs[locs['accuracy'].lt(i)])/len(locs),2)))
+
+# Number of points per day
+if CHECK_NB_POINTS:
+    idx = pd.date_range(locs.index[0].date(), locs.index[-1].date())
+    perDay = (locs.groupby(locs.index.date).count()['timestampMs'])
+    perDay = perDay.reindex(idx, fill_value=0)
+
+#hlp.checkTrips(trips)
 
 #%% PLOT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if PLOT:
+    labels, values = hlp.pieChartInfoPlus(trips)
 
-fig = make_subplots(
+    fig = make_subplots(
     rows=2, cols=2,
     column_widths=[0.6, 0.4],
     row_heights=[0.4, 0.6],
     specs=[[{"type": "Bar", "colspan": 2}, None],
            [ {"type": "scattergeo"}    , {"type": "Pie"}]])
 
-fig.add_trace( 
-    go.Bar(x=list(perDay.index), 
-           y=list(perDay),
-           name="Number of points per day"
-           ),
-    row=1, col=1
-    )
-
-fig.add_trace( 
-    go.Pie(labels=labels, values=values),
-    row=2, col=2
-    )
+    fig.add_trace( 
+        go.Bar(x=list(perDay.index), 
+               y=list(perDay),
+               name="Number of points per day"
+               ),
+        row=1, col=1
+        )
     
-fig.add_trace(
-    go.Scattergeo(
-        lon = locs['longitudeE7'],
-        lat = locs['latitudeE7'],
-        text = locs['datetimeUTC'],
-        mode = 'markers',
-        name="Recorded Points"
-        ),
-    row=2, col=1
-    )
-
-fig.update_geos(
-        showland = True,
-        landcolor = "rgb(212, 212, 212)",
-        subunitcolor = "rgb(255, 255, 255)",
-        countrycolor = "rgb(255, 255, 255)",
-        showlakes = True,
-        lakecolor = "rgb(255, 255, 255)",
-        showsubunits = True,
-        showcountries = True,         
-)
-#fig.show()
-
-fig2 = px.histogram(locs, x="accuracy")
-#fig2.show()
+    fig.add_trace( 
+        go.Pie(labels=labels, values=values),
+        row=2, col=2
+        )
+        
+    fig.add_trace(
+        go.Scattergeo(
+            lon = locs['longitudeE7'],
+            lat = locs['latitudeE7'],
+            text = locs['datetimeUTC'],
+            mode = 'markers',
+            name="Recorded Points"
+            ),
+        row=2, col=1
+        )
+    
+    fig.update_geos(
+            showland = True,
+            landcolor = "rgb(212, 212, 212)",
+            subunitcolor = "rgb(255, 255, 255)",
+            countrycolor = "rgb(255, 255, 255)",
+            showlakes = True,
+            lakecolor = "rgb(255, 255, 255)",
+            showsubunits = True,
+            showcountries = True,         
+            )
+    fig.show()
+    
+    fig2 = px.histogram(locs, x="accuracy")
+    fig2.show()
