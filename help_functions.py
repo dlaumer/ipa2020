@@ -19,6 +19,9 @@ import pandas as pd
 import geopandas as gpd
 from shapely.geometry import Point, LineString
 import fiona
+import gpxpy
+import gpxpy.gpx
+from lxml import etree
 
 def parseLocs(dataPath):
     """
@@ -61,7 +64,7 @@ def parseTrips(dataPath):
     df : df - pandas dataframe of the data
 
     """
-    gdf = gpd.GeoDataFrame()
+    gdf = gpd.GeoDataFrame(crs={'init':'epsg:4326'})
     gdf['geometry'] = None
 
     allData = {}
@@ -327,3 +330,89 @@ def trip2shp(trips, dataName):
 
     trips[trips['Type']=='activitySegment'].to_file('..\shp\Trip_'+dataName +'.shp')  
     trips[trips['Type']=='placeVisit'].to_file('..\shp\Place_'+dataName +'.shp')
+
+def haversine_np(lon1, lat1, lon2, lat2):
+    """
+    Calculate the great circle distance between two points
+    on the earth (specified in decimal degrees)
+
+    All args must be of equal length.    
+
+    """
+    lon1, lat1, lon2, lat2 = map(np.radians, [lon1, lat1, lon2, lat2])
+
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+
+    a = np.sin(dlat/2.0)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon/2.0)**2
+
+    c = 2 * np.arcsin(np.sqrt(a))
+    km = 6367 * c
+    return km
+
+def distance(x):
+    y = x.shift()
+    return haversine_np(x['latitudeE7'], x['longitudeE7'], y['latitudeE7'], y['longitudeE7']).fillna(0)
+
+def loc2csv4ti(locs, dataname):
+    locs = locs[['latitudeE7', 'longitudeE7', 'altitude', 'accuracy', 'velocity']]
+    locs.loc[:,'user_id'] = '1'
+    locs.rename(columns = {'latitudeE7':'latitude', 'longitudeE7': 'longitude', 'altitude':'elevation'}, inplace = True)
+    locs.loc[:,'tracked_at'] = locs.index.astype(str)
+    if not(os.path.exists('../csv/')):
+        os.mkdir('../csv/')
+    locs.to_csv('../csv/' + dataname + '.csv', index=False, sep=';')
+    
+def trip2gpx(trips, dataname):
+    if not(os.path.exists('../gpx/')):
+        os.mkdir('../gpx/')
+    for idx in trips.index:
+        gpx = gpxpy.gpx.GPX()
+    
+        # Create first track in our GPX:
+        gpx_track = gpxpy.gpx.GPXTrack()
+        gpx.tracks.append(gpx_track)
+        
+        # Create first segment in our GPX track:
+        gpx_segment = gpxpy.gpx.GPXTrackSegment()
+        gpx_track.segments.append(gpx_segment)
+        
+        # Create points:
+        for coord in trips.loc[idx,'geometry'].coords:
+            gpx_segment.points.append(gpxpy.gpx.GPXTrackPoint(coord[1], coord[0]))
+        
+        #print(gpx.to_xml())
+        with open('../gpx/' + dataname + '_' + str(idx) + '.gpx', 'w') as f:
+            f.write(gpx.to_xml())
+        prepareGPXforAPI('../gpx/' + dataname + '_' + str(idx) + '.gpx')
+            
+def prepareGPXforAPI(path):
+    parser = etree.XMLParser(remove_blank_text=True)
+    tree = etree.parse(path, parser)  
+    #etree.register_namespace('gpx',"http://www.topografix.com/GPX/1/1")
+    root = tree.getroot()
+    
+    meta = etree.Element('metadata')
+    
+    name = etree.SubElement(meta, 'name')
+    name.text = 'ETH.GEO.ZPHERES.001'
+    
+    extensions = etree.SubElement(meta, 'extensions')
+    ZpheresMetadata = etree.SubElement(extensions, 'ZpheresMetadata')
+    
+    etree.SubElement(ZpheresMetadata, 'ZPathName').text = '1-A'
+    etree.SubElement(ZpheresMetadata, 'PathRefID').text = '1-A'
+    etree.SubElement(ZpheresMetadata, 'routeid').text = '1'
+    etree.SubElement(ZpheresMetadata, 'color').text = '#e67e22'
+    etree.SubElement(ZpheresMetadata, 'directionA').text = 'true'
+    etree.SubElement(ZpheresMetadata, 'sourceID').text = 'src123'
+    etree.SubElement(ZpheresMetadata, 'WayPointSnappingRadius').text = '25'
+    etree.SubElement(ZpheresMetadata, 'MaintainPathShape').text = 'true'
+    etree.SubElement(ZpheresMetadata, 'ReducePathPoints').text = 'false'
+    
+    link = etree.SubElement(meta, 'link', href="http://geo.zpheres.com")
+    link.text = "GEO Zpheres"
+    
+    root.insert(0, meta)
+    etree.dump(root)
+    tree.write(path,encoding="utf-8", xml_declaration=True, pretty_print=True)
