@@ -23,6 +23,21 @@ import gpxpy
 import gpxpy.gpx
 from lxml import etree
 
+
+def getDataPaths(participantId):
+    rootPath = "../../4-Collection/DataParticipants/"
+    path = rootPath + participantId + "/Takeout/"
+    if os.path.exists(path + "archive_browser.html"):        
+        dataPathLocs = path + '/Location History/Location History.json'
+        dataPathTrips = path + '/Location History/Semantic Location History/'
+    elif os.path.exists(path + "Archiv_Übersicht.html"): 
+        dataPathLocs =  path + '/Standortverlauf/Standortverlauf.json'
+        dataPathTrips =  path + '/Standortverlauf/Semantic Location History/'
+    else:
+        raise TypeError('The files are not in the needed format!')
+    return dataPathLocs,dataPathTrips
+
+
 def parseLocs(dataPath):
     """
     Parse the location file
@@ -309,7 +324,7 @@ def loc2shp(locs, dataName):
         pass
     locs['date'] = locs['date'].astype(str)
     locs['datetimeUTC'] = locs['datetimeUTC'].astype(str)
-    locs.to_file('../shp/Loc_'+dataName +'.shp')
+    locs.to_file('../data/shp/Loc_'+dataName +'.shp')
     
 def trip2shp(trips, dataName):
     """
@@ -328,8 +343,8 @@ def trip2shp(trips, dataName):
     trips['startTime'] = trips['startTime'].astype(str)
     trips['endTime'] = trips['endTime'].astype(str)
 
-    trips[trips['Type']=='activitySegment'].to_file('..\shp\Trip_'+dataName +'.shp')  
-    trips[trips['Type']=='placeVisit'].to_file('..\shp\Place_'+dataName +'.shp')
+    trips[trips['Type']=='activitySegment'].to_file('../data/shp/Trip_'+dataName +'.shp')  
+    trips[trips['Type']=='placeVisit'].to_file('../data/shp/Place_'+dataName +'.shp')
 
 def haversine_np(lon1, lat1, lon2, lat2):
     """
@@ -359,13 +374,13 @@ def loc2csv4ti(locs, dataname):
     locs.loc[:,'user_id'] = '1'
     locs.rename(columns = {'latitudeE7':'latitude', 'longitudeE7': 'longitude', 'altitude':'elevation'}, inplace = True)
     locs.loc[:,'tracked_at'] = locs.index.astype(str)
-    if not(os.path.exists('../csv/')):
-        os.mkdir('../csv/')
-    locs.to_csv('../csv/' + dataname + '.csv', index=False, sep=';')
+    if not(os.path.exists('../data/csv/')):
+        os.mkdir('../data/csv/')
+    locs.to_csv('../data/csv/' + dataname + '.csv', index=False, sep=';')
     
 def trip2gpx(trips, dataname):
-    if not(os.path.exists('../gpx/')):
-        os.mkdir('../gpx/')
+    if not(os.path.exists('../data/gpx/')):
+        os.mkdir('../data/gpx/')
     for idx in trips.index:
         gpx = gpxpy.gpx.GPX()
     
@@ -382,11 +397,11 @@ def trip2gpx(trips, dataname):
             gpx_segment.points.append(gpxpy.gpx.GPXTrackPoint(coord[1], coord[0]))
         
         #print(gpx.to_xml())
-        with open('../gpx/' + dataname + '_' + str(idx) + '.gpx', 'w') as f:
+        with open('../data/gpx/' + dataname + '_' + str(idx) + '.gpx', 'w') as f:
             f.write(gpx.to_xml())
-        prepareGPXforAPI('../gpx/' + dataname + '_' + str(idx) + '.gpx')
+        prepareGPXforAPI('../data/gpx/' + dataname + '_' + str(idx) + '.gpx', str(idx))
             
-def prepareGPXforAPI(path):
+def prepareGPXforAPI(path, pathId):
     parser = etree.XMLParser(remove_blank_text=True)
     tree = etree.parse(path, parser)  
     #etree.register_namespace('gpx',"http://www.topografix.com/GPX/1/1")
@@ -401,7 +416,7 @@ def prepareGPXforAPI(path):
     ZpheresMetadata = etree.SubElement(extensions, 'ZpheresMetadata')
     
     etree.SubElement(ZpheresMetadata, 'ZPathName').text = '1-A'
-    etree.SubElement(ZpheresMetadata, 'PathRefID').text = '1-A'
+    etree.SubElement(ZpheresMetadata, 'PathRefID').text = pathId
     etree.SubElement(ZpheresMetadata, 'routeid').text = '1'
     etree.SubElement(ZpheresMetadata, 'color').text = '#e67e22'
     etree.SubElement(ZpheresMetadata, 'directionA').text = 'true'
