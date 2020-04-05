@@ -22,17 +22,22 @@ import fiona
 import gpxpy
 import gpxpy.gpx
 from lxml import etree
+import bisect # To find an index in a sorted list
 
 
 def getDataPaths(participantId):
     rootPath = "../../4-Collection/DataParticipants/"
     path = rootPath + participantId + "/Takeout/"
-    if os.path.exists(path + "archive_browser.html"):        
+    if os.path.exists(path + "Location History/"):        
         dataPathLocs = path + '/Location History/Location History.json'
         dataPathTrips = path + '/Location History/Semantic Location History/'
-    elif os.path.exists(path + "Archiv_Übersicht.html"): 
+    elif os.path.exists(path + "Standortverlauf/"): 
         dataPathLocs =  path + '/Standortverlauf/Standortverlauf.json'
         dataPathTrips =  path + '/Standortverlauf/Semantic Location History/'
+    elif os.path.exists(path + "Historique des positions/"): 
+        dataPathLocs =  path + '/Historique des positions/Historique des positions.json'
+        dataPathTrips =  path + '/Historique des positions/Semantic Location History/'
+
     else:
         raise TypeError('The files are not in the needed format!')
     return dataPathLocs,dataPathTrips
@@ -304,7 +309,7 @@ def haversine(lat1,lon1,lat2,lon2):
     return m
 
 #%%
-def loc2shp(locs, dataName):
+def loc2shp(locs, dataname):
     """
     This function saves the location data to a shapefile
 
@@ -324,9 +329,11 @@ def loc2shp(locs, dataName):
         pass
     locs['date'] = locs['date'].astype(str)
     locs['datetimeUTC'] = locs['datetimeUTC'].astype(str)
-    locs.to_file('../data/shp/Loc_'+dataName +'.shp')
+    if not(os.path.exists('../data/shp/'+ dataname + '/')):
+        os.mkdir('../data/shp/'+ dataname + '/')
+    locs.to_file('../data/shp/'+ dataname + '/Loc.shp')
     
-def trip2shp(trips, dataName):
+def trip2shp(trips, dataname):
     """
     This function saves the location data to a shapefile
 
@@ -342,9 +349,11 @@ def trip2shp(trips, dataName):
     """
     trips['startTime'] = trips['startTime'].astype(str)
     trips['endTime'] = trips['endTime'].astype(str)
-
-    trips[trips['Type']=='activitySegment'].to_file('../data/shp/Trip_'+dataName +'.shp')  
-    trips[trips['Type']=='placeVisit'].to_file('../data/shp/Place_'+dataName +'.shp')
+    
+    if not(os.path.exists('../data/shp/'+ dataname + '/')):
+        os.mkdir('../data/shp/'+ dataname + '/')
+    trips[trips['Type']=='activitySegment'].to_file('../data/shp/'+ dataname + '/Trip.shp')  
+    trips[trips['Type']=='placeVisit'].to_file('../data/shp/'+ dataname + '/Place.shp')
 
 def haversine_np(lon1, lat1, lon2, lat2):
     """
@@ -374,13 +383,13 @@ def loc2csv4ti(locs, dataname):
     locs.loc[:,'user_id'] = '1'
     locs.rename(columns = {'latitudeE7':'latitude', 'longitudeE7': 'longitude', 'altitude':'elevation'}, inplace = True)
     locs.loc[:,'tracked_at'] = locs.index.astype(str)
-    if not(os.path.exists('../data/csv/')):
-        os.mkdir('../data/csv/')
-    locs.to_csv('../data/csv/' + dataname + '.csv', index=False, sep=';')
+    if not(os.path.exists('../data/csv/'+ dataname + '/')):
+        os.mkdir('../data/csv/'+ dataname + '/')
+    locs.to_csv('../data/csv/' + dataname + '/' + '.csv', index=False, sep=';')
     
 def trip2gpx(trips, dataname):
-    if not(os.path.exists('../data/gpx/')):
-        os.mkdir('../data/gpx/')
+    if not(os.path.exists('../data/gpx/'+ dataname + '/')):
+        os.mkdir('../data/gpx/'+ dataname + '/')
     for idx in trips.index:
         gpx = gpxpy.gpx.GPX()
     
@@ -399,7 +408,7 @@ def trip2gpx(trips, dataname):
         #print(gpx.to_xml())
         with open('../data/gpx/' + dataname + '_' + str(idx) + '.gpx', 'w') as f:
             f.write(gpx.to_xml())
-        prepareGPXforAPI('../data/gpx/' + dataname + '_' + str(idx) + '.gpx', str(idx))
+        prepareGPXforAPI('../data/gpx/' + dataname + '/' + str(idx) + '.gpx', str(idx))
             
 def prepareGPXforAPI(path, pathId):
     parser = etree.XMLParser(remove_blank_text=True)
@@ -431,3 +440,53 @@ def prepareGPXforAPI(path, pathId):
     root.insert(0, meta)
     etree.dump(root)
     tree.write(path,encoding="utf-8", xml_declaration=True, pretty_print=True)
+
+def selectRange(dataPathLoc,dataPathTrip, dateStart = 'beginning', dateEnd = 'end'):
+    
+    # Location File
+    if (type(dataPathLoc) is str):
+        with open(dataPathLoc) as f:
+            jsonData = json.load(f)
+    else:
+        jsonData = dataPathLoc
+    if dateStart == 'beginning':
+        dateStart = int(jsonData["locations"][0]["timestampMs"])
+    else:
+        dateTemp = pd.to_datetime([dateStart])
+        dateStart = (dateTemp - pd.Timestamp("1970-01-01")) // pd.Timedelta('1ms')  
+        
+    if dateEnd == 'end':
+        dateEnd = int(jsonData["locations"][-1]["timestampMs"])
+    else:
+        dateTemp = pd.to_datetime([dateEnd])
+        dateEnd = (dateTemp - pd.Timestamp("1970-01-01")) // pd.Timedelta('1ms')  
+    
+    
+    #timestamps = pd.json_normalize(jsonData, 'locations')['timestampMs'].astype(int)
+    timestamps = pd.Series([x['timestampMs'] for x in jsonData['locations']]).astype(int)
+    
+    indexStart = bisect.bisect_right(timestamps,dateStart)
+    indexEnd = bisect.bisect_left(timestamps,dateEnd)
+    
+    jsonData["locations"] = jsonData["locations"][indexStart:indexEnd]
+    if (type(dataPathLoc) is str):
+        with open(dataPathLoc[:-5] + "_trimmed.json", 'w') as outfile:
+            json.dump(jsonData, outfile)
+    
+    # Trip files
+    for root,dirs,files in os.walk(dataPathTrip):
+       years = dirs
+       break
+    
+    startYear = pd.to_datetime(dateStart,  unit='ms').year
+    endYear = pd.to_datetime(dateEnd,  unit='ms').year
+    
+    for year in years:
+        if year >= startYear and year <=endYear:
+            for root,dirs,files in os.walk(dataPathTrip + '/' + year):
+               months = files
+               break
+            for month in months:
+                if year == startYear and 
+    
+    return jsonData

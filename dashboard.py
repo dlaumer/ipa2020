@@ -9,43 +9,61 @@ Authors:    Daniel Laumer (laumerd@ethz.ch)
 import pandas as pd
 import numpy as np
 import math
+import json
+import os
 
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.io as pio
 pio.renderers.default = "browser"
+import trackintel as ti
+from trackintel.geogr.distances import meters_to_decimal_degrees
+
 
 # Local files
 import help_functions as hlp
 #import noiserm_functions as nrm
 
-dataName = 'Haojun'
-SAVE_SHP =          False
+dataName = '1'
+SELECT_RANGE =      False
+EXPORT_GPX =        False
+SAVE_SHP =          True
 CHECK_VELO =        False
-FIND_STAY_POINTS =  False
+FIND_STAY_POINTS =  True
 CHECK_NB_POINTS =   False
 CHECK_ACCURACY =    False
 PLOT =              False
 
+
+#%% SELECT RANGE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 #%% IMPORT DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if dataName == 'Daniel':
-    dataPathLocs = '../Takeout_Daniel_Feb/Location History/Location History.json'
-    dataPathTrips = '../Takeout_Daniel_Feb/Location History/Semantic Location History/'
-elif dataName == 'Haojun':
-    dataPathLocs = '../Takeout_Haojun_Feb/Location History/Location History.json'
-    dataPathTrips = '../Takeout_Haojun_Feb/Location History/Semantic Location History/'
-elif dataName == 'Lauro':
-    dataPathLocs = '../Takeout_Lauro_Mar/Standortverlauf/Standortverlauf.json'
-    dataPathTrips = '../Takeout_Lauro_Mar/Standortverlauf/Semantic Location History/'
+dataPathLocs,dataPathTrips = hlp.getDataPaths(dataName)
 
-locs = hlp.parseLocs(dataPathLocs)
+if SELECT_RANGE:    
+    dateStart = '2020-01-01 12:00:00'
+    dateEnd = '2020-01-02'
+    jsonDataOut = hlp.selectRange(dataPathLocs, dataPathTrips, dateStart = dateStart, dateEnd = dateEnd)
+    dataPathLocs = dataPathLocs[:-5] + "_trimmed.json"
+    
+locs, locsgdf = hlp.parseLocs(dataPathLocs)
 trips, tripdf, tripsgdf = hlp.parseTrips(dataPathTrips)
+
+#%% EXPORT GPX %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if EXPORT_GPX:
+    tripsgdf_test = tripsgdf.copy()
+    for idx in tripsgdf_test.index:
+        tripsgdf_test.loc[idx,'countPoints'] = len(tripsgdf_test.loc[idx,'geometry'].coords)
+    
+    tripsgdf_test = tripsgdf_test.loc[[11,13,242,350]]
+    hlp.trip2gpx(tripsgdf_test,dataName)
 
 #%% EXPORT SHP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if SAVE_SHP:
-    hlp.loc2shp(locs, dataName)
+    hlp.loc2shp(locsgdf, dataName)
     hlp.trip2shp(tripsgdf, dataName)
 
 #%% ANALYSIS  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -54,9 +72,27 @@ if CHECK_VELO:
     locs = hlp.calculateVelocity(locs)
 
 if FIND_STAY_POINTS:
-    th_dist = 300
-    th_time = 30*60*1000
-    stayPoints = hlp.findStayPoints(locs, th_dist, th_time)
+    if not(os.path.exists('../data/shp/'+ dataName + '/')):
+        os.mkdir('../data/shp/'+ dataName + '/')
+                
+    hlp.loc2csv4ti(locs, dataName)
+    pfs = ti.read_positionfixes_csv('../data/csv/'+dataName +'.csv', sep=';')
+    
+    # Find staypoints
+    stps = pfs.as_positionfixes.extract_staypoints(method='sliding',
+        dist_threshold=100, time_threshold=5*60)
+    stps_shp = stps.copy()
+    stps_shp['started_at'] = stps_shp['started_at'].astype(str)
+    stps_shp['finished_at'] = stps_shp['finished_at'].astype(str)
+    stps_shp.to_file('../data/shp/'+dataName +'/Staypoints.shp')
+    
+    # Find places
+    plcs = stps.as_staypoints.extract_places(method='dbscan',
+        epsilon=meters_to_decimal_degrees(80, 47.5), num_samples=6)
+    plcs.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/Places.shp')
+    plcs.geometry = plcs['extent']
+    plcs.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/Places_extent.shp')
+
 
 #Accuracy
 if CHECK_ACCURACY:
