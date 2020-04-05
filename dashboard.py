@@ -6,6 +6,7 @@ Created on Thu Feb 27 10:09:23 2020
 Authors:    Daniel Laumer (laumerd@ethz.ch)
             Haojun Cai (caihao@ethz.ch)
 """
+
 import pandas as pd
 import numpy as np
 import math
@@ -25,10 +26,10 @@ from trackintel.geogr.distances import meters_to_decimal_degrees
 import help_functions as hlp
 #import noiserm_functions as nrm
 
-dataName = '1'
-SELECT_RANGE =      False
+dataName = '10'
+SELECT_RANGE =      True
 EXPORT_GPX =        False
-SAVE_SHP =          True
+SAVE_SHP =          False
 CHECK_VELO =        False
 FIND_STAY_POINTS =  True
 CHECK_NB_POINTS =   False
@@ -44,10 +45,9 @@ PLOT =              False
 dataPathLocs,dataPathTrips = hlp.getDataPaths(dataName)
 
 if SELECT_RANGE:    
-    dateStart = '2020-01-01 12:00:00'
-    dateEnd = '2020-01-02'
-    jsonDataOut = hlp.selectRange(dataPathLocs, dataPathTrips, dateStart = dateStart, dateEnd = dateEnd)
-    dataPathLocs = dataPathLocs[:-5] + "_trimmed.json"
+    dateStart = '2019-04-01'
+    dateEnd = 'end'
+    dataPathLocs,dataPathTrips = hlp.selectRange(dataPathLocs, dataPathTrips, dateStart = dateStart, dateEnd = dateEnd)
     
 locs, locsgdf = hlp.parseLocs(dataPathLocs)
 trips, tripdf, tripsgdf = hlp.parseTrips(dataPathTrips)
@@ -71,12 +71,13 @@ if SAVE_SHP:
 if CHECK_VELO:
     locs = hlp.calculateVelocity(locs)
 
+#%%
 if FIND_STAY_POINTS:
     if not(os.path.exists('../data/shp/'+ dataName + '/')):
         os.mkdir('../data/shp/'+ dataName + '/')
                 
     hlp.loc2csv4ti(locs, dataName)
-    pfs = ti.read_positionfixes_csv('../data/csv/'+dataName +'.csv', sep=';')
+    pfs = ti.read_positionfixes_csv('../data/csv/'+dataName +'/' + dataName + '.csv', sep=';')
     
     # Find staypoints
     stps = pfs.as_positionfixes.extract_staypoints(method='sliding',
@@ -94,7 +95,7 @@ if FIND_STAY_POINTS:
     plcs.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/Places_extent.shp')
 
 
-#Accuracy
+#%%Accuracy
 if CHECK_ACCURACY:
     for i in [30,40,50,60,70]:
         print('Lower then '+str(i)+'m: '+str(round(100*len(locs[locs['accuracy'].lt(i)])/len(locs),2)))

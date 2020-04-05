@@ -23,6 +23,9 @@ import gpxpy
 import gpxpy.gpx
 from lxml import etree
 import bisect # To find an index in a sorted list
+import calendar
+from pathlib import Path
+from shutil import copyfile
 
 
 def getDataPaths(participantId):
@@ -385,7 +388,7 @@ def loc2csv4ti(locs, dataname):
     locs.loc[:,'tracked_at'] = locs.index.astype(str)
     if not(os.path.exists('../data/csv/'+ dataname + '/')):
         os.mkdir('../data/csv/'+ dataname + '/')
-    locs.to_csv('../data/csv/' + dataname + '/' + '.csv', index=False, sep=';')
+    locs.to_csv('../data/csv/' + dataname + '/' + dataname + '.csv', index=False, sep=';')
     
 def trip2gpx(trips, dataname):
     if not(os.path.exists('../data/gpx/'+ dataname + '/')):
@@ -442,7 +445,12 @@ def prepareGPXforAPI(path, pathId):
     tree.write(path,encoding="utf-8", xml_declaration=True, pretty_print=True)
 
 def selectRange(dataPathLoc,dataPathTrip, dateStart = 'beginning', dateEnd = 'end'):
+    newPath = str(Path(dataPathLoc).parents[2]) + "/" + dateStart + "_" + dateEnd + "/"
     
+    if os.path.exists(newPath):
+        return newPath + "Location History.json", newPath + "Semantic Location History/"
+    else:
+        os.mkdir(newPath)
     # Location File
     if (type(dataPathLoc) is str):
         with open(dataPathLoc) as f:
@@ -453,13 +461,13 @@ def selectRange(dataPathLoc,dataPathTrip, dateStart = 'beginning', dateEnd = 'en
         dateStart = int(jsonData["locations"][0]["timestampMs"])
     else:
         dateTemp = pd.to_datetime([dateStart])
-        dateStart = (dateTemp - pd.Timestamp("1970-01-01")) // pd.Timedelta('1ms')  
+        dateStart = ((dateTemp - pd.Timestamp("1970-01-01")) // pd.Timedelta('1ms'))[0]  
         
     if dateEnd == 'end':
         dateEnd = int(jsonData["locations"][-1]["timestampMs"])
     else:
         dateTemp = pd.to_datetime([dateEnd])
-        dateEnd = (dateTemp - pd.Timestamp("1970-01-01")) // pd.Timedelta('1ms')  
+        dateEnd = ((dateTemp - pd.Timestamp("1970-01-01")) // pd.Timedelta('1ms'))[0]  
     
     
     #timestamps = pd.json_normalize(jsonData, 'locations')['timestampMs'].astype(int)
@@ -470,7 +478,8 @@ def selectRange(dataPathLoc,dataPathTrip, dateStart = 'beginning', dateEnd = 'en
     
     jsonData["locations"] = jsonData["locations"][indexStart:indexEnd]
     if (type(dataPathLoc) is str):
-        with open(dataPathLoc[:-5] + "_trimmed.json", 'w') as outfile:
+        newDataPathLoc = newPath + "Location History.json"
+        with open(newPath + "Location History.json", 'w') as outfile:
             json.dump(jsonData, outfile)
     
     # Trip files
@@ -480,13 +489,45 @@ def selectRange(dataPathLoc,dataPathTrip, dateStart = 'beginning', dateEnd = 'en
     
     startYear = pd.to_datetime(dateStart,  unit='ms').year
     endYear = pd.to_datetime(dateEnd,  unit='ms').year
+    startMonth = pd.to_datetime(dateStart,  unit='ms').month
+    endMonth = pd.to_datetime(dateEnd,  unit='ms').month
+    
+    
+    newDataPathTrip = newPath + "Semantic Location History/"
+    if not(os.path.exists(newDataPathTrip)):
+        os.mkdir(newDataPathTrip)
     
     for year in years:
-        if year >= startYear and year <=endYear:
-            for root,dirs,files in os.walk(dataPathTrip + '/' + year):
-               months = files
-               break
-            for month in months:
-                if year == startYear and 
+        if int(year) >= startYear and int(year) <=endYear:
+            if not(os.path.exists(newDataPathTrip + year + "/")):
+                os.mkdir(newDataPathTrip + year + "/")
+
+            for month in range(1,13):
+                dateTemp = pd.to_datetime([year + '-' + str(month)])
+                if dateTemp >= pd.to_datetime([str(startYear) + '-' + str(startMonth)]) and dateTemp <= pd.to_datetime([str(endYear) + '-' + str(endMonth)]):
+                    filePath = dataPathTrip + year + "/" + year + "_" + calendar.month_name[month].upper() + ".json"
+                    newFilePath = newDataPathTrip + year + "/" + year + "_" + calendar.month_name[month].upper() + ".json"
+                    if os.path.exists(filePath):
+                        if (int(year) == startYear) and month == startMonth:
+                            _splitTripFile(filePath, newFilePath, dateStart, dateEnd)
+                        elif (int(year) == endYear) and month == endMonth:
+                            _splitTripFile(filePath, newFilePath, dateStart, dateEnd)
+                        else:
+                            copyfile(filePath , newFilePath)
+                
+    return newDataPathLoc, newDataPathTrip
+
+def _splitTripFile(filePath, newFilePath, dateStart, dateEnd):
+    with open(filePath) as f:
+        jsonData = json.load(f)
+            
+    timestamps = pd.Series([x[list(x)[0]]['duration']['startTimestampMs'] for x in jsonData['timelineObjects']]).astype(int)
     
-    return jsonData
+    indexStart = bisect.bisect_right(timestamps,dateStart)
+    indexEnd = bisect.bisect_left(timestamps,dateEnd)
+    
+    jsonData["timelineObjects"] = jsonData["timelineObjects"][indexStart:indexEnd]
+    with open(newFilePath, 'w') as outfile:
+        json.dump(jsonData, outfile)
+
+
