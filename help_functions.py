@@ -283,7 +283,7 @@ def calculateVelocity(locs):
     locs['velocity_calc'] = locs['d_diff']/locs['t_diff']
     return locs
 
-def haversine(lat1,lon1,lat2,lon2):
+def haversine_built(lat1,lon1,lat2,lon2):
     """
     This function calculates the distance between two points on a sphere
 
