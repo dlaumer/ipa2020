@@ -13,6 +13,9 @@
 import requests # To open URL adresses
 import json
 import webbrowser
+import io
+import zipfile
+import os
 
 import help_functions as hlp
 
@@ -72,4 +75,14 @@ scFile = json.dumps(scParam)
 urlExecute = urlCore + 'import/' + importID + '/execute'
 networkId = putResponse(urlExecute, scFile)
 
-webbrowser.open("https://network.zpheres.com/" + networkId)
+#webbrowser.open("https://network.zpheres.com/" + networkId)
+
+urlDownloadGPX = urlCore + 'network/' + networkId + '/gpx'
+gpxData = requests.get(urlDownloadGPX)  # Get the response 
+z = zipfile.ZipFile(io.BytesIO(gpxData.content))
+
+dataPath = "../data/gpxAPI/"
+if not(os.path.exists(dataPath)):
+    os.mkdir(dataPath)
+z.extractall(dataPath)
+
