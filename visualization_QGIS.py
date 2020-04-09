@@ -10,7 +10,7 @@
 import os
 
 # Define which participant should be visualized. If the list is empty, all available participants will be visualized
-dataNames = ['1','4']
+dataNames = ['1']
 # Define which layers it should contain. You can only choose from the ones in 'allLayers'. If the list is empty, all available layers are taken.
 layers = []
 # Folder where the results are stored. They must be a folder per participant and the folder structure must be unchanged 
@@ -22,15 +22,18 @@ qgisStylesFolder = "/Users/dlaumer/Google Drive/2020 FRUEHLINGSSEMESTER/IPA 2020
 allLayers = [	"Loc", 						
 				"Trip",							
 				"Staypoints",	 		
-				"Places_extent", 			
-				"Places"]
+				"Places_extent",
+                "Trips",
+                "Places",
+                ]
 
 # Name of the layers on QGIS
 allLayerNames = ["Locations",
 				"Semantic Trip Data",
 				"Staypoints (trackintel)",
 				"Extent Places (trackintel)",
-				"Places (trackintel)"]
+                "Trips (trackintel)",
+                "Places (trackintel)"]
 
 hiddenLayers = ["Trip_"]
 layerNames = dict(zip(allLayers, allLayerNames))
