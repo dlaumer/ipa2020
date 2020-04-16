@@ -42,7 +42,11 @@ def readFile(path):
 #%% Set variables: 
 urlCore = 'https://renderingapi.azurewebsites.net/api/'
 userId = "3cfb3bd4-add1-4460-8955-88e7eec7cb3b"
-gpxFiles = ['1_11','1_13','1_242','1_350']
+dataname = "1"
+for root,dirs,files in os.walk("../data/gpx/" + dataname + "/"):
+   gpxFiles = files
+   break
+#gpxFiles = ['1_11','1_13','1_242','1_350']
 
 #%% 1. Intialise and get importID
 urlInit = urlCore + 'initimport'
@@ -53,7 +57,7 @@ importID = getResponse(urlInit)
 urlImport = urlCore + 'import/' + importID
 gpsFileIds = []
 for gpxFile in gpxFiles:
-    fileContent = readFile('../data/gpx/' + gpxFile + '.gpx')
+    fileContent = readFile('../data/gpx/' + dataname + '/' + gpxFile)
     gpsFileIds.append(putResponse(urlImport, fileContent))
 
 aeFile = readFile('../data/ETH1.json')
@@ -66,7 +70,7 @@ scParam['UserId'] = userId
 scParam['RefGpx'] = gpsFileIds
 scParam['RefAutomationSettings'] = aeFileId
 scParam['NetworkName'] = "Import Network Example"
-scParam['CompilationName'] = "Group #1"
+scParam['CompilationName'] = "SelectedTrips 1"
 scParam['ScenarioName']  = "RerApi Scenario #1"
 
 scFile = json.dumps(scParam)
@@ -83,6 +87,6 @@ z = zipfile.ZipFile(io.BytesIO(gpxData.content))
 
 dataPath = "../data/gpxAPI/"
 if not(os.path.exists(dataPath)):
-    os.mkdir(dataPath)
+    os.makedirs(dataPath)
 z.extractall(dataPath)
 

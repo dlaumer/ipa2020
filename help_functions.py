@@ -26,6 +26,12 @@ import bisect # To find an index in a sorted list
 import calendar
 from pathlib import Path
 from shutil import copyfile
+import shapely
+from functools import partial
+import pyproj
+
+from scipy.spatial.distance import euclidean
+from fastdtw import fastdtw
 
 
 def getDataPaths(participantId):
@@ -490,13 +496,13 @@ def trip2gpx(trips, dataname):
         gpx_track.segments.append(gpx_segment)
         
         # Create points:
-        for coord in trips.loc[idx,'geometry'].coords:
+        for coord in trips.loc[idx,'geom'].coords:
             gpx_segment.points.append(gpxpy.gpx.GPXTrackPoint(coord[1], coord[0]))
         
         #print(gpx.to_xml())
-        with open('../data/gpx/' + dataname + '_' + str(idx) + '.gpx', 'w') as f:
+        with open('../data/gpx/' + dataname + '/' + trips.loc[idx,'id'] + '.gpx', 'w') as f:
             f.write(gpx.to_xml())
-        prepareGPXforAPI('../data/gpx/' + dataname + '/' + str(idx) + '.gpx', str(idx))
+        prepareGPXforAPI('../data/gpx/' + dataname + '/' + trips.loc[idx,'id'] + '.gpx', str(idx))
             
 def prepareGPXforAPI(path, pathId):
     parser = etree.XMLParser(remove_blank_text=True)
@@ -615,4 +621,37 @@ def _splitTripFile(filePath, newFilePath, dateStart, dateEnd):
     with open(newFilePath, 'w') as outfile:
         json.dump(jsonData, outfile)
 
+def addDistancesToTrps(row):
+    coords = row['geom'].coords
+    length = row['length']
+    segments = []
+    cumsum = 0
+    if (length > 0):
+        for i in range(1,len(coords)):
+            proportion = LineString((coords[i-1],coords[i])).length / length
+            cumsum = cumsum + proportion
+            segments.append(cumsum)
+    return segments
 
+def calc_length(row, epsg_code):        
+    project = partial(pyproj.transform,
+                      pyproj.Proj(init='EPSG:4326'),
+                      pyproj.Proj(init='EPSG:{}'.format(epsg_code)))
+
+    shapely_geom = shapely.geometry.shape(row['geom'])
+    proj_line = shapely.ops.transform(project, shapely_geom) 
+    return round(proj_line.length,2)
+
+def makeDistMatrix(traj):
+    #distMatrix = np.empty([len(traj),len(traj)])
+    #distMatrix[:] = np.NaN
+    condensedDistMatrix = []
+    for i in range(len(traj)):
+        for j in range(i+1, len(traj)):
+            distance, path = fastdtw(traj[i], traj[j], dist=euclidean)
+            #distMatrix[i,j] = distance
+            condensedDistMatrix.append(distance)
+    #i_lower = np.tril_indices(len(traj), -1)
+    #distMatrix[i_lower] = distMatrix.T[i_lower]
+    condensedDistMatrix = np.array(condensedDistMatrix)
+    return condensedDistMatrix
