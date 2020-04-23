@@ -655,3 +655,12 @@ def makeDistMatrix(traj):
     #distMatrix[i_lower] = distMatrix.T[i_lower]
     condensedDistMatrix = np.array(condensedDistMatrix)
     return condensedDistMatrix
+
+def combineTrajectory(cluster1, cluster2):
+    distance, path = fastdtw(cluster1['geom'], cluster2['geom'], dist=euclidean)
+    #TODO: Vectorize?
+    newGeom = []
+    for i,j in path:
+        newGeom.append(np.average(np.asarray([cluster1['geom'][i], cluster2['geom'][j]]), axis= 0, weights=[cluster1['weight'],cluster2['weight']]).tolist())
+    return newGeom
+    

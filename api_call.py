@@ -39,54 +39,55 @@ def readFile(path):
         data = file.read()
     return data
 
-#%% Set variables: 
-urlCore = 'https://renderingapi.azurewebsites.net/api/'
-userId = "3cfb3bd4-add1-4460-8955-88e7eec7cb3b"
-dataname = "1"
-for root,dirs,files in os.walk("../data/gpx/" + dataname + "/"):
-   gpxFiles = files
-   break
-#gpxFiles = ['1_11','1_13','1_242','1_350']
-
-#%% 1. Intialise and get importID
-urlInit = urlCore + 'initimport'
-importID = getResponse(urlInit)
-
-#%% 2. Upload GPX files
-
-urlImport = urlCore + 'import/' + importID
-gpsFileIds = []
-for gpxFile in gpxFiles:
-    fileContent = readFile('../data/gpx/' + dataname + '/' + gpxFile)
-    gpsFileIds.append(putResponse(urlImport, fileContent))
-
-aeFile = readFile('../data/ETH1.json')
-aeFileId = putResponse(urlImport, aeFile)
-
-
-#%% 3. Prepare service call file (sc.json)
-scParam = {}
-scParam['UserId'] = userId
-scParam['RefGpx'] = gpsFileIds
-scParam['RefAutomationSettings'] = aeFileId
-scParam['NetworkName'] = "Import Network Example"
-scParam['CompilationName'] = "SelectedTrips 1"
-scParam['ScenarioName']  = "RerApi Scenario #1"
-
-scFile = json.dumps(scParam)
-
-#%% 4. Import
-urlExecute = urlCore + 'import/' + importID + '/execute'
-networkId = putResponse(urlExecute, scFile)
-
-#webbrowser.open("https://network.zpheres.com/" + networkId)
-
-urlDownloadGPX = urlCore + 'network/' + networkId + '/gpx'
-gpxData = requests.get(urlDownloadGPX)  # Get the response 
-z = zipfile.ZipFile(io.BytesIO(gpxData.content))
-
-dataPath = "../data/gpxAPI/"
-if not(os.path.exists(dataPath)):
-    os.makedirs(dataPath)
-z.extractall(dataPath)
+def apiCall():
+    #%% Set variables: 
+    urlCore = 'https://renderingapi.azurewebsites.net/api/'
+    userId = "3cfb3bd4-add1-4460-8955-88e7eec7cb3b"
+    dataname = "1"
+    for root,dirs,files in os.walk("../data/gpx/" + dataname + "/"):
+       gpxFiles = files
+       break
+    #gpxFiles = ['1_11','1_13','1_242','1_350']
+    
+    #%% 1. Intialise and get importID
+    urlInit = urlCore + 'initimport'
+    importID = getResponse(urlInit)
+    
+    #%% 2. Upload GPX files
+    
+    urlImport = urlCore + 'import/' + importID
+    gpsFileIds = []
+    for gpxFile in gpxFiles:
+        fileContent = readFile('../data/gpx/' + dataname + '/' + gpxFile)
+        gpsFileIds.append(putResponse(urlImport, fileContent))
+    
+    aeFile = readFile('../data/ETH1.json')
+    aeFileId = putResponse(urlImport, aeFile)
+    
+    
+    #%% 3. Prepare service call file (sc.json)
+    scParam = {}
+    scParam['UserId'] = userId
+    scParam['RefGpx'] = gpsFileIds
+    scParam['RefAutomationSettings'] = aeFileId
+    scParam['NetworkName'] = "Import Network Example"
+    scParam['CompilationName'] = "SelectedTrips 1"
+    scParam['ScenarioName']  = "RerApi Scenario #2"
+    
+    scFile = json.dumps(scParam)
+    
+    #%% 4. Import
+    urlExecute = urlCore + 'import/' + importID + '/execute'
+    networkId = putResponse(urlExecute, scFile)
+    
+    webbrowser.open("https://network.zpheres.com/" + networkId)
+    
+    urlDownloadGPX = urlCore + 'network/' + networkId + '/gpx'
+    gpxData = requests.get(urlDownloadGPX)  # Get the response 
+    z = zipfile.ZipFile(io.BytesIO(gpxData.content))
+    
+    dataPath = "../data/gpxAPI/"
+    if not(os.path.exists(dataPath)):
+        os.makedirs(dataPath)
+    z.extractall(dataPath)
 

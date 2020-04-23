@@ -14,13 +14,14 @@ import math
 import json
 import os
 import time
+from collections import defaultdict
 
 from shapely.geometry import LineString, MultiPoint
 from statistics import median 
 import bisect # To find an index in a sorted list
 import numpy as np
 from scipy.spatial.distance import euclidean
-from scipy.cluster.hierarchy import linkage, cut_tree, fcluster, dendrogram
+from scipy.cluster.hierarchy import linkage, cut_tree, fcluster, dendrogram, inconsistent
 from fastdtw import fastdtw
 
 from matplotlib import pyplot as plt
@@ -39,6 +40,8 @@ from trackintel.geogr.distances import haversine_dist
 # Local files
 import help_functions as hlp
 import trackintel_modified as tim
+import api_call as api
+
 #import noiserm_functions as nrm
 
 dataName = '1'
@@ -48,9 +51,9 @@ CHECK_VELO =        False
 FIND_STAY_POINTS =  True
 FIND_TRIPS =        True
 SELECT_REPRESENTATIVE_TRP = False
-EXPORT_GPX =        False
+EXPORT_GPX =        True
 CLUSTER_TRPS =      True
-CLUSTER_TRPS2 =     False
+API_CALL =          True
 CHECK_NB_POINTS =   False
 CHECK_ACCURACY =    False
 PLOT =              False
@@ -232,82 +235,93 @@ if SELECT_REPRESENTATIVE_TRP:
     trpsSelected_shp = trpsSelected_shp.drop(["trpIds"], axis = 1)
     trpsSelected_shp.to_file('../data/shp/'+dataName +'/TripsSelected.shp')
  
-#%% EXPORT GPX %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if EXPORT_GPX:
-    for idx in trpsSelected.index:
-        if trpsSelected.loc[idx,'start_plc'] == trpsSelected.loc[idx,'end_plc']:
-            trpsSelected = trpsSelected.drop([idx])
-        elif trpsSelected.loc[idx,'count'] < 5:
-            trpsSelected = trpsSelected.drop([idx])
-    hlp.trip2gpx(trpsSelected,dataName)
-    
-    
+
 #%%
 if CLUSTER_TRPS:
     trps['length'] = trps['geom'].length
     trps['cluster'] = None
     
-    clusteredTrps = []
-    #for i in range(len(trpsAgr)):
-    i = 3
-    
-    distMatrix = hlp.makeDistMatrix([trps.loc[j,'geom'].coords[:] for j in trpsAgr.loc[i,'trpIds']])
-    #minIndices = np.where(distMatrix == np.nanmin(distMatrix))
-    #minIndices = list(zip(minIndices[0], minIndices[1]))
-    #minIndex = minIndices[0]
-    
-    linkMatrix = linkage(distMatrix, method='complete')
-    fig = plt.figure(figsize=(25, 10))
-    dn = dendrogram(linkMatrix)
-    plt.show()
-    
-    tree = cut_tree(linkMatrix)
+    trpsAgrNew = pd.DataFrame(columns=['weight', 'start_plc', 'end_plc', 'geom'])
+    generated_trips_aggr_new = []
 
-    
-    for idx, j in enumerate(trpsAgr.loc[i,'trpIds']):
-        trps.loc[j,'cluster'] = int(tree[idx,68])
-    
-    trps_shp = trps.copy()
-    trps_shp['started_at'] = stps_shp['started_at'].astype(str)
-    trps_shp['finished_at'] = stps_shp['finished_at'].astype(str)
-    trps_shp.to_file('../data/shp/'+dataName +'/Trips.shp')
 
-    #%%
-
-#NOT WORKING...
-if CLUSTER_TRPS2:
-    trps['length'] = trps['geom'].length
-    trps['segments'] =  trps.apply(hlp.addDistancesToTrps,axis=1)
-    
-    clusteredTrps = []
     for i in range(len(trpsAgr)):
-        waypoints = []
-        for q in range(1,10):
-            listpoints = []
-            for j in range(len(trpsAgr.loc[i,'trpIds'])):
-                segments = list(trps.loc[trpsAgr.loc[i,'trpIds'][j],'segments'])
-                if len(segments) > 0:
-                    idx = bisect.bisect_left(segments,q/10)
-                    
-                    if trps.loc[trpsAgr.loc[i,'trpIds'][j],'segments'][idx] > (q-1)/10:
-                        listpoints.append(trps.loc[trpsAgr.loc[i,'trpIds'][j],'geom'].coords[idx])
-            multi = MultiPoint(listpoints)
-            if len(multi) > 0:
-                waypoints.append(multi.centroid)
-        if len(waypoints)>0:
-            clusteredTrps.append(LineString([x.coords[:][0] for x in waypoints]))
-        else:
-            clusteredTrps.append(None)
-    #trpsAgr = trpsAgr.drop(['geom'], axis = 1)
-    #trpsAgr['geometry'] = clusteredTrps
-    #trpsAgr.geometry = trpsAgr['geometry']
+        #i = 3
+        startPlace = trpsAgr.loc[i,'start_plc']
+        endPlace = trpsAgr.loc[i,'end_plc']
+        if startPlace == endPlace or trpsAgr.loc[i,'count'] < 2 :
+            continue
+        trpsTemp = [trps.loc[j,'geom'].coords[:] for j in trpsAgr.loc[i,'trpIds']]
+        distMatrix = hlp.makeDistMatrix(trpsTemp)
+        #minIndices = np.where(distMatrix == np.nanmin(distMatrix))
+        #minIndices = list(zip(minIndices[0], minIndices[1]))
+        #minIndex = minIndices[0]
+        
+        linkMatrix = linkage(distMatrix, method='complete')
+        fig = plt.figure(figsize=(25, 10))
+        dn = dendrogram(linkMatrix, leaf_font_size=12.)
+        plt.show()
+        
+        tree = cut_tree(linkMatrix)
+        clusteringResult = fcluster(linkMatrix,0.05, 'distance')
+        
+        for idx, j in enumerate(trpsAgr.loc[i,'trpIds']):
+            #for q in range(len(tree)):
+            trps.loc[j,'cluster'] = int(clusteringResult[idx])
+        
+        trps_shp = trps.copy()
+        trps_shp['started_at'] = stps_shp['started_at'].astype(str)
+        trps_shp['finished_at'] = stps_shp['finished_at'].astype(str)
+        trps_shp.to_file('../data/shp/'+dataName +'/Trips.shp')
     
-    #trpsAgr_shp = trpsAgr.copy()
-    #trpsAgr_shp = trpsAgr_shp.drop(['geom', 'trpIds'], axis = 1)
-    #trpsAgr_shp = trpsAgr_shp.dropna()
-    #trpsAgr_shp.set_geometry('geometry')
-    #trpsAgr_shp.to_file('../data/shp/'+dataName +'/TripsAggregatedNew.shp')
+        #Combining clusters 
+        n = linkMatrix.shape[0] + 1
+        numOfClusters = 3
+        clusters = defaultdict(dict)
+        for idx, geom in zip(range(n), trpsTemp):
+            clusters[idx]['geom'] = geom
+            clusters[idx]['weight'] = 1
+            
+        for i in range(n-numOfClusters):
+            cluster1 = linkMatrix[i,0]
+            cluster2 = linkMatrix[i,1]
+            newGeom = hlp.combineTrajectory(clusters[cluster1],clusters[cluster2])
+            clusters[n + i] = {}
+            clusters[n + i]['geom'] = newGeom
+            clusters[n + i]['weight'] = clusters[cluster1]['weight'] + clusters[cluster2]['weight']
+            clusters.pop(cluster1)
+            clusters.pop(cluster2)
+        
+        for idx, cluster in enumerate(clusters):
+            ide = str(min(startPlace,endPlace)) + '_' + str(max(startPlace,endPlace)) + '_' + str(idx)
+            generated_trips_aggr_new.append({
+                            'id' :  ide,
+                            'weight' : clusters[cluster]['weight'],
+                            'start_plc': startPlace,
+                            'end_plc': endPlace,
+                            'geom': LineString(clusters[cluster]['geom']),
+                        })
+    
+    
+    trpsAgrNew = trpsAgrNew.append(generated_trips_aggr_new)
+    trpsAgrNew = gpd.GeoDataFrame(trpsAgrNew, geometry='geom')
+    
+    trpsAgrNew_shp = trpsAgrNew.copy()
+    trpsAgrNew_shp['weight'] = trpsAgrNew_shp['weight'].astype(int)
+    trpsAgrNew_shp.to_file('../data/shp/'+dataName +'/TripsAggregatedNew.shp')
 
+ #%% EXPORT GPX %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if EXPORT_GPX:
+    for idx in trpsAgrNew.index:
+        if trpsAgrNew.loc[idx,'start_plc'] == trpsAgrNew.loc[idx,'end_plc']:
+            trpsAgrNew = trpsAgrNew.drop([idx])
+        elif float(trpsAgrNew.loc[idx,'weight']) < 2:
+            trpsAgrNew = trpsAgrNew.drop([idx])
+    hlp.trip2gpx(trpsAgrNew,dataName)   
+    
+#%%
+if API_CALL:
+    api.apiCall()
     
 #%%Accuracy
 if CHECK_ACCURACY:
