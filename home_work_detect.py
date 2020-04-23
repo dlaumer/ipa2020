@@ -51,7 +51,7 @@ if SELECT_RANGE:
     
 locs, locsgdf = hlp.parseLocs(dataPathLocs)
 trips, tripdf, tripsgdf = hlp.parseTrips(dataPathTrips)
-tripsgdf = hlp.parseTripsWithLocs(dataPathTrips, locsgdf)
+# tripsgdf = hlp.parseTripsWithLocs(dataPathTrips, locsgdf)
 
 #%% EXPORT SHP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if SAVE_SHP:
