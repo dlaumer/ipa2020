@@ -25,7 +25,7 @@ import help_functions as hlp
 import trackintel_modified as tim
 
 # Read data
-dataName = '2'
+dataName = '1'
 
 SELECT_RANGE =      False
 SAVE_SHP =          True
@@ -51,7 +51,7 @@ if SELECT_RANGE:
     
 locs, locsgdf = hlp.parseLocs(dataPathLocs)
 trips, tripdf, tripsgdf = hlp.parseTrips(dataPathTrips)
-# tripsgdf = hlp.parseTripsWithLocs(dataPathTrips, locsgdf)
+tripsgdf = hlp.parseTripsWithLocs(dataPathTrips, locsgdf)
 
 #%% EXPORT SHP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if SAVE_SHP:
@@ -75,9 +75,10 @@ if FIND_STAY_POINTS:
     pfs = ti.read_positionfixes_csv('../data/csv/'+dataName +'/' + dataName + '.csv', sep=';')
     
     # Find staypoints
-    #stps = pfs.as_positionfixes.extract_staypoints(method='sliding',dist_threshold=100, time_threshold=5*60)
-    stps = tim.extract_staypoints_ipa(pfs, method='sliding',dist_threshold=100, time_threshold=15*60)
-
+    stps = pfs.as_positionfixes.extract_staypoints(method='sliding',dist_threshold=100, time_threshold=5*60)
+    stps = tim.extract_staypoints_ipa(pfs, method='sliding',dist_threshold=50, time_threshold=15*60)
+    # stps = tim.extract_staypoints_ipa(pfs, method='sliding',dist_threshold=5, time_threshold=1*60)
+    
     stps_shp = stps.copy()
     stps_shp['started_at'] = stps_shp['started_at'].astype(str)
     stps_shp['finished_at'] = stps_shp['finished_at'].astype(str)
@@ -86,6 +87,7 @@ if FIND_STAY_POINTS:
     # Find places
     plcs = stps.as_staypoints.extract_places(method='dbscan',
         epsilon=meters_to_decimal_degrees(150, 47.5), num_samples=4)
+        # epsilon=meters_to_decimal_degrees(10, 2), num_samples=4)
     
     plcs.to_csv('../data/csv/'+dataName+'/Places.csv')
     
@@ -94,16 +96,25 @@ if FIND_STAY_POINTS:
     #plcs_shp.geometry = plcs_shp['extent']
     #plcs_shp.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/Places_extent.shp')
 
+    # Calculate stay time for stay points
+    stps['stay_time'] = 0
+    for i in range(0,len(stps)):
+        stps['stay_time'].iloc[i] = (stps['finished_at'].iloc[i]-stps['started_at'].iloc[i]).total_seconds()/60
+
 #%% FIND HOME
 import datetime
 
 pfs['tracked_at_hour'] = 0
 for i in range(0,len(pfs)): pfs['tracked_at_hour'].iloc[i] = pfs['tracked_at'].iloc[i].hour
 
+# homepfs = pfs[(pfs['tracked_at_hour']<=6)]
 homepfs = pfs[(pfs['tracked_at_hour']<=7) | (pfs['tracked_at_hour']>=22)]
-#homepfs = pfs[(pfs['tracked_at_hour']<=6)]
-homestps = tim.extract_staypoints_ipa(homepfs, method='sliding',dist_threshold=100, time_threshold=15*60)
-homeplcs = homestps.as_staypoints.extract_places(method='dbscan',epsilon=meters_to_decimal_degrees(80, 47.5), num_samples=6)
+
+# homestps = tim.extract_staypoints_ipa(homepfs, method='sliding',dist_threshold=100, time_threshold=15*60)
+# homeplcs = homestps.as_staypoints.extract_places(method='dbscan',epsilon=meters_to_decimal_degrees(80, 47.5), num_samples=6)
+homestps = tim.extract_staypoints_ipa(homepfs, method='sliding',dist_threshold=5, time_threshold=1*60)
+homeplcs = homestps.as_staypoints.extract_places(method='dbscan',epsilon=meters_to_decimal_degrees(10,2), num_samples=6)
+
 homeplcs.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/HomePlaces.shp')
 homeplcs.geometry = plcs['extent']
 homeplcs.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/HomePlaces_extent.shp')
@@ -152,6 +163,9 @@ workpfs = workpfs[((workpfs['tracked_at_hour']>=9) & (workpfs['tracked_at_hour']
 
 workstps = tim.extract_staypoints_ipa(workpfs, method='sliding',dist_threshold=100, time_threshold=15*60)
 workplcs = workstps.as_staypoints.extract_places(method='dbscan',epsilon=meters_to_decimal_degrees(80, 47.5), num_samples=6)
+# workstps = tim.extract_staypoints_ipa(workpfs, method='sliding',dist_threshold=100, time_threshold=15*60)
+# workplcs = workstps.as_staypoints.extract_places(method='dbscan',epsilon=meters_to_decimal_degrees(30,10), num_samples=6)
+
 workplcs.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/WorkPlaces.shp')
 workplcs.geometry = plcs['extent']
 workplcs.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/WorkPlaces_extent.shp')
