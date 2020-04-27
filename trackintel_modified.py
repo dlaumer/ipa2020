@@ -105,8 +105,7 @@ def extract_staypoints_ipa(positionfixes, method='sliding',
                             staypoint['elevation'] = np.mean([pfs[k]['elevation'] for k in range(i, j)])
                             staypoint['velocity'] = np.mean([pfs[k]['velocity'] for k in range(i, j)])
                             staypoint['started_at'] = pfs[i]['tracked_at']
-                            staypoint['finished_at'] = pfs[j - 1][
-                                'tracked_at']  # TODO: should this not be j-1? because j is not part of the staypoint. DB: Changed.
+                            staypoint['finished_at'] = pfs[j]['tracked_at']  # TODO: should this not be j-1? because j is not part of the staypoint. DB: Changed.
                             staypoint['id'] = staypoint_id_counter
 
                             # store matching 
@@ -138,10 +137,10 @@ def extract_staypoints_ipa(positionfixes, method='sliding',
 
             # add matching to original positionfixes (for every user)
 
-            for staypoints_id, posfix_idlist in posfix_staypoint_matching.items():
-                # note that we use .loc because above we have saved the id 
-                # of the positionfixes not thier absolut position
-                positionfixes.loc[posfix_idlist, 'staypoint_id'] = staypoints_id
+            # for staypoints_id, posfix_idlist in posfix_staypoint_matching.items():
+            #     # note that we use .loc because above we have saved the id 
+            #     # of the positionfixes not thier absolut position
+            #     positionfixes.loc[posfix_idlist, 'staypoint_id'] = staypoints_id
 
 
     elif method == 'dbscan':
