@@ -22,17 +22,31 @@ import fiona
 import gpxpy
 import gpxpy.gpx
 from lxml import etree
+import bisect # To find an index in a sorted list
+import calendar
+from pathlib import Path
+from shutil import copyfile
+import shapely
+from functools import partial
+import pyproj
+
+from scipy.spatial.distance import euclidean
+from fastdtw import fastdtw
 
 
 def getDataPaths(participantId):
     rootPath = "../../4-Collection/DataParticipants/"
     path = rootPath + participantId + "/Takeout/"
-    if os.path.exists(path + "archive_browser.html"):        
+    if os.path.exists(path + "Location History/"):        
         dataPathLocs = path + '/Location History/Location History.json'
         dataPathTrips = path + '/Location History/Semantic Location History/'
-    elif os.path.exists(path + "Archiv_Übersicht.html"): 
+    elif os.path.exists(path + "Standortverlauf/"): 
         dataPathLocs =  path + '/Standortverlauf/Standortverlauf.json'
         dataPathTrips =  path + '/Standortverlauf/Semantic Location History/'
+    elif os.path.exists(path + "Historique des positions/"): 
+        dataPathLocs =  path + '/Historique des positions/Historique des positions.json'
+        dataPathTrips =  path + '/Historique des positions/Semantic Location History/'
+
     else:
         raise TypeError('The files are not in the needed format!')
     return dataPathLocs,dataPathTrips
@@ -141,6 +155,87 @@ def parseTrips(dataPath):
                         f.close()                       
     df = pd.DataFrame(d)
     return allData, df, gdf
+
+def parseTripsWithLocs(dataPath, locs):
+    """
+    Parse the trips file
+
+    Parameters
+    ----------
+    dataPath : str - (relative) path to the location file
+
+    Returns
+    -------
+    allData: dict - nested dict of the trips file
+    df : df - pandas dataframe of the data
+
+    """
+    timestamps = locs["timestampMs"]
+    
+    df = pd.DataFrame(columns=['Year', 'Month', 'Type', 'startTime', 'endTime', 'geom', 'distance', 'actType', 'confidence', 'correspondingLocs'])
+
+    dirs = os.listdir(dataPath)
+    generated_trips = []
+    for year in dirs:
+        if year.isdigit():
+            dataPathYear = os.path.join(dataPath, year)
+            for root, dirs, files in os.walk(dataPathYear):
+                for fil in files:
+                    if fil.endswith('.json'):
+                        dataPathFile = os.path.join(dataPathYear, fil)
+                        with open(dataPathFile) as f:
+                            month = fil[5:-5]
+                            data = json.load(f)
+                            for obj in data['timelineObjects']:
+                                typ = list(obj)[0]
+                                entry = obj[typ]   
+                                if typ == 'activitySegment':
+                                    
+                                    dateStart = entry['duration']['startTimestampMs']
+                                    dateEnd = entry['duration']['endTimestampMs']
+                                    indexStart = bisect.bisect_left(timestamps,dateStart)
+                                    indexEnd = bisect.bisect_right(timestamps,dateEnd)
+                                    try:
+                                        shape = LineString(locs['geometry'][indexStart:indexEnd+1])
+                                    except: 
+                                        shape = LineString()
+                                    correspondingLocs = range(indexStart,indexEnd+1)
+                                    
+                                    distance = entry.get('distance',None)
+                                    actType = entry['activityType']
+                                    confidence = entry.get('confidence',None)
+                                else:
+                                    distance = None
+                                    actType = None
+                                    confidence = entry.get('placeConfidence',None)
+                                    correspondingLocs = None
+                                    try:
+                                        coordinates = (entry['centerLngE7']/10000000,entry['centerLatE7']/10000000)
+                                        shape = Point(coordinates)
+                                    except:
+                                        try:
+                                            coordinates = (entry['location']['longitudeE7']/10000000,entry['location']['latitudeE7']/10000000)
+                                            shape = Point(coordinates)
+                                        except:
+                                            shape = Point()
+
+                                generated_trips.append({
+                                    'Year': year,
+                                    'Month': month,
+                                    'Type': typ,  # pfs_tripleg['tracked_at'].iloc[0],
+                                    'startTime': pd.to_datetime(entry['duration']['startTimestampMs'],  unit='ms') + pd.DateOffset(hours=1),  # pfs_tripleg['tracked_at'].iloc[-1],
+                                    'endTime': pd.to_datetime(entry['duration']['endTimestampMs'],  unit='ms') + pd.DateOffset(hours=1),
+                                    'geom': shape,
+                                    'distance': distance,
+                                    'actType': actType,
+                                    'confidence' : confidence,
+                                    'correspondingLocs': correspondingLocs
+                                })
+                        f.close()
+    df = df.append(generated_trips)
+    gdf = gpd.GeoDataFrame(df, geometry='geom', crs={'init':'epsg:4326'})
+    return gdf
+
 
 def stats(locs, trips):
     """
@@ -270,7 +365,7 @@ def calculateVelocity(locs):
     lat2 = locs['latitudeE7'].iloc[1:]
     lon2 = locs['longitudeE7'].iloc[1:]
     # Get vectorized version of the haversine function
-    haver_vec = np.vectorize(haversine, otypes=[np.int16])
+    haver_vec = np.vectorize(haversine_built, otypes=[np.int16])
     locs['d_diff'] = 0
     # Calculate distance
     locs['d_diff'].iloc[1:] = (haver_vec(lat1,lon1,lat2,lon2))
@@ -304,7 +399,7 @@ def haversine_built(lat1,lon1,lat2,lon2):
     return m
 
 #%%
-def loc2shp(locs, dataName):
+def loc2shp(locs, dataname):
     """
     This function saves the location data to a shapefile
 
@@ -324,9 +419,11 @@ def loc2shp(locs, dataName):
         pass
     locs['date'] = locs['date'].astype(str)
     locs['datetimeUTC'] = locs['datetimeUTC'].astype(str)
-    locs.to_file('../data/shp/Loc_'+dataName +'.shp')
+    if not(os.path.exists('../data/shp/'+ dataname + '/')):
+        os.makedirs('../data/shp/'+ dataname + '/')
+    locs.to_file('../data/shp/'+ dataname + '/Loc.shp')
     
-def trip2shp(trips, dataName):
+def trip2shp(trips, dataname):
     """
     This function saves the location data to a shapefile
 
@@ -340,11 +437,17 @@ def trip2shp(trips, dataName):
     None.
 
     """
+    try:
+        trips = trips.drop('correspondingLocs', axis=1)
+    except:
+        pass
     trips['startTime'] = trips['startTime'].astype(str)
     trips['endTime'] = trips['endTime'].astype(str)
-
-    trips[trips['Type']=='activitySegment'].to_file('../data/shp/Trip_'+dataName +'.shp')  
-    trips[trips['Type']=='placeVisit'].to_file('../data/shp/Place_'+dataName +'.shp')
+    
+    if not(os.path.exists('../data/shp/'+ dataname + '/')):
+        os.makedirs('../data/shp/'+ dataname + '/')
+    trips[trips['Type']=='activitySegment'].to_file('../data/shp/'+ dataname + '/Trip.shp')  
+    trips[trips['Type']=='placeVisit'].to_file('../data/shp/'+ dataname + '/Place.shp')
 
 def haversine_np(lon1, lat1, lon2, lat2):
     """
@@ -374,13 +477,13 @@ def loc2csv4ti(locs, dataname):
     locs.loc[:,'user_id'] = '1'
     locs.rename(columns = {'latitudeE7':'latitude', 'longitudeE7': 'longitude', 'altitude':'elevation'}, inplace = True)
     locs.loc[:,'tracked_at'] = locs.index.astype(str)
-    if not(os.path.exists('../data/csv/')):
-        os.mkdir('../data/csv/')
-    locs.to_csv('../data/csv/' + dataname + '.csv', index=False, sep=';')
+    if not(os.path.exists('../data/csv/'+ dataname + '/')):
+        os.makedirs('../data/csv/'+ dataname + '/')
+    locs.to_csv('../data/csv/' + dataname + '/' + dataname + '.csv', index=False, sep=';')
     
 def trip2gpx(trips, dataname):
-    if not(os.path.exists('../data/gpx/')):
-        os.mkdir('../data/gpx/')
+    if not(os.path.exists('../data/gpx/'+ dataname + '/')):
+        os.makedirs('../data/gpx/'+ dataname + '/')
     for idx in trips.index:
         gpx = gpxpy.gpx.GPX()
     
@@ -393,13 +496,13 @@ def trip2gpx(trips, dataname):
         gpx_track.segments.append(gpx_segment)
         
         # Create points:
-        for coord in trips.loc[idx,'geometry'].coords:
+        for coord in trips.loc[idx,'geom'].coords:
             gpx_segment.points.append(gpxpy.gpx.GPXTrackPoint(coord[1], coord[0]))
         
         #print(gpx.to_xml())
-        with open('../data/gpx/' + dataname + '_' + str(idx) + '.gpx', 'w') as f:
+        with open('../data/gpx/' + dataname + '/' + trips.loc[idx,'id'] + '.gpx', 'w') as f:
             f.write(gpx.to_xml())
-        prepareGPXforAPI('../data/gpx/' + dataname + '_' + str(idx) + '.gpx', str(idx))
+        prepareGPXforAPI('../data/gpx/' + dataname + '/' + trips.loc[idx,'id'] + '.gpx', str(idx))
             
 def prepareGPXforAPI(path, pathId):
     parser = etree.XMLParser(remove_blank_text=True)
@@ -431,3 +534,133 @@ def prepareGPXforAPI(path, pathId):
     root.insert(0, meta)
     etree.dump(root)
     tree.write(path,encoding="utf-8", xml_declaration=True, pretty_print=True)
+
+def selectRange(dataPathLoc,dataPathTrip, dateStart = 'beginning', dateEnd = 'end'):
+    newPath = str(Path(dataPathLoc).parents[2]) + "/" + dateStart + "_" + dateEnd + "/"
+    
+    if os.path.exists(newPath):
+        return newPath + "Location History.json", newPath + "Semantic Location History/"
+    else:
+        os.makedirs(newPath)
+    # Location File
+    if (type(dataPathLoc) is str):
+        with open(dataPathLoc) as f:
+            jsonData = json.load(f)
+    else:
+        jsonData = dataPathLoc
+    if dateStart == 'beginning':
+        dateStart = int(jsonData["locations"][0]["timestampMs"])
+    else:
+        dateTemp = pd.to_datetime([dateStart])
+        dateStart = ((dateTemp - pd.Timestamp("1970-01-01")) // pd.Timedelta('1ms'))[0]  
+        
+    if dateEnd == 'end':
+        dateEnd = int(jsonData["locations"][-1]["timestampMs"])
+    else:
+        dateTemp = pd.to_datetime([dateEnd])
+        dateEnd = ((dateTemp - pd.Timestamp("1970-01-01")) // pd.Timedelta('1ms'))[0]  
+    
+    
+    #timestamps = pd.json_normalize(jsonData, 'locations')['timestampMs'].astype(int)
+    timestamps = pd.Series([x['timestampMs'] for x in jsonData['locations']]).astype(int)
+    
+    indexStart = bisect.bisect_right(timestamps,dateStart)
+    indexEnd = bisect.bisect_left(timestamps,dateEnd)
+    
+    jsonData["locations"] = jsonData["locations"][indexStart:indexEnd]
+    if (type(dataPathLoc) is str):
+        newDataPathLoc = newPath + "Location History.json"
+        with open(newPath + "Location History.json", 'w') as outfile:
+            json.dump(jsonData, outfile)
+    
+    # Trip files
+    for root,dirs,files in os.walk(dataPathTrip):
+       years = dirs
+       break
+    
+    startYear = pd.to_datetime(dateStart,  unit='ms').year
+    endYear = pd.to_datetime(dateEnd,  unit='ms').year
+    startMonth = pd.to_datetime(dateStart,  unit='ms').month
+    endMonth = pd.to_datetime(dateEnd,  unit='ms').month
+    
+    
+    newDataPathTrip = newPath + "Semantic Location History/"
+    if not(os.path.exists(newDataPathTrip)):
+        os.makedirs(newDataPathTrip)
+    
+    for year in years:
+        if int(year) >= startYear and int(year) <=endYear:
+            if not(os.path.exists(newDataPathTrip + year + "/")):
+                os.makedirs(newDataPathTrip + year + "/")
+
+            for month in range(1,13):
+                dateTemp = pd.to_datetime([year + '-' + str(month)])
+                if dateTemp >= pd.to_datetime([str(startYear) + '-' + str(startMonth)]) and dateTemp <= pd.to_datetime([str(endYear) + '-' + str(endMonth)]):
+                    filePath = dataPathTrip + year + "/" + year + "_" + calendar.month_name[month].upper() + ".json"
+                    newFilePath = newDataPathTrip + year + "/" + year + "_" + calendar.month_name[month].upper() + ".json"
+                    if os.path.exists(filePath):
+                        if (int(year) == startYear) and month == startMonth:
+                            _splitTripFile(filePath, newFilePath, dateStart, dateEnd)
+                        elif (int(year) == endYear) and month == endMonth:
+                            _splitTripFile(filePath, newFilePath, dateStart, dateEnd)
+                        else:
+                            copyfile(filePath , newFilePath)
+                
+    return newDataPathLoc, newDataPathTrip
+
+def _splitTripFile(filePath, newFilePath, dateStart, dateEnd):
+    with open(filePath) as f:
+        jsonData = json.load(f)
+            
+    timestamps = pd.Series([x[list(x)[0]]['duration']['startTimestampMs'] for x in jsonData['timelineObjects']]).astype(int)
+    
+    indexStart = bisect.bisect_right(timestamps,dateStart)
+    indexEnd = bisect.bisect_left(timestamps,dateEnd)
+    
+    jsonData["timelineObjects"] = jsonData["timelineObjects"][indexStart:indexEnd]
+    with open(newFilePath, 'w') as outfile:
+        json.dump(jsonData, outfile)
+
+def addDistancesToTrps(row):
+    coords = row['geom'].coords
+    length = row['length']
+    segments = []
+    cumsum = 0
+    if (length > 0):
+        for i in range(1,len(coords)):
+            proportion = LineString((coords[i-1],coords[i])).length / length
+            cumsum = cumsum + proportion
+            segments.append(cumsum)
+    return segments
+
+def calc_length(row, epsg_code):        
+    project = partial(pyproj.transform,
+                      pyproj.Proj(init='EPSG:4326'),
+                      pyproj.Proj(init='EPSG:{}'.format(epsg_code)))
+
+    shapely_geom = shapely.geometry.shape(row['geom'])
+    proj_line = shapely.ops.transform(project, shapely_geom) 
+    return round(proj_line.length,2)
+
+def makeDistMatrix(traj):
+    #distMatrix = np.empty([len(traj),len(traj)])
+    #distMatrix[:] = np.NaN
+    condensedDistMatrix = []
+    for i in range(len(traj)):
+        for j in range(i+1, len(traj)):
+            distance, path = fastdtw(traj[i], traj[j], dist=euclidean)
+            #distMatrix[i,j] = distance
+            condensedDistMatrix.append(distance)
+    #i_lower = np.tril_indices(len(traj), -1)
+    #distMatrix[i_lower] = distMatrix.T[i_lower]
+    condensedDistMatrix = np.array(condensedDistMatrix)
+    return condensedDistMatrix
+
+def combineTrajectory(cluster1, cluster2):
+    distance, path = fastdtw(cluster1['geom'], cluster2['geom'], dist=euclidean)
+    #TODO: Vectorize?
+    newGeom = []
+    for i,j in path:
+        newGeom.append(np.average(np.asarray([cluster1['geom'][i], cluster2['geom'][j]]), axis= 0, weights=[cluster1['weight'],cluster2['weight']]).tolist())
+    return newGeom
+    
