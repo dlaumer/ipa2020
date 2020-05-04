@@ -137,10 +137,10 @@ def extract_staypoints_ipa(positionfixes, method='sliding',
 
             # add matching to original positionfixes (for every user)
 
-            for staypoints_id, posfix_idlist in posfix_staypoint_matching.items():
-                # note that we use .loc because above we have saved the id 
-                # of the positionfixes not thier absolut position
-                positionfixes.loc[posfix_idlist, 'staypoint_id'] = staypoints_id
+            # for staypoints_id, posfix_idlist in posfix_staypoint_matching.items():
+            #     # note that we use .loc because above we have saved the id 
+            #     # of the positionfixes not thier absolut position
+            #     positionfixes.loc[posfix_idlist, 'staypoint_id'] = staypoints_id
 
 
     elif method == 'dbscan':
