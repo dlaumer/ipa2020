@@ -170,7 +170,7 @@ def parseTripsWithLocs(dataPath, locs):
     df : df - pandas dataframe of the data
 
     """
-    timestamps = locs["timestampMs"]
+    timestamps = locs["timestampMs"].astype(int)
     
     df = pd.DataFrame(columns=['Year', 'Month', 'Type', 'startTime', 'endTime', 'geom', 'distance', 'actType', 'confidence', 'correspondingLocs'])
 
@@ -191,13 +191,14 @@ def parseTripsWithLocs(dataPath, locs):
                                 entry = obj[typ]   
                                 if typ == 'activitySegment':
                                     
-                                    dateStart = entry['duration']['startTimestampMs']
-                                    dateEnd = entry['duration']['endTimestampMs']
-                                    indexStart = bisect.bisect_left(timestamps,dateStart)
+                                    dateStart = int(entry['duration']['startTimestampMs'])
+                                    dateEnd = int(entry['duration']['endTimestampMs'])
+                                    indexStart = bisect.bisect_left(timestamps,dateStart)-1
                                     indexEnd = bisect.bisect_right(timestamps,dateEnd)
                                     try:
                                         shape = LineString(locs['geometry'][indexStart:indexEnd+1])
                                     except: 
+                                        print("Upsi")
                                         shape = LineString()
                                     correspondingLocs = range(indexStart,indexEnd+1)
                                     
@@ -663,4 +664,25 @@ def combineTrajectory(cluster1, cluster2):
     for i,j in path:
         newGeom.append(np.average(np.asarray([cluster1['geom'][i], cluster2['geom'][j]]), axis= 0, weights=[cluster1['weight'],cluster2['weight']]).tolist())
     return newGeom
+
+def savecsv4js(places, trips):
+    places['city'] = 'Zurich'
+    places['state'] = 'Zurich'
+    places['country'] = 'Switzerland'
+    places = places.rename(columns = {'place_id':'iata'})
+    places['iata'] = places['iata'].astype(str)
+    places['latitude'] = places['center'].y
+    places['longitude'] = places['center'].x
+    places = places.drop(columns = ['user_id', 'extent', 'center'])
+    places.to_csv('../jsProject/places.csv',  index = False, sep = ";")
     
+    trips = trips.rename(columns = {'start_plc':'origin', 'end_plc':'destination', 'weight':'count'})
+    trips["waypointsLat"] = ""
+    trips["waypointsLong"] = ""
+    for i in trips.index:
+        trips.loc[i, "waypointsLong"] = ' '.join([str(j[0]) for j in trips.loc[i,'geom'].coords])
+        trips.loc[i, "waypointsLat"] = ' '.join([str(j[1]) for j in trips.loc[i,'geom'].coords])
+    trips['count'] = 1
+    trips = trips[['origin', 'destination','count','waypointsLong','waypointsLat']]
+    #trips.to_csv('../jsProject/trips.csv',  index = False, sep = ";")
+    trips.to_csv('../jsProject/tripsAgr.csv',  index = False, sep = ";")

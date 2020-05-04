@@ -71,6 +71,8 @@ if SELECT_RANGE:
     
 locs, locsgdf = hlp.parseLocs(dataPathLocs)
 trips, tripdf, tripsgdf = hlp.parseTrips(dataPathTrips)
+
+#%%
 tripsgdf = hlp.parseTripsWithLocs(dataPathTrips, locsgdf)
 
 
@@ -154,7 +156,8 @@ if FIND_TRIPS:
                         'start_plc': startPlace,
                         'end_plc': endPlace
                     })
-            ide = str(min(startPlace,endPlace)) + '_' + str(max(startPlace,endPlace))
+            #ide = str(min(startPlace,endPlace)) + '_' + str(max(startPlace,endPlace))
+            ide = str(startPlace) + '_' + str(endPlace)
             coords = startCoord + endCoord
             if ide not in list(generated_trips_aggr):
                 generated_trips_aggr[ide] = {
@@ -246,11 +249,27 @@ if CLUSTER_TRPS:
 
 
     for i in range(len(trpsAgr)):
-        #i = 3
+    #for i in range(3,4):
         startPlace = trpsAgr.loc[i,'start_plc']
         endPlace = trpsAgr.loc[i,'end_plc']
-        if startPlace == endPlace or trpsAgr.loc[i,'count'] < 2 :
+        if startPlace == endPlace:
             continue
+        if trpsAgr.loc[i,'count'] < 2:
+            generated_trips_aggr_new.append({
+                            'id' : str(min(startPlace,endPlace)) + '_' + str(max(startPlace,endPlace)) + '_0',
+                            'weight' : 1,
+                            'start_plc': startPlace,
+                            'end_plc': endPlace,
+                            'geom': trps.loc[trpsAgr.loc[i,'trpIds'][0],'geom'],
+                        })
+            continue
+        
+        trpsTemp = []
+        for j in trpsAgr.loc[i,'trpIds']:
+            if trps.loc[j,'start_plc'] == endPlace:
+                trpsTemp.append(trps.loc[j,'geom'].coords[:].reverse())
+            else:
+                trpsTemp.append(trps.loc[j,'geom'].coords[:])
         trpsTemp = [trps.loc[j,'geom'].coords[:] for j in trpsAgr.loc[i,'trpIds']]
         distMatrix = hlp.makeDistMatrix(trpsTemp)
         #minIndices = np.where(distMatrix == np.nanmin(distMatrix))
@@ -263,20 +282,18 @@ if CLUSTER_TRPS:
         plt.show()
         
         tree = cut_tree(linkMatrix)
-        clusteringResult = fcluster(linkMatrix,0.05, 'distance')
+        th = max(0.05, max(linkMatrix[:,2])/2)
+        clusteringResult = fcluster(linkMatrix,th, 'distance')
+        #clusteringResult = tree[:,linkMatrix.shape[0] - 4]
+        fig.savefig('../data/clustering/' + str(startPlace) + '_' + str(endPlace) + '_' +  str(max(clusteringResult)) + '.png')
         
         for idx, j in enumerate(trpsAgr.loc[i,'trpIds']):
             #for q in range(len(tree)):
             trps.loc[j,'cluster'] = int(clusteringResult[idx])
         
-        trps_shp = trps.copy()
-        trps_shp['started_at'] = stps_shp['started_at'].astype(str)
-        trps_shp['finished_at'] = stps_shp['finished_at'].astype(str)
-        trps_shp.to_file('../data/shp/'+dataName +'/Trips.shp')
-    
         #Combining clusters 
         n = linkMatrix.shape[0] + 1
-        numOfClusters = 3
+        numOfClusters = max(clusteringResult)
         clusters = defaultdict(dict)
         for idx, geom in zip(range(n), trpsTemp):
             clusters[idx]['geom'] = geom
@@ -302,14 +319,19 @@ if CLUSTER_TRPS:
                             'geom': LineString(clusters[cluster]['geom']),
                         })
     
-    
+    trps_shp = trps.copy()
+    trps_shp['started_at'] = stps_shp['started_at'].astype(str)
+    trps_shp['finished_at'] = stps_shp['finished_at'].astype(str)
+    trps_shp.to_file('../data/shp/'+dataName +'/Trips.shp')
+        
     trpsAgrNew = trpsAgrNew.append(generated_trips_aggr_new)
     trpsAgrNew = gpd.GeoDataFrame(trpsAgrNew, geometry='geom')
     
     trpsAgrNew_shp = trpsAgrNew.copy()
     trpsAgrNew_shp['weight'] = trpsAgrNew_shp['weight'].astype(int)
     trpsAgrNew_shp.to_file('../data/shp/'+dataName +'/TripsAggregatedNew.shp')
-
+#%%
+    hlp.savecsv4js(plcs, trpsAgrNew)
  #%% EXPORT GPX %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if EXPORT_GPX:
     for idx in trpsAgrNew.index:

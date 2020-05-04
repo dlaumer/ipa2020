@@ -61,7 +61,7 @@ def apiCall():
         fileContent = readFile('../data/gpx/' + dataname + '/' + gpxFile)
         gpsFileIds.append(putResponse(urlImport, fileContent))
     
-    aeFile = readFile('../data/ETH1.json')
+    aeFile = readFile('../data/Settings.json')
     aeFileId = putResponse(urlImport, aeFile)
     
     
@@ -72,7 +72,7 @@ def apiCall():
     scParam['RefAutomationSettings'] = aeFileId
     scParam['NetworkName'] = "Import Network Example"
     scParam['CompilationName'] = "SelectedTrips 1"
-    scParam['ScenarioName']  = "RerApi Scenario #2"
+    scParam['ScenarioName']  = "RerApi Scenario #4"
     
     scFile = json.dumps(scParam)
     
