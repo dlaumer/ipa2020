@@ -13,50 +13,38 @@ def extract_staypoints_ipa(positionfixes, method='sliding',
                        dist_threshold=50, time_threshold=5 * 60, epsilon=100,
                        dist_func=haversine_dist, eps=None, num_samples=None):
     """Extract staypoints from positionfixes.
-
     This function modifies the positionfixes and adds staypoint_ids.
-
     Parameters
     ----------
     num_samples
     eps
     positionfixes : GeoDataFrame
         The positionfixes have to follow the standard definition for positionfixes DataFrames.
-
     method : {'sliding' or 'dbscan'}
         The following methods are available to extract staypoints from positionfixes:
-
         'sliding' : Applies a sliding window over the data.
         'dbscan' : Uses the DBSCAN algorithm to find clusters of staypoints.
-
     dist_threshold : float
         The distance threshold for the 'sliding' method, i.e., how far someone has to travel to
         generate a new staypoint.
-
     time_threshold : float
         The time threshold for the 'sliding' method in seconds, i.e., how long someone has to 
         stay within an area to consider it as a staypoint.
-
     epsilon : float
         The epsilon for the 'dbscan' method.
-
     dist_func : function
         A function that expects (lon_1, lat_1, lon_2, lat_2) and computes a distance in meters.
-
     Returns
     -------
     GeoDataFrame
         A new GeoDataFrame containing points where a person spent some time.
-
     Examples
     --------
     >>> psfs.as_positionfixes.extract_staypoints('sliding', dist_threshold=100)
-
     References
     ----------
     Zheng, Y. (2015). Trajectory data mining: an overview. ACM Transactions on Intelligent Systems 
     and Technology (TIST), 6(3), 29.
-
     Li, Q., Zheng, Y., Xie, X., Chen, Y., Liu, W., & Ma, W. Y. (2008, November). Mining user 
     similarity based on location history. In Proceedings of the 16th ACM SIGSPATIAL international 
     conference on Advances in geographic information systems (p. 34). ACM.
@@ -105,7 +93,8 @@ def extract_staypoints_ipa(positionfixes, method='sliding',
                             staypoint['elevation'] = np.mean([pfs[k]['elevation'] for k in range(i, j)])
                             staypoint['velocity'] = np.mean([pfs[k]['velocity'] for k in range(i, j)])
                             staypoint['started_at'] = pfs[i]['tracked_at']
-                            staypoint['finished_at'] = pfs[j]['tracked_at']  # TODO: should this not be j-1? because j is not part of the staypoint. DB: Changed.
+                            staypoint['finished_at'] = pfs[j - 1][
+                                'tracked_at']  # TODO: should this not be j-1? because j is not part of the staypoint. DB: Changed.
                             staypoint['id'] = staypoint_id_counter
 
                             # store matching 
@@ -137,10 +126,10 @@ def extract_staypoints_ipa(positionfixes, method='sliding',
 
             # add matching to original positionfixes (for every user)
 
-            # for staypoints_id, posfix_idlist in posfix_staypoint_matching.items():
-            #     # note that we use .loc because above we have saved the id 
-            #     # of the positionfixes not thier absolut position
-            #     positionfixes.loc[posfix_idlist, 'staypoint_id'] = staypoints_id
+            for staypoints_id, posfix_idlist in posfix_staypoint_matching.items():
+                # note that we use .loc because above we have saved the id 
+                # of the positionfixes not thier absolut position
+                positionfixes.loc[posfix_idlist, 'staypoint_id'] = staypoints_id
 
 
     elif method == 'dbscan':
@@ -190,27 +179,21 @@ def extract_staypoints_ipa(positionfixes, method='sliding',
 def extract_triplegs_ipa(positionfixes, staypoints=None, *args, **kwargs):
     """Extract triplegs from positionfixes. A tripleg is (for now) defined as anything
     that happens between two consecutive staypoints.
-
     **Attention**: This function requires either a column ``staypoint_id`` on the 
     positionfixes or passing some staypoints that correspond to the positionfixes! 
     This means you usually should call ``extract_staypoints()`` first.
-
     This function modifies the positionfixes and adds a ``tripleg_id``.
-
     Parameters
     ----------
     positionfixes : GeoDataFrame
         The positionfixes have to follow the standard definition for positionfixes DataFrames.
-
     staypoints : GeoDataFrame, optional
         The staypoints (corresponding to the positionfixes). If this is not passed, the 
         positionfixes need staypoint_ids associated with them.
-
     Returns
     -------
     GeoDataFrame
         A new GeoDataFrame containing triplegs.
-
     Examples
     --------
     >>> psfs.as_positionfixes.extract_triplegs(staypoints)
