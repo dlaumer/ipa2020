@@ -8,32 +8,40 @@
   <script src="https://unpkg.com/topojson@3"></script>
   <script src="https://unpkg.com/d3-delaunay@4"></script>
   <script src="https://unpkg.com/d3-geo-voronoi@1"></script>
-  <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script> 
+  <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
 
   <!-- <script src="tooltip.js"></script> -->
 
   <link href="css/style.css" rel="stylesheet">
+  <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.52.0/mapbox-gl.css' rel='stylesheet' />
+
 </head>
 
 <body>
 
-  <div id = "map">
-    <svg>
-      <!-- must be in this order for drawing -->
-      <g id="basemap"></g>
-      <g id="trips"></g>
-      <g id="voronoi"></g>
-      <g id="places"></g>
-      <text id="tooltip" style="display: none;"></text>
-    </svg>
+  <div id="wrapper">
+    <div id = "mapboxx">
+    </div>
   </div>
+    <div id="map">
+      <svg>
+        <!-- must be in this order for drawing -->
+        <g id="basemap"></g>
+        <g id="trips"></g>
+        <g id="voronoi"></g>
+        <g id="places"></g>
+        <text id="tooltip" style="display: none;"></text>
+      </svg>
+    </div>
+
   <!-- Create a div where the graph will take place -->
-  <div id = chartContainer>
+  <div id=chartContainer>
     <div id="timeline"></div>
     <div id="piechart"></div>
     <div id="SemanticInfo"></div>
   </div>
- 
+
+  <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.52.0/mapbox-gl.js'></script>
 
   <script src="js/script.js"></script>
 

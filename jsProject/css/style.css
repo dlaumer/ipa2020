@@ -5,11 +5,14 @@ body {
 
 .land {
   fill: #dddddd;
+  opacity: 0.6;
 }
 
 .border {
   fill: none;
   stroke-width: 1px;
+  stroke: white;
+
 }
 
 .interior {
@@ -29,7 +32,7 @@ body {
 .trip {
   fill: none;
   stroke: #252525;
-  stroke-width: 1;
+  stroke-width: 2;
   stroke-opacity: 0.5;
 }
 .bars:hover{
@@ -69,4 +72,10 @@ g#voronoi {
  width: 400;
  height: 200;
  float: left;
+}
+
+#mapboxx { 
+  position:relative; 
+  width: 900;
+  height: 400;
 }
