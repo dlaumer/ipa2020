@@ -32,7 +32,7 @@ body {
 .trip {
   fill: none;
   stroke: #252525;
-  stroke-width: 2;
+  stroke-width: 1;
   stroke-opacity: 0.5;
 }
 .bars:hover{

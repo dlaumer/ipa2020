@@ -17,12 +17,12 @@ var urls = {
 
 // PERPARE MAP  ////////////////////////////////////////////////////////////////////////////////////
 
-mapboxgl.accessToken = 'pk.eyJ1Ijoic2hpbWl6dSIsImEiOiJjam95MDBhamYxMjA1M2tyemk2aHMwenp5In0.i2kMIJulhyPLwp3jiLlpsA'
+mapboxgl.accessToken = 'pk.eyJ1IjoiZGxhdW1lciIsImEiOiJjazhwdWc1aG8wazZnM2xubG5uaGwxN2RmIn0.cgSC6SK8DdnCPwO4NmjxAQ'
 
 //Setup mapbox-gl map
 var map = new mapboxgl.Map({
   container: 'mapboxx', // container id
-  style: 'mapbox://styles/mapbox/streets-v8',
+  style: 'mapbox://styles/dlaumer/ck9vivxcy14761inolbg58hqu',
   center: [8.507412548555335, 47.40639137110055],
   zoom: 11,
 })
@@ -144,7 +144,7 @@ var margin = { top: 30, right: 30, bottom: 30, left: 30 },
   heightPie = 300 - margin.top - margin.bottom,
   radius = Math.min(widthPie, heightPie) / 2;
 
-var color = d3.scaleOrdinal(d3.schemeSet3);
+var color = d3.scaleOrdinal(d3.schemeCategory10);
 
 var pie = d3.pie()
   .value(function (d) { return d[3]; })
@@ -167,13 +167,15 @@ var svgPie = d3.select("#piechart")
 d3.json(urls.map).then(drawMap);
 
 var timelineData;
-var places
-var trips
-var pathPie
+var places;
+var trips;
+var tripsAgr;
+var pathPie;
 var semanticInfo;
 var bubbles;
 var pathBaseMap;
 var pathTrips;
+var mapBlank = true;
 
 // load the place and trip data together
 let promises = [
@@ -192,51 +194,9 @@ function processData(values) {
   trips = values[1];
   timelineData = values[2];
   semanticInfo = values[3][0];
-  // TIMELINE PLOT
-  updateTimeline('1')
 
-  //add brush
-  var brush = d3.brushX()
-    .extent([[0, 0], [widthTimeline, heightTimeline]])//(x0,y0)  (x1,y1)
-    .on("end", brushend);//when mouse up, move the selection to the exact tick //start(mouse down), brush(mouse move), end(mouse up)
-
-  svgTimeline.append("g")
-    .attr("class", "brush")
-    .call(brush);
-
-
-  pathPie = svgPie
-    .datum(timelineData).selectAll("path")
-    .data(pie)
-    .enter().append("path")
-    .attr("fill", function (d, i) { return color(i); })
-    .attr("d", arc)
-    .attr("id", function (d) { return d.data.group; })
-    .classed("piePart", true)
-    .each(function (d) { this._current = d; })
-    .on("mouseover", function (d) {
-      ind = 0;
-      places.forEach(function (dd, ii) {
-        if (dd.placeId == d.data.group) {
-          ind = ii;
-          mousoverFunction(ind);
-
-        }
-      })
-    })
-    .on("mouseout", function (d, i) {
-      ind = 0;
-      places.forEach(function (dd, ii) {
-        if (dd.placeId == d.data.group) {
-          ind = ii;
-          mouseoutFunction(ind)
-
-        }
-      })
-    }); // store the initial angles
-
-
-  change(0, 23);
+  drawTimeline();
+  drawPieChart(timelineData);
 
   console.log("places: " + places.length);
   console.log(" trips: " + trips.length);
@@ -280,6 +240,57 @@ function processData(values) {
 }
 
 // FUNCTIONS ////////////////////////////////////////////////////////////////////////////////////
+function drawPieChart(timelineData) {
+  pathPie = svgPie
+    .datum(timelineData).selectAll("path")
+    .data(pie)
+    .enter().append("path")
+    .attr("fill", function (d, i) { return color(i); })
+    .attr("d", arc)
+    .attr("id", function (d) { return d.data.group; })
+    .classed("piePart", true)
+    .each(function (d) { this._current = d; })
+    .on("mouseover", function (d) {
+      ind = 0;
+      places.forEach(function (dd, ii) {
+        if (dd.placeId == d.data.group) {
+          ind = ii;
+          mousoverFunction(ind);
+
+        }
+      })
+    })
+    .on("mouseout", function (d, i) {
+      ind = 0;
+      places.forEach(function (dd, ii) {
+        if (dd.placeId == d.data.group) {
+          ind = ii;
+          mouseoutFunction(ind)
+
+        }
+      })
+    }); // store the initial angles
+
+  updatePieChart(0, 23);
+
+}
+
+function drawTimeline() {
+
+  // TIMELINE PLOT
+  updateTimeline('1')
+
+  //add brush
+  var brush = d3.brushX()
+    .extent([[0, 0], [widthTimeline, heightTimeline]])//(x0,y0)  (x1,y1)
+    .on("end", brushend);//when mouse up, move the selection to the exact tick //start(mouse down), brush(mouse move), end(mouse up)
+
+  svgTimeline.append("g")
+    .attr("class", "brush")
+    .call(brush);
+
+}
+
 
 // draws the underlying map
 function drawMap(map) {
@@ -334,6 +345,7 @@ function drawPlaces(places) {
     });
 }
 
+// NOT IN USE RIGHT NOW
 function drawPolygons(places) {
   // convert array of places into geojson format
   let geojsonPoly = places.map(function (place) {
@@ -416,7 +428,7 @@ function drawPolygons(places) {
 function drawTrips(places, trips) {
   // break each trip between places into multiple segments
   let bundle, geojson = addWaypoints(places, trips);
-  
+
   pathTrips = d3.geoPath(projection);
 
   let links = g.trips.selectAll("path.trip")
@@ -489,7 +501,7 @@ function addWaypoints(nodes, links) {
       };
       local.push(target);
       bundle.nodes.push(target);
-      
+
       feature.geometry.coordinates.push([d.waypointsLong[j], d.waypointsLat[j]]);
       feature.properties = d.source.placeId;
 
@@ -544,7 +556,11 @@ function typePlace(place) {
 function typeTrip(trip) {
   trip.count = parseInt(trip.count);
   trip.waypointsLong = trip.waypointsLong.split(" ").map(parseFloat);
+  //trip.waypointsLong = trip.waypointsLongSchematic.split(" ").map(parseFloat);
+
   trip.waypointsLat = trip.waypointsLat.split(" ").map(parseFloat);
+  //trip.waypointsLat = trip.waypointsLatSchematic.split(" ").map(parseFloat);
+
   return trip;
 }
 
@@ -560,7 +576,7 @@ function distance(source, target) {
 function highlight(selection) {
   selection
     .style("opacity", 1)
-    .style("stroke", "red")
+    .style("stroke", "a83290")
     .style("stroke-opacity", 0.8);
 }
 
@@ -602,7 +618,7 @@ function updateTimeline(selectedVar) {
     .attr("y", function (d) { return yScale(d[selectedVar]); })
     .attr("width", xScale.bandwidth())
     .attr("height", function (d) { return heightTimeline - yScale(d[selectedVar]); })
-    .attr("fill", "#69b3a2")
+    .attr("fill", "#a83290")
     .attr("class", "bars")
 }
 
@@ -612,10 +628,10 @@ function brushend() {
   var areaArray = d3.event.selection;//[x0,x1]
   startTime = xScale.invert(areaArray[0])
   endTime = xScale.invert(areaArray[1])
-  change(startTime, endTime);
+  updatePieChart(startTime, endTime);
 }
 
-function change(startTime, endTime) {
+function updatePieChart(startTime, endTime) {
   //clearTimeout(timeout);
   pie.value(function (d) { return getPieValues(d, startTime, endTime); }); // change the value function
   path = pathPie.data(pie); // compute the new angles
@@ -719,7 +735,7 @@ function render() {
   g.basemap.select("path.border")
     .attr("d", pathBaseMap);
 
-    g.trips.selectAll("path.trip")
+  g.trips.selectAll("path.trip")
     .attr("d", pathTrips);
 
   bubbles
@@ -727,5 +743,21 @@ function render() {
       return project(d).x
     })
     .attr("cy", d => project(d).y)
+
+}
+
+function changeMap() {
+  if (mapBlank) {
+    map.setStyle('mapbox://styles/mapbox/streets-v8');
+  }
+  else {
+    map.setStyle('mapbox://styles/dlaumer/ck9vivxcy14761inolbg58hqu');
+  }
+  mapBlank = !mapBlank;
+}
+
+// DOES NOT WORK YET
+function changeData() {
+  d3.morphPath(pathTrips, pathTrips)
 
 }
