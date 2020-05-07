@@ -330,8 +330,7 @@ if CLUSTER_TRPS:
     trpsAgrNew_shp = trpsAgrNew.copy()
     trpsAgrNew_shp['weight'] = trpsAgrNew_shp['weight'].astype(int)
     trpsAgrNew_shp.to_file('../data/shp/'+dataName +'/TripsAggregatedNew.shp')
-#%%
-    hlp.savecsv4js(plcs, trpsAgrNew)
+
  #%% EXPORT GPX %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if EXPORT_GPX:
     for idx in trpsAgrNew.index:
@@ -339,12 +338,21 @@ if EXPORT_GPX:
             trpsAgrNew = trpsAgrNew.drop([idx])
         elif float(trpsAgrNew.loc[idx,'weight']) < 2:
             trpsAgrNew = trpsAgrNew.drop([idx])
+    hlp.savecsv4js(plcs, trpsAgrNew)
     hlp.trip2gpx(trpsAgrNew,dataName)   
     
 #%%
 if API_CALL:
-    api.apiCall()
+    api.apiCall(6)
     
+    #%%
+    tripsAgrSchematic = api.readApiCall(trpsAgrNew.copy(), 6)
+    
+    trpsAgrSchematic_shp = tripsAgrSchematic.copy()
+    trpsAgrSchematic_shp['weight'] = trpsAgrSchematic_shp['weight'].astype(int)
+    trpsAgrSchematic_shp.to_file('../data/shp/'+dataName +'/TripsAggregatedSchemtic.shp')
+#%%
+    hlp.savecsv4js(plcs, trpsAgrNew, tripsAgrSchematic)    
 #%%Accuracy
 if CHECK_ACCURACY:
     #for i in [30,40,50,60,70]:

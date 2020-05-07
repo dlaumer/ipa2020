@@ -193,7 +193,7 @@ def parseTripsWithLocs(dataPath, locs):
                                     
                                     dateStart = int(entry['duration']['startTimestampMs'])
                                     dateEnd = int(entry['duration']['endTimestampMs'])
-                                    indexStart = bisect.bisect_left(timestamps,dateStart)-1
+                                    indexStart = bisect.bisect_left(timestamps,dateStart)
                                     indexEnd = bisect.bisect_right(timestamps,dateEnd)
                                     try:
                                         shape = LineString(locs['geometry'][indexStart:indexEnd+1])
@@ -503,9 +503,9 @@ def trip2gpx(trips, dataname):
         #print(gpx.to_xml())
         with open('../data/gpx/' + dataname + '/' + trips.loc[idx,'id'] + '.gpx', 'w') as f:
             f.write(gpx.to_xml())
-        prepareGPXforAPI('../data/gpx/' + dataname + '/' + trips.loc[idx,'id'] + '.gpx', str(idx))
+        prepareGPXforAPI('../data/gpx/' + dataname + '/' + trips.loc[idx,'id'] + '.gpx', str(idx), trips.loc[idx,'id'])
             
-def prepareGPXforAPI(path, pathId):
+def prepareGPXforAPI(path, routeId, pathId):
     parser = etree.XMLParser(remove_blank_text=True)
     tree = etree.parse(path, parser)  
     #etree.register_namespace('gpx',"http://www.topografix.com/GPX/1/1")
@@ -665,16 +665,16 @@ def combineTrajectory(cluster1, cluster2):
         newGeom.append(np.average(np.asarray([cluster1['geom'][i], cluster2['geom'][j]]), axis= 0, weights=[cluster1['weight'],cluster2['weight']]).tolist())
     return newGeom
 
-def savecsv4js(places, trips):
+def savecsv4js(places, trips, tripsSchematic):
     places['city'] = 'Zurich'
     places['state'] = 'Zurich'
     places['country'] = 'Switzerland'
-    places = places.rename(columns = {'place_id':'iata'})
-    places['iata'] = places['iata'].astype(str)
+    places = places.rename(columns = {'place_id':'placeId'})
+    places['placeId'] = places['placeId'].astype(str)
     places['latitude'] = places['center'].y
     places['longitude'] = places['center'].x
     places = places.drop(columns = ['user_id', 'extent', 'center'])
-    places.to_csv('../jsProject/places.csv',  index = False, sep = ";")
+    places.to_csv('jsProject/places.csv',  index = False, sep = ";")
     
     trips = trips.rename(columns = {'start_plc':'origin', 'end_plc':'destination', 'weight':'count'})
     trips["waypointsLat"] = ""
@@ -682,7 +682,10 @@ def savecsv4js(places, trips):
     for i in trips.index:
         trips.loc[i, "waypointsLong"] = ' '.join([str(j[0]) for j in trips.loc[i,'geom'].coords])
         trips.loc[i, "waypointsLat"] = ' '.join([str(j[1]) for j in trips.loc[i,'geom'].coords])
+        trips.loc[i, "waypointsLongSchematic"] = ' '.join([str(j[0]) for j in tripsSchematic.loc[i,'geom'].coords])
+        trips.loc[i, "waypointsLatSchematic"] = ' '.join([str(j[1]) for j in tripsSchematic.loc[i,'geom'].coords])
+
     trips['count'] = 1
-    trips = trips[['origin', 'destination','count','waypointsLong','waypointsLat']]
+    trips = trips[['origin', 'destination','count','waypointsLong','waypointsLat','waypointsLatSchematic','waypointsLongSchematic']]
     #trips.to_csv('../jsProject/trips.csv',  index = False, sep = ";")
-    trips.to_csv('../jsProject/tripsAgr.csv',  index = False, sep = ";")
+    trips.to_csv('jsProject/tripsAgr.csv',  index = False, sep = ";")
