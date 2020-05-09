@@ -8,60 +8,42 @@ Authors:    Daniel Laumer (laumerd@ethz.ch)
 """
 
 import pandas as pd
-import geopandas as gpd
-import numpy as np
-import math
-import json
-import os
-import time
-from collections import defaultdict
 
-from shapely.geometry import LineString, MultiPoint
 from statistics import median 
-import bisect # To find an index in a sorted list
-import numpy as np
-from scipy.spatial.distance import euclidean
-from scipy.cluster.hierarchy import linkage, cut_tree, fcluster, dendrogram, inconsistent
-from fastdtw import fastdtw
-
-from matplotlib import pyplot as plt
 
 
-import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import plotly.io as pio
 pio.renderers.default = "browser"
-import trackintel as ti
-from trackintel.geogr.distances import meters_to_decimal_degrees
-from haversine import haversine
-from trackintel.geogr.distances import haversine_dist
 
 # Local files
+import main_functions as main
 import help_functions as hlp
-import trackintel_modified as tim
 import api_call as api
 
 #import noiserm_functions as nrm
 
 dataName = '1'
 SELECT_RANGE =      False
-SAVE_SHP =          True
 CHECK_VELO =        False
 FIND_STAY_POINTS =  True
+FIND_PLACES =       True
 FIND_TRIPS =        True
-SELECT_REPRESENTATIVE_TRP = False
-EXPORT_GPX =        True
 CLUSTER_TRPS =      True
-API_CALL =          True
+EXPORT_GPX =        False
+API_CALL =          False
 CHECK_NB_POINTS =   False
 CHECK_ACCURACY =    False
 PLOT =              False
 
+exportShp =         True
 
+dist_threshold = 100
+time_threshold = 15*60
+minDist = 150
+minPoints = 4
 
 #%% IMPORT DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+print("-> Loading the data")
 dataPathLocs,dataPathTrips = hlp.getDataPaths(dataName)
 
 if SELECT_RANGE:    
@@ -72,12 +54,12 @@ if SELECT_RANGE:
 locs, locsgdf = hlp.parseLocs(dataPathLocs)
 trips, tripdf, tripsgdf = hlp.parseTrips(dataPathTrips)
 
-#%%
+#%% add location data to the trips file
 tripsgdf = hlp.parseTripsWithLocs(dataPathTrips, locsgdf)
 
 
 #%% EXPORT SHP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if SAVE_SHP:
+if exportShp:
     hlp.loc2shp(locsgdf, dataName)
     hlp.trip2shp(tripsgdf, dataName)
 
@@ -87,272 +69,90 @@ if CHECK_VELO:
     locs = hlp.calculateVelocity(locs)
 
 #%% TIME AND DISTANCE DIFF
-
 if FIND_STAY_POINTS:
-    # Calculate time and distance difference
+    print("-> Finding stay points ")
 
-    locs['d_diff'] = np.append(haversine_dist(locs.longitudeE7[1:], locs.latitudeE7[1:], locs.longitudeE7[:-1], locs.latitudeE7[:-1]),0)
-    
-    locs = locs[locs['accuracy']<70]
-    #locs = locs[locs['accuracy']<locs['d_diff']]
+    pfs,stps = main.findStayPoints(locs, dataName, dist_threshold, time_threshold)
+  
+    if exportShp: 
+        stps_shp = stps.copy()
+        stps_shp['started_at'] = stps_shp['started_at'].astype(str)
+        stps_shp['finished_at'] = stps_shp['finished_at'].astype(str)
+        stps_shp.to_file('../data/shp/'+dataName +'/Staypoints.shp')
+        
+#%%
+if FIND_PLACES:
+    print("-> Finding the places ")
 
-    if not(os.path.exists('../data/shp/'+ dataName + '/')):
-        os.makedirs('../data/shp/'+ dataName + '/')
-                
-    hlp.loc2csv4ti(locs, dataName)
-    pfs = ti.read_positionfixes_csv('../data/csv/'+dataName +'/' + dataName + '.csv', sep=';')
+    plcs = main.findPlaces(stps, dataName, minDist, minPoints)
     
-    # Find staypoints
-    #stps = pfs.as_positionfixes.extract_staypoints(method='sliding',dist_threshold=100, time_threshold=5*60)
-    stps = tim.extract_staypoints_ipa(pfs, method='sliding',dist_threshold=100, time_threshold=15*60)
+    if exportShp:
+        plcs_shp = plcs.copy()
+        plcs_shp.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/Places.shp')
+        #plcs_shp.geometry = plcs_shp['extent']
+        #plcs_shp.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/Places_extent.shp')
 
-    stps_shp = stps.copy()
-    stps_shp['started_at'] = stps_shp['started_at'].astype(str)
-    stps_shp['finished_at'] = stps_shp['finished_at'].astype(str)
-    stps_shp.to_file('../data/shp/'+dataName +'/Staypoints.shp')
     
-    # Find places
-    plcs = stps.as_staypoints.extract_places(method='dbscan',
-        epsilon=meters_to_decimal_degrees(150, 47.5), num_samples=4)
-    
-    plcs_shp = plcs.copy()
-    plcs_shp.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/Places.shp')
-    #plcs_shp.geometry = plcs_shp['extent']
-    #plcs_shp.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/Places_extent.shp')
-
 #%% Find trips from staypoints
 if FIND_TRIPS:
-    # Find the trips between the PLACES!!
-    tpls = tim.extract_triplegs_ipa(pfs, stps)
+    print("-> Finding the trips ")
+
+    tpls, trps, trpsCount = main.findTrips(pfs, stps, plcs, dataName)
     
-    tpls_shp = tpls.copy()
-    tpls_shp['started_at'] = tpls_shp['started_at'].astype(str)
-    tpls_shp['finished_at'] = tpls_shp['finished_at'].astype(str)
-    tpls_shp.to_file('../data/shp/'+dataName +'/Triplegs.shp')
-    
-    trps = pd.DataFrame(columns=['id', 'started_at', 'finished_at','start_plc', 'end_plc', 'geom'])
-    trpsAgr = pd.DataFrame(columns=['id','count', 'start_plc', 'end_plc', 'geom'])
-
-    generated_trips = []        
-    generated_trips_aggr = {}
-
-    count = 0;
-    #countMatrix = np.zeros([len(plcs),len(plcs)])
-    for i in range(len(tpls)):
-        startPlace = stps.loc[tpls.loc[i,'start_stp'],'place_id']
-        endPlace = stps.loc[tpls.loc[i,'end_stp'],'place_id']
-
-        if (startPlace != -1) and (endPlace!= -1):
-            coords = tpls.loc[i,'geom'].coords[1:-1]
-            startCoord = plcs.loc[startPlace-1,'center'].coords[:]
-            endCoord = plcs.loc[endPlace-1,'center'].coords[:]
-            coords = startCoord + coords + endCoord
-            
-            generated_trips.append({
-                        'id': count,
-                        'started_at': tpls.loc[i,'started_at'],  # pfs_tripleg['tracked_at'].iloc[0],
-                        'finished_at': tpls.loc[i,'finished_at'],  # pfs_tripleg['tracked_at'].iloc[-1],
-                        'geom': LineString(coords),
-                        'start_plc': startPlace,
-                        'end_plc': endPlace
-                    })
-            #ide = str(min(startPlace,endPlace)) + '_' + str(max(startPlace,endPlace))
-            ide = str(startPlace) + '_' + str(endPlace)
-            coords = startCoord + endCoord
-            if ide not in list(generated_trips_aggr):
-                generated_trips_aggr[ide] = {
-                        'id': ide,
-                        'count' : 1,
-                        'trpIds' : [count],
-                        'start_plc': startPlace,
-                        'end_plc': endPlace,
-                        'geom': LineString(coords),
-                    }
-            else:
-                generated_trips_aggr[ide]['count'] = generated_trips_aggr[ide]['count']+ 1
-                generated_trips_aggr[ide]['trpIds'].append(count)
-            #countMatrix[startPlace-1,endPlace-1] = countMatrix[startPlace-1,endPlace-1] + 1
-            #countMatrix[endPlace-1,startPlace-1] = countMatrix[endPlace-1,startPlace-1] + 1
-            
-            
-            count = count + 1
-            
-    trps = trps.append(generated_trips)
-    trps = gpd.GeoDataFrame(trps, geometry='geom')
+    if exportShp:
+        tpls_shp = tpls.copy()
+        tpls_shp['started_at'] = tpls_shp['started_at'].astype(str)
+        tpls_shp['finished_at'] = tpls_shp['finished_at'].astype(str)
+        tpls_shp.to_file('../data/shp/'+dataName +'/Triplegs.shp')
         
-    trps_shp = trps.copy()
-    trps_shp['started_at'] = stps_shp['started_at'].astype(str)
-    trps_shp['finished_at'] = stps_shp['finished_at'].astype(str)
-    trps_shp.to_file('../data/shp/'+dataName +'/Trips.shp')
-    
-    
-    trpsAgr = trpsAgr.append(list(generated_trips_aggr.values()))
-    trpsAgr = gpd.GeoDataFrame(trpsAgr, geometry='geom')
-    
-    trpsAgr_shp = trpsAgr.copy()
-    trpsAgr_shp['count'] = trpsAgr_shp['count'].astype(int)
-    trpsAgr_shp = trpsAgr_shp.drop(["trpIds"], axis = 1)
-    trpsAgr_shp.to_file('../data/shp/'+dataName +'/TripsAggregated.shp')
-    
-    """
-    trpsAgr = pd.DataFrame(columns=['id', 'count', 'start_plc', 'end_plc', 'geom'])
-    generated_trips_aggr = []
-
-    # Aggregated and simplified trips
-    for i in range(len(plcs)):
-        for j in range(i,len(plcs)):
-            if countMatrix[i,j] != 0:
-                startCoord = plcs.loc[i,'center'].coords[:]
-                endCoord = plcs.loc[j,'center'].coords[:]
-                coords = startCoord + endCoord
-                generated_trips_aggr.append({
-                        'id': str(i+1) + '_' + str(j+1),
-                        'count' : countMatrix[i,j],
-                        'start_plc': str(i+1),
-                        'end_plc': str(j+1),
-                        'geom': LineString(coords),
-                    })
-    trpsAgr = trpsAgr.append(generated_trips_aggr)
-    trpsAgr = gpd.GeoDataFrame(trpsAgr, geometry='geom')
+        #trps_shp = trps.copy()
+        #trps_shp['started_at'] = trps_shp['started_at'].astype(str)
+        #trps_shp['finished_at'] = trps_shp['finished_at'].astype(str)
+        #trps_shp.to_file('../data/shp/'+dataName +'/Trips.shp')
         
-    trpsAgr_shp = trpsAgr.copy()
-    trpsAgr_shp.to_file('../data/shp/'+dataName +'/TripsAggregated.shp')
-    """
-    #%%
-if SELECT_REPRESENTATIVE_TRP:
-    trpsSelected = trpsAgr.copy()
-    for i in range(len(trpsSelected)):
-        if len(trpsSelected.loc[i,'trpIds']) > 0:
-            selectedTrip = trpsSelected.loc[i,'trpIds'][0]
-            for j in trpsSelected.loc[i,'trpIds']:
-                #print(trps.loc[j,'geom'])
-                if len(trps.loc[j,'geom'].coords[:]) > 6 and len(trps.loc[j,'geom'].coords[:]) < 10:
-                    selectedTrip = j
-                    
-                    break
-        print(len(trps.loc[j,'geom'].coords[:]))        
-        trpsSelected.loc[i,'geom'] = trps.loc[selectedTrip,'geom']
-    
-    trpsSelected_shp = trpsSelected.copy()
-    trpsSelected_shp['count'] = trpsSelected_shp['count'].astype(int)
-    trpsSelected_shp = trpsSelected_shp.drop(["trpIds"], axis = 1)
-    trpsSelected_shp.to_file('../data/shp/'+dataName +'/TripsSelected.shp')
- 
-
+        trpsCount_shp = trpsCount.copy()
+        trpsCount_shp['count'] = trpsCount_shp['count'].astype(int)
+        trpsCount_shp = trpsCount_shp.drop(["trpIds"], axis = 1)
+        trpsCount_shp.to_file('../data/shp/'+dataName +'/TripsAggregated.shp')
 #%%
 if CLUSTER_TRPS:
-    trps['length'] = trps['geom'].length
-    trps['cluster'] = None
-    
-    trpsAgrNew = pd.DataFrame(columns=['weight', 'start_plc', 'end_plc', 'geom'])
-    generated_trips_aggr_new = []
+    print("-> Cluster the trips")
 
+    trps, trpsAgr = main.clusterTrips(trps, trpsCount)
 
-    for i in range(len(trpsAgr)):
-    #for i in range(3,4):
-        startPlace = trpsAgr.loc[i,'start_plc']
-        endPlace = trpsAgr.loc[i,'end_plc']
-        if startPlace == endPlace:
-            continue
-        if trpsAgr.loc[i,'count'] < 2:
-            generated_trips_aggr_new.append({
-                            'id' : str(min(startPlace,endPlace)) + '_' + str(max(startPlace,endPlace)) + '_0',
-                            'weight' : 1,
-                            'start_plc': startPlace,
-                            'end_plc': endPlace,
-                            'geom': trps.loc[trpsAgr.loc[i,'trpIds'][0],'geom'],
-                        })
-            continue
+    if exportShp:
+        trps_shp = trps.copy()
+        trps_shp['started_at'] = stps_shp['started_at'].astype(str)
+        trps_shp['finished_at'] = stps_shp['finished_at'].astype(str)
+        trps_shp.to_file('../data/shp/'+dataName +'/Trips.shp')
         
-        trpsTemp = []
-        for j in trpsAgr.loc[i,'trpIds']:
-            if trps.loc[j,'start_plc'] == endPlace:
-                trpsTemp.append(trps.loc[j,'geom'].coords[:].reverse())
-            else:
-                trpsTemp.append(trps.loc[j,'geom'].coords[:])
-        trpsTemp = [trps.loc[j,'geom'].coords[:] for j in trpsAgr.loc[i,'trpIds']]
-        distMatrix = hlp.makeDistMatrix(trpsTemp)
-        #minIndices = np.where(distMatrix == np.nanmin(distMatrix))
-        #minIndices = list(zip(minIndices[0], minIndices[1]))
-        #minIndex = minIndices[0]
-        
-        linkMatrix = linkage(distMatrix, method='complete')
-        fig = plt.figure(figsize=(25, 10))
-        dn = dendrogram(linkMatrix, leaf_font_size=12.)
-        plt.show()
-        
-        tree = cut_tree(linkMatrix)
-        th = max(0.05, max(linkMatrix[:,2])/2)
-        clusteringResult = fcluster(linkMatrix,th, 'distance')
-        #clusteringResult = tree[:,linkMatrix.shape[0] - 4]
-        fig.savefig('../data/clustering/' + str(startPlace) + '_' + str(endPlace) + '_' +  str(max(clusteringResult)) + '.png')
-        
-        for idx, j in enumerate(trpsAgr.loc[i,'trpIds']):
-            #for q in range(len(tree)):
-            trps.loc[j,'cluster'] = int(clusteringResult[idx])
-        
-        #Combining clusters 
-        n = linkMatrix.shape[0] + 1
-        numOfClusters = max(clusteringResult)
-        clusters = defaultdict(dict)
-        for idx, geom in zip(range(n), trpsTemp):
-            clusters[idx]['geom'] = geom
-            clusters[idx]['weight'] = 1
-            
-        for i in range(n-numOfClusters):
-            cluster1 = linkMatrix[i,0]
-            cluster2 = linkMatrix[i,1]
-            newGeom = hlp.combineTrajectory(clusters[cluster1],clusters[cluster2])
-            clusters[n + i] = {}
-            clusters[n + i]['geom'] = newGeom
-            clusters[n + i]['weight'] = clusters[cluster1]['weight'] + clusters[cluster2]['weight']
-            clusters.pop(cluster1)
-            clusters.pop(cluster2)
-        
-        for idx, cluster in enumerate(clusters):
-            ide = str(min(startPlace,endPlace)) + '_' + str(max(startPlace,endPlace)) + '_' + str(idx)
-            generated_trips_aggr_new.append({
-                            'id' :  ide,
-                            'weight' : clusters[cluster]['weight'],
-                            'start_plc': startPlace,
-                            'end_plc': endPlace,
-                            'geom': LineString(clusters[cluster]['geom']),
-                        })
-    
-    trps_shp = trps.copy()
-    trps_shp['started_at'] = stps_shp['started_at'].astype(str)
-    trps_shp['finished_at'] = stps_shp['finished_at'].astype(str)
-    trps_shp.to_file('../data/shp/'+dataName +'/Trips.shp')
-        
-    trpsAgrNew = trpsAgrNew.append(generated_trips_aggr_new)
-    trpsAgrNew = gpd.GeoDataFrame(trpsAgrNew, geometry='geom')
-    
-    trpsAgrNew_shp = trpsAgrNew.copy()
-    trpsAgrNew_shp['weight'] = trpsAgrNew_shp['weight'].astype(int)
-    trpsAgrNew_shp.to_file('../data/shp/'+dataName +'/TripsAggregatedNew.shp')
+        trpsAgr_shp = trpsAgr.copy()
+        trpsAgr_shp['weight'] = trpsAgr_shp['weight'].astype(int)
+        trpsAgr_shp.to_file('../data/shp/'+dataName +'/TripsAggregatedNew.shp')
 
  #%% EXPORT GPX %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if EXPORT_GPX:
-    for idx in trpsAgrNew.index:
-        if trpsAgrNew.loc[idx,'start_plc'] == trpsAgrNew.loc[idx,'end_plc']:
-            trpsAgrNew = trpsAgrNew.drop([idx])
-        elif float(trpsAgrNew.loc[idx,'weight']) < 2:
-            trpsAgrNew = trpsAgrNew.drop([idx])
-    hlp.savecsv4js(plcs, trpsAgrNew)
-    hlp.trip2gpx(trpsAgrNew,dataName)   
+    print("-> Export to GPX")
+    for idx in trpsAgr.index:
+        if trpsAgr.loc[idx,'start_plc'] == trpsAgr.loc[idx,'end_plc']:
+            trpsAgr = trpsAgr.drop([idx])
+        elif float(trpsAgr.loc[idx,'weight']) < 2:
+            trpsAgr = trpsAgr.drop([idx])
+    #hlp.savecsv4js(plcs, trpsAgr)
+    hlp.trip2gpx(trpsAgr,dataName)   
     
 #%%
 if API_CALL:
-    api.apiCall(6)
-    
-    #%%
-    tripsAgrSchematic = api.readApiCall(trpsAgrNew.copy(), 6)
+    print("-> Calling the API from Hitouch")
+
+    api.apiCall(int(dataName))
+    tripsAgrSchematic = api.readApiCall(trpsAgr.copy(), int(dataName))
     
     trpsAgrSchematic_shp = tripsAgrSchematic.copy()
     trpsAgrSchematic_shp['weight'] = trpsAgrSchematic_shp['weight'].astype(int)
     trpsAgrSchematic_shp.to_file('../data/shp/'+dataName +'/TripsAggregatedSchemtic.shp')
 #%%
-    hlp.savecsv4js(plcs, trpsAgrNew, tripsAgrSchematic)    
+    hlp.savecsv4js(plcs, trpsAgr, tripsAgrSchematic)    
 #%%Accuracy
 if CHECK_ACCURACY:
     #for i in [30,40,50,60,70]:
@@ -383,76 +183,3 @@ if CHECK_NB_POINTS:
     perDay = perDay.reindex(idx, fill_value=0)
 
 #hlp.checkTrips(trips)
-
-#%% PLOT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if PLOT:
-    
-    def getWidth(count):
-        if count < 4:
-            return 2
-        elif count < 10:
-            return 4
-        elif count < 50:
-            return 8
-        else: 
-            return 10
-    
-    labels, values = hlp.pieChartInfoPlus(trips)
-
-    fig = make_subplots(
-    rows=2, cols=2,
-    column_widths=[0.6, 0.4],
-    row_heights=[0.4, 0.6],
-    specs=[[{"type": "Bar", "colspan": 2}, None],
-           [ {"type": "Scattermapbox"}    , {"type": "Pie"}]])
-
-    fig.add_trace( 
-        go.Bar(x=list(perDay.index), 
-               y=list(perDay),
-               name="Number of points per day"
-               ),
-        row=1, col=1
-        )
-    
-    fig.add_trace( 
-        go.Pie(labels=labels, values=values),
-        row=2, col=2
-        )
-        
-    for idx in trpsAgr.index:
-        if trpsAgr.loc[idx,'count'] > 2:
-            trpsAgr.loc[idx,'geom'].coords[:]
-            fig.add_trace(
-                go.Scattermapbox(
-                    lon = [trpsAgr.loc[idx,'geom'].coords[0][0], trpsAgr.loc[idx,'geom'].coords[1][0]],
-                    lat = [trpsAgr.loc[idx,'geom'].coords[0][1], trpsAgr.loc[idx,'geom'].coords[1][1]],
-                    text = "Number of trips taken: " +  str(trpsAgr.loc[idx,'count']),
-                    mode = 'markers+lines',
-                    name="Trips Aggregated",
-                    showlegend=False,
-                    marker = go.scattermapbox.Marker(
-                        color = "red"
-                    ),
-                    line = go.scattermapbox.Line(
-                        color = "red",
-                        width=getWidth(trpsAgr.loc[idx,'count'])
-                    ),
-                    ),
-                row=2, col=1
-                )
-    
-    
-    fig.update_layout(
-        mapbox=dict(
-            accesstoken = "pk.eyJ1IjoiZGxhdW1lciIsImEiOiJjazhwdWc1aG8wazZnM2xubG5uaGwxN2RmIn0.cgSC6SK8DdnCPwO4NmjxAQ",                    
-            ))
-    fig.update_layout(
-    mapbox = {
-        'center': {'lon': 8.49, 'lat': 47.41},
-        'style': "mapbox://styles/dlaumer/ck91fkxzs08kw1is4sr31byc5",
-        'zoom': 11})
-    fig.show()
-    fig.write_html("dashboard.html")
-
-    #fig2 = px.histogram(locs, x="accuracy")
-    #fig2.show()

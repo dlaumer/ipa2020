@@ -448,7 +448,7 @@ def trip2shp(trips, dataname):
     if not(os.path.exists('../data/shp/'+ dataname + '/')):
         os.makedirs('../data/shp/'+ dataname + '/')
     trips[trips['Type']=='activitySegment'].to_file('../data/shp/'+ dataname + '/Trip.shp')  
-    trips[trips['Type']=='placeVisit'].to_file('../data/shp/'+ dataname + '/Place.shp')
+    #trips[trips['Type']=='placeVisit'].to_file('../data/shp/'+ dataname + '/Place.shp')
 
 def haversine_np(lon1, lat1, lon2, lat2):
     """
