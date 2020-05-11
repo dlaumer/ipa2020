@@ -151,7 +151,7 @@ def clusterTrips(trps, trpsCount, saveDendogramms = False):
 
         
         tree = cut_tree(linkMatrix)
-        th = max(0.05, max(linkMatrix[:,2])/2)
+        th = max(0.05, max(linkMatrix[:,2])/10)
         clusteringResult = fcluster(linkMatrix,th, 'distance')
         #clusteringResult = tree[:,linkMatrix.shape[0] - 4]
         if saveDendogramms:

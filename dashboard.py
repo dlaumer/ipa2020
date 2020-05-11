@@ -23,7 +23,7 @@ import api_call as api
 #import noiserm_functions as nrm
 
 dataName = '1'
-SELECT_RANGE =      False
+SELECT_RANGE =      True
 CHECK_VELO =        False
 FIND_STAY_POINTS =  True
 FIND_PLACES =       True
@@ -47,9 +47,11 @@ print("-> Loading the data")
 dataPathLocs,dataPathTrips = hlp.getDataPaths(dataName)
 
 if SELECT_RANGE:    
-    dateStart = '2020-01-01'
-    dateEnd = '2020-02-01'
-    dataPathLocs,dataPathTrips = hlp.selectRange(dataPathLocs, dataPathTrips, dateStart = dateStart, dateEnd = dateEnd)
+    #dateStart = 'beginning'
+    #dateEnd = '2020-01-02'
+    #dataPathLocs,dataPathTrips = hlp.selectRange(dataPathLocs, dataPathTrips, dateStart = dateStart, dateEnd = dateEnd)
+    
+    dataPathLocs,dataPathTrips = hlp.selectLastMonth(dataPathLocs, dataPathTrips)
     
 locs, locsgdf = hlp.parseLocs(dataPathLocs)
 trips, tripdf, tripsgdf = hlp.parseTrips(dataPathTrips)
@@ -113,7 +115,7 @@ if FIND_TRIPS:
         trpsCount_shp = trpsCount.copy()
         trpsCount_shp['count'] = trpsCount_shp['count'].astype(int)
         trpsCount_shp = trpsCount_shp.drop(["trpIds"], axis = 1)
-        trpsCount_shp.to_file('../data/shp/'+dataName +'/TripsAggregated.shp')
+        trpsCount_shp.to_file('../data/shp/'+dataName +'/TripsCount.shp')
 #%%
 if CLUSTER_TRPS:
     print("-> Cluster the trips")
@@ -128,7 +130,7 @@ if CLUSTER_TRPS:
         
         trpsAgr_shp = trpsAgr.copy()
         trpsAgr_shp['weight'] = trpsAgr_shp['weight'].astype(int)
-        trpsAgr_shp.to_file('../data/shp/'+dataName +'/TripsAggregatedNew.shp')
+        trpsAgr_shp.to_file('../data/shp/'+dataName +'/TripsAggregated.shp')
 
  #%% EXPORT GPX %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if EXPORT_GPX:

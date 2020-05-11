@@ -536,31 +536,43 @@ def prepareGPXforAPI(path, routeId, pathId):
     etree.dump(root)
     tree.write(path,encoding="utf-8", xml_declaration=True, pretty_print=True)
 
-def selectRange(dataPathLoc,dataPathTrip, dateStart = 'beginning', dateEnd = 'end'):
-    newPath = str(Path(dataPathLoc).parents[2]) + "/" + dateStart + "_" + dateEnd + "/"
-    
-    if os.path.exists(newPath):
-        return newPath + "Location History.json", newPath + "Semantic Location History/"
-    else:
-        os.makedirs(newPath)
+def selectLastMonth(dataPathLoc,dataPathTrip):
+    oneMonth = 2592000000 # in ms
+    dataPathLocs,dataPathTrips = selectRange(dataPathLoc,dataPathTrip, timerange = oneMonth)
+    return dataPathLocs,dataPathTrips
+
+def selectRange(dataPathLoc,dataPathTrip, dateStart = 'beginning', dateEnd = 'end', timerange = None):
+
     # Location File
     if (type(dataPathLoc) is str):
         with open(dataPathLoc) as f:
             jsonData = json.load(f)
     else:
         jsonData = dataPathLoc
-    if dateStart == 'beginning':
-        dateStart = int(jsonData["locations"][0]["timestampMs"])
-    else:
-        dateTemp = pd.to_datetime([dateStart])
-        dateStart = ((dateTemp - pd.Timestamp("1970-01-01")) // pd.Timedelta('1ms'))[0]  
-        
-    if dateEnd == 'end':
-        dateEnd = int(jsonData["locations"][-1]["timestampMs"])
-    else:
-        dateTemp = pd.to_datetime([dateEnd])
-        dateEnd = ((dateTemp - pd.Timestamp("1970-01-01")) // pd.Timedelta('1ms'))[0]  
     
+    if timerange:
+        dateEnd = int(jsonData["locations"][-1]["timestampMs"])
+        dateStart = dateEnd - timerange
+    else:
+        if dateStart == 'beginning':
+            dateStart = int(jsonData["locations"][0]["timestampMs"])
+        else:
+            dateTemp = pd.to_datetime([dateStart])
+            dateStart = ((dateTemp - pd.Timestamp("1970-01-01")) // pd.Timedelta('1ms'))[0]  
+            
+        if dateEnd == 'end':
+            dateEnd = int(jsonData["locations"][-1]["timestampMs"])
+        else:
+            dateTemp = pd.to_datetime([dateEnd])
+            dateEnd = ((dateTemp - pd.Timestamp("1970-01-01")) // pd.Timedelta('1ms'))[0]  
+        
+    
+    newPath = str(Path(dataPathLoc).parents[2]) + "/" + str(pd.to_datetime(dateStart,  unit='ms').date()) + "_" + str(pd.to_datetime(dateEnd,  unit='ms').date()) + "/"
+    
+    if os.path.exists(newPath):
+        return newPath + "Location History.json", newPath + "Semantic Location History/"
+    else:
+        os.makedirs(newPath)
     
     #timestamps = pd.json_normalize(jsonData, 'locations')['timestampMs'].astype(int)
     timestamps = pd.Series([x['timestampMs'] for x in jsonData['locations']]).astype(int)
