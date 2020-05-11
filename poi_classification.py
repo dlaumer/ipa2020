@@ -17,25 +17,33 @@ dataName = '1'
 plcs = geopandas.read_file('E:/1_IPA/3_project/data/shp/'+dataName+'/Places.shp')
 
 #%% REVERSE GEO-CODING
-plcs['location'] = ""
-geolocator = Nominatim(user_agent="ipalocationdiary1")
+def reverseGeoCoding(plcs):
+    
+    plcs['location'] = ""
+    geolocator = Nominatim(user_agent="ipalocationdiary1")
+    
+    for i in range(0,len(plcs)):
+        lon = plcs.iloc[i].center.x
+        lat = plcs.iloc[i].center.y
+        plcs['location'].iloc[i] = geolocator.reverse((lat,lon))
 
-for i in range(0,len(plcs)):
-    lon = plcs.iloc[i].geometry.y
-    lat = plcs.iloc[i].geometry.x
-    plcs['location'].iloc[i] = geolocator.reverse((lon,lat))
+    return plcs
+
+#%%
+plcs = reverseGeoCoding(plcs)
 
 #%% POI CLASSIFICATION
+# def poiClassify(plcs):
 import overpy
 api = overpy.Overpass()
 
-plcs['tag'] = ""
+plcs['tag_api'] = ""
 
 for i in range(0,len(plcs)):
-    print(i)
-    
-    lon = plcs.iloc[i].geometry.x
-    lat = plcs.iloc[i].geometry.y
+    # print(i)
+    # i = 1
+    lon = plcs.iloc[i].center.x
+    lat = plcs.iloc[i].center.y
     
     # for i = 1: 130 m
     # lat1 = 47.377
@@ -65,16 +73,21 @@ for i in range(0,len(plcs)):
     result = api.query(string)
     nodes = result.nodes
     
-    k = 0
+    nodeNum = []
+    nodeNum.append(len(nodes))
+    tagNum = []
     tagidx = []
+    k = 0
     # Print tags
-    print("number of nodes:",len(nodes))
+    # print("number of nodes:",len(nodes))
     for j in range(0,len(nodes)):
+        # j = 1
         tag = nodes[j].tags;
-        print(j,"Tag",tag)
+        # print(j,"Tag",tag)
         if (len(tag)!=0): 
             k=k+1; # count how many tags are returned
             tagidx.append(j)
+    tagNum.append(k)
     
     if (k!=0):
         # Return the tag with smallest distance between node and the queried point
@@ -86,7 +99,7 @@ for i in range(0,len(plcs)):
         mindistidx = tagidx[dist.index(min(dist))]
         tag = nodes[mindistidx].tags
         # print(min(dist))
-        plcs["tag"].iloc[i] = list(tag.keys())[0] 
+        plcs["tag_api"].iloc[i] = list(tag.keys())[0] 
         
         # coords += [(float(node.lon), float(node.lat)) 
         #            for node in r.nodes]
@@ -94,4 +107,77 @@ for i in range(0,len(plcs)):
         # print(sorted(set(dist))[1])
         # dist.index(sorted(set(dist))[1])
         # tag = nodes[4].tags
+
+    # return plcs
+#%%
+
+plcs = poiClassify(plcs) 
+
+#%% POI Classification
+# def poiClassify2(plcs):
+import pandas as pd
+pois = pd.read_csv("E:/1_IPA/3_project/data/poiZurich/poiZurich.csv")
+poisOut = pd.read_csv("E:/1_IPA/3_project/data/poiOutZurich/poiOutZurich.csv")
+
+plcs['tag'] = ""
+mindist = []
+
+for i in range(0,len(plcs)):
+    # print(i)
+    # i = 4
+    lon = plcs.iloc[i].center.x
+    lat = plcs.iloc[i].center.y
+
+    dist = []
+
+    for j in range(0,len(pois)):
+        disti = hlp.haversine_built(lon,lat,pois.iloc[j].lon,pois.iloc[j].lat)
+        dist.append(disti)
+    
+    # sorted(set(dist))[1]
+    # secmindistidx = dist.index(sorted(set(dist))[1])
+    # pois.iloc[secmindistidx].fclass
+    
+    # sorted(set(dist))[2]
+    # thimindistidx = dist.index(sorted(set(dist))[2])
+    # pois.iloc[thimindistidx].fclass
+    
+    if min(dist) > 100:
+        distOut = []
+     
+        for k in range(0,len(poisOut)):
+            disti = hlp.haversine_built(lon,lat,poisOut.iloc[k].lon,poisOut.iloc[k].lat)
+            distOut.append(disti)
+    
+        if min(distOut) < min(dist):
+            mindist.append(min(distOut)) 
+            mindistidx = distOut.index(min(distOut))
+            tag = poisOut.iloc[mindistidx].fclass
+        else:
+            mindist.append(min(dist)) 
+            mindistidx = dist.index(min(dist))
+            tag = pois.iloc[mindistidx].fclass
+    
+    else:
+        mindist.append(min(dist)) 
+        mindistidx = dist.index(min(dist))
+        tag = pois.iloc[mindistidx].fclass
+    
+    plcs["tag"].iloc[i] = tag 
+    
+    # return plcs
+
+# plcs = poiClassify2(plcs) 
+
+
+
+
+
+
+
+
+
+
+
+
 
