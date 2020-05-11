@@ -761,3 +761,92 @@ function changeData() {
   d3.morphPath(pathTrips, pathTrips)
 
 }
+
+// Negative stacked bar graph: Home and Work Balance
+// Weekday categories
+var categories = [
+  'Sunday', 'Saturday', 'Friday', 'Thursday', 'Wednesday','Tuesday', 'Monday'
+];
+
+Highcharts.chart('container', {
+  chart: {
+    type: 'bar'
+  },
+  title: {
+    text: 'Home and Work Balance'
+  },
+  // subtitle: {
+  //   text: ''
+  // },
+  accessibility: {
+    point: {
+      valueDescriptionFormat: '{index}. StayTime {xDescription}, {value}hrs.'
+    }
+  },
+  xAxis: [{
+    categories: categories,
+    reversed: false,
+    labels: {
+      step: 1
+    },
+    accessibility: {
+      description: 'StayTime (Home)'
+    }
+  }, { // mirror axis on right side
+    opposite: true,
+    reversed: false,
+    categories: categories,
+    linkedTo: 0,
+    labels: {
+      step: 1
+    },
+    accessibility: {
+      description: 'StayTime (Work)'
+    }
+  }],
+  yAxis: {
+    title: {
+      text: null
+    },
+    labels: {
+      formatter: function () {
+        return Math.abs(this.value);
+      }
+    },
+    // accessibility: {
+    //   description: 'Stay Time in Minutes',
+    //   rangeDescription: 'above 0'
+    // }
+  },
+
+  plotOptions: {
+    series: {
+      stacking: 'normal'
+    }
+  },
+
+  tooltip: {
+    formatter: function () {
+      return '<b>' + this.series.name + ', ' + this.point.category + '</b><br/>' +
+         Highcharts.numberFormat(Math.abs(this.point.y), 1) + ' hrs';
+    }
+  },
+
+  series: [
+  {
+    name: 'Home at Affoltern',
+    data: [-113.1,-31.6,-55.8,-94.6,-0.9,-8.2,-77],
+  }, 
+  // {
+  //   name: 'Home at Schlieren',
+  //   data: [0,0,0,0,-0.9,0,-0.5],
+  // }, 
+  {
+    name: 'ETH Zurich',
+    data: [0,0,28.5,73.9,3.6,39.4,15.3],
+  }, 
+  {
+    name: 'Acht Grad Ost AG, 4, Wagistrasse, Schlieren',
+    data: [0,0,5,0,12.5,5.9,27.3]
+  }]
+});
