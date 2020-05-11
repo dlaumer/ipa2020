@@ -12,7 +12,7 @@
 import pandas as pd
 import numpy as np
 import math
-
+import os
 
 
 
@@ -21,7 +21,7 @@ import math
 import help_functions as hlp
 #import noiserm_functions as nrm
 
-dataNames = ['1','2','4','10','11','15','17','20','21','28']
+dataNames = []
 EXPORT_GPX =        False
 SAVE_SHP =          False
 CHECK_VELO =        False
@@ -31,6 +31,12 @@ CHECK_ACCURACY =    True
 PLOT =              False
 
 #%% IMPORT DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Trip files
+if len(dataNames) == 0:
+    for root,dirs,files in os.walk("../../4-Collection/DataParticipants/"):
+       dataNames = dirs
+       break
 
 dfAccuracy = pd.DataFrame(columns =['Id','30','40','50','60','70', 'NumDays', 'AvgNumPoints'])
 
@@ -59,10 +65,10 @@ for dataName in dataNames:
     
     #hlp.checkTrips(trips)
 
-dfQuestionnaire = pd.read_csv("../data/Pre-Questionnaire - Location Diary.csv")
-dfPhoneModel = dfQuestionnaire[["Enter your participant ID:","What is your mobile phone's brand used to collect data?"]]
-dfAccuracy['Id'] = dfAccuracy['Id'].astype(int)
-dfAccuracy = pd.merge(dfAccuracy, dfPhoneModel, left_on='Id',right_on="Enter your participant ID:")
-#dfAccuracy = dfAccuracy.drop("Enter your participant ID:")
-
-dfAccuracy.to_csv('../data/statistics.csv', index=False, sep=';')
+    dfQuestionnaire = pd.read_csv("../data/Pre-Questionnaire - Location Diary.csv")
+    dfPhoneModel = dfQuestionnaire[["Enter your participant ID:","What is your mobile phone's brand used to collect data?"]]
+    dfAccuracy['Id'] = dfAccuracy['Id'].astype(int)
+    dfAccuracy = pd.merge(dfAccuracy, dfPhoneModel, left_on='Id',right_on="Enter your participant ID:")
+    #dfAccuracy = dfAccuracy.drop("Enter your participant ID:")
+    
+    dfAccuracy.to_csv('../data/statistics.csv', index=False, sep=';')

@@ -46,6 +46,9 @@ def getDataPaths(participantId):
     elif os.path.exists(path + "Historique des positions/"): 
         dataPathLocs =  path + '/Historique des positions/Historique des positions.json'
         dataPathTrips =  path + '/Historique des positions/Semantic Location History/'
+    elif os.path.exists(path + "位置记录/"): 
+        dataPathLocs =  path + '/位置记录/位置记录.json'
+        dataPathTrips =  path + '/位置记录/Semantic Location History/'
 
     else:
         raise TypeError('The files are not in the needed format!')
@@ -474,7 +477,8 @@ def distance(x):
     return haversine_np(x['latitudeE7'], x['longitudeE7'], y['latitudeE7'], y['longitudeE7']).fillna(0)
 
 def loc2csv4ti(locs, dataname):
-    locs = locs[['latitudeE7', 'longitudeE7', 'altitude', 'accuracy', 'velocity']]
+    fields = set(['latitudeE7', 'longitudeE7', 'altitude', 'accuracy', 'velocity']).intersection(set(locs.keys()))
+    locs = locs[list(fields)]
     locs.loc[:,'user_id'] = '1'
     locs.rename(columns = {'latitudeE7':'latitude', 'longitudeE7': 'longitude', 'altitude':'elevation'}, inplace = True)
     locs.loc[:,'tracked_at'] = locs.index.astype(str)
@@ -543,6 +547,7 @@ def selectLastMonth(dataPathLoc,dataPathTrip):
 
 def selectRange(dataPathLoc,dataPathTrip, dateStart = 'beginning', dateEnd = 'end', timerange = None):
 
+    
     # Location File
     if (type(dataPathLoc) is str):
         with open(dataPathLoc) as f:
@@ -550,6 +555,11 @@ def selectRange(dataPathLoc,dataPathTrip, dateStart = 'beginning', dateEnd = 'en
     else:
         jsonData = dataPathLoc
     
+    print("Start date: " + str(pd.to_datetime(int(jsonData["locations"][0]["timestampMs"]),  unit='ms').date()))
+    print("End date: " + str(pd.to_datetime(int(jsonData["locations"][-1]["timestampMs"]),  unit='ms').date()))
+    dateStart = input("Choose a start date: ")
+    dateEnd = input("Choose a end date: ")
+
     if timerange:
         dateEnd = int(jsonData["locations"][-1]["timestampMs"])
         dateStart = dateEnd - timerange
@@ -565,7 +575,8 @@ def selectRange(dataPathLoc,dataPathTrip, dateStart = 'beginning', dateEnd = 'en
         else:
             dateTemp = pd.to_datetime([dateEnd])
             dateEnd = ((dateTemp - pd.Timestamp("1970-01-01")) // pd.Timedelta('1ms'))[0]  
-        
+    
+
     
     newPath = str(Path(dataPathLoc).parents[2]) + "/" + str(pd.to_datetime(dateStart,  unit='ms').date()) + "_" + str(pd.to_datetime(dateEnd,  unit='ms').date()) + "/"
     

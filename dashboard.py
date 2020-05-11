@@ -8,6 +8,7 @@ Authors:    Daniel Laumer (laumerd@ethz.ch)
 """
 
 import pandas as pd
+import json
 
 from statistics import median 
 
@@ -22,9 +23,8 @@ import api_call as api
 
 #import noiserm_functions as nrm
 
-dataName = '1'
+dataName = '15'
 SELECT_RANGE =      True
-CHECK_VELO =        False
 FIND_STAY_POINTS =  True
 FIND_PLACES =       True
 FIND_TRIPS =        True
@@ -32,49 +32,56 @@ CLUSTER_TRPS =      True
 EXPORT_GPX =        False
 API_CALL =          False
 CHECK_NB_POINTS =   False
-CHECK_ACCURACY =    False
-PLOT =              False
+
 
 exportShp =         True
+loadTh =            False
 
-dist_threshold = 100
-time_threshold = 15*60
-minDist = 150
-minPoints = 4
+thresholds = {
+    "accuracy_threshold" : 70,
+    "dist_threshold" : 100,
+    "time_threshold" : 15*60,
+    "minDist" : 150,
+    "minPoints" : 4,
+    "minDistTh" : 0.05, 
+    "factorTh" : 2,
+    "dateStart": "beginnig",
+    "dateEnd": "end"
+    }
+
+#with open('../data/thresholds/' + dataName + '.json', 'w') as outfile:
+#    json.dump(thresholds, outfile)
+
+if loadTh:   
+    with open('../data/thresholds/' + dataName + '.json', 'r') as file:
+        thresholds = json.load(file)
+
 
 #%% IMPORT DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 print("-> Loading the data")
 dataPathLocs,dataPathTrips = hlp.getDataPaths(dataName)
 
 if SELECT_RANGE:    
-    #dateStart = 'beginning'
-    #dateEnd = '2020-01-02'
-    #dataPathLocs,dataPathTrips = hlp.selectRange(dataPathLocs, dataPathTrips, dateStart = dateStart, dateEnd = dateEnd)
     
-    dataPathLocs,dataPathTrips = hlp.selectLastMonth(dataPathLocs, dataPathTrips)
+    dataPathLocs,dataPathTrips = hlp.selectRange(dataPathLocs, dataPathTrips, dateStart = thresholds["dateStart"], dateEnd = thresholds["dateEnd"])
+    #dataPathLocs,dataPathTrips = hlp.selectLastMonth(dataPathLocs, dataPathTrips)
     
 locs, locsgdf = hlp.parseLocs(dataPathLocs)
 trips, tripdf, tripsgdf = hlp.parseTrips(dataPathTrips)
 
-#%% add location data to the trips file
+# add location data to the trips file
 tripsgdf = hlp.parseTripsWithLocs(dataPathTrips, locsgdf)
 
-
-#%% EXPORT SHP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# export to shapefile
 if exportShp:
     hlp.loc2shp(locsgdf, dataName)
     hlp.trip2shp(tripsgdf, dataName)
 
-#%% ANALYSIS  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Velovity
-if CHECK_VELO:
-    locs = hlp.calculateVelocity(locs)
-
-#%% TIME AND DISTANCE DIFF
+#%% FIND STAY POINTS
 if FIND_STAY_POINTS:
     print("-> Finding stay points ")
-
-    pfs,stps = main.findStayPoints(locs, dataName, dist_threshold, time_threshold)
+    # NOTE: Delete csv file if range is changed!!!!!!
+    pfs,stps = main.findStayPoints(locs, dataName, thresholds["accuracy_threshold"], thresholds["dist_threshold"], thresholds["time_threshold"])
   
     if exportShp: 
         stps_shp = stps.copy()
@@ -82,11 +89,11 @@ if FIND_STAY_POINTS:
         stps_shp['finished_at'] = stps_shp['finished_at'].astype(str)
         stps_shp.to_file('../data/shp/'+dataName +'/Staypoints.shp')
         
-#%%
+#%% FIND PLACES (CLUSTER OF STAY POINTS)
 if FIND_PLACES:
     print("-> Finding the places ")
 
-    plcs = main.findPlaces(stps, dataName, minDist, minPoints)
+    plcs = main.findPlaces(stps, dataName, thresholds["minDist"], thresholds["minPoints"])
     
     if exportShp:
         plcs_shp = plcs.copy()
@@ -116,11 +123,12 @@ if FIND_TRIPS:
         trpsCount_shp['count'] = trpsCount_shp['count'].astype(int)
         trpsCount_shp = trpsCount_shp.drop(["trpIds"], axis = 1)
         trpsCount_shp.to_file('../data/shp/'+dataName +'/TripsCount.shp')
-#%%
+        
+#%% Cluster the trips
 if CLUSTER_TRPS:
     print("-> Cluster the trips")
 
-    trps, trpsAgr = main.clusterTrips(trps, trpsCount)
+    trps, trpsAgr = main.clusterTrips(trps, trpsCount, thresholds["minDistTh"], thresholds["factorTh"], dataName)
 
     if exportShp:
         trps_shp = trps.copy()
@@ -153,35 +161,7 @@ if API_CALL:
     trpsAgrSchematic_shp = tripsAgrSchematic.copy()
     trpsAgrSchematic_shp['weight'] = trpsAgrSchematic_shp['weight'].astype(int)
     trpsAgrSchematic_shp.to_file('../data/shp/'+dataName +'/TripsAggregatedSchemtic.shp')
-#%%
+    
+    # Read the gpx response and convert to csv
     hlp.savecsv4js(plcs, trpsAgr, tripsAgrSchematic)    
-#%%Accuracy
-if CHECK_ACCURACY:
-    #for i in [30,40,50,60,70]:
-    #    print('Lower then '+str(i)+'m: '+str(round(100*len(locs[locs['accuracy'].lt(i)])/len(locs),2)))
-    
-    accuracyPerMode = {}
-    for i in range(len(tripsgdf)):
-        if (tripsgdf.loc[i,'Type'] == 'activitySegment'):
-            if (tripsgdf.loc[i,'actType'] not in list(accuracyPerMode)):
-                accuracyPerMode[tripsgdf.loc[i,'actType']] = []
-            accuracies = list(locsgdf['accuracy'][tripsgdf.loc[i,'correspondingLocs'][0]:tripsgdf.loc[i,'correspondingLocs'][-1]])
-            accuracyPerMode[tripsgdf.loc[i,'actType']] = accuracyPerMode[tripsgdf.loc[i,'actType']] + accuracies
-    infoPerModeTemp = []
-    infoPerMode = pd.DataFrame(columns=['mode', 'averageAccuracy', 'numberOfPoints'])
-    for mode in list(accuracyPerMode):
-        infoPerModeTemp.append({
-            'mode': mode,
-            'averageAccuracy': float(median(accuracyPerMode[mode])),
-            'numberOfPoints': len(accuracyPerMode[mode])
-            })
-    infoPerMode = infoPerMode.append(infoPerModeTemp)
 
-    
-# Number of points per day
-if CHECK_NB_POINTS:
-    idx = pd.date_range(locs.index[0].date(), locs.index[-1].date())
-    perDay = (locs.groupby(locs.index.date).count()['timestampMs'])
-    perDay = perDay.reindex(idx, fill_value=0)
-
-#hlp.checkTrips(trips)

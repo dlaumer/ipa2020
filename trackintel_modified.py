@@ -90,8 +90,10 @@ def extract_staypoints_ipa(positionfixes, method='sliding',
                             staypoint['user_id'] = pfs[i]['user_id']
                             staypoint['geom'] = Point(np.mean([pfs[k]['geom'].x for k in range(i, j)]),
                                                       np.mean([pfs[k]['geom'].y for k in range(i, j)]))
-                            staypoint['elevation'] = np.mean([pfs[k]['elevation'] for k in range(i, j)])
-                            staypoint['velocity'] = np.mean([pfs[k]['velocity'] for k in range(i, j)])
+                            if 'elevation' in pfs[i].keys():
+                                staypoint['elevation'] = np.mean([pfs[k]['elevation'] for k in range(i, j)])
+                            if 'velocity' in pfs[i].keys():
+                                staypoint['velocity'] = np.mean([pfs[k]['velocity'] for k in range(i, j)])
                             staypoint['started_at'] = pfs[i]['tracked_at']
                             staypoint['finished_at'] = pfs[j - 1][
                                 'tracked_at']  # TODO: should this not be j-1? because j is not part of the staypoint. DB: Changed.
@@ -110,7 +112,8 @@ def extract_staypoints_ipa(positionfixes, method='sliding',
                                 staypoint = {}
                                 staypoint['user_id'] = pfs[j]['user_id']
                                 staypoint['geom'] = Point(pfs[j]['geom'].x, pfs[j]['geom'].y)
-                                staypoint['elevation'] = pfs[j]['elevation']
+                                if 'velocity' in pfs[j].keys():
+                                    staypoint['elevation'] = pfs[j]['elevation']
                                 staypoint['started_at'] = pfs[j]['tracked_at']
                                 staypoint['finished_at'] = pfs[j]['tracked_at']
                                 staypoint['id'] = staypoint_id_counter

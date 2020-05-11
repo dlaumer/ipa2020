@@ -28,12 +28,13 @@ from trackintel.geogr.distances import haversine_dist
 import help_functions as hlp
 import trackintel_modified as tim
 
-def findStayPoints(locs, dataName, dist_threshold, time_threshold):
+def findStayPoints(locs, dataName, accuracy_threshold, dist_threshold, time_threshold):
     # Calculate time and distance difference
-    if not(os.path.exists('../data/csv/'+dataName +'/' + dataName + '.csv')):
+    #if not(os.path.exists('../data/csv/'+dataName +'/' + dataName + '.csv')):
+    if True:    
         locs['d_diff'] = np.append(haversine_dist(locs.longitudeE7[1:], locs.latitudeE7[1:], locs.longitudeE7[:-1], locs.latitudeE7[:-1]),0)
         
-        locs = locs[locs['accuracy']<70]
+        locs = locs[locs['accuracy']<accuracy_threshold]
         #locs = locs[locs['accuracy']<locs['d_diff']]
     
         if not(os.path.exists('../data/shp/'+ dataName + '/')):
@@ -84,8 +85,8 @@ def findTrips(pfs, stps, plcs, dataName):
                         'start_plc': startPlace,
                         'end_plc': endPlace
                     })
-            #ide = str(min(startPlace,endPlace)) + '_' + str(max(startPlace,endPlace))
-            ide = str(startPlace) + '_' + str(endPlace)
+            ide = str(min(startPlace,endPlace)) + '_' + str(max(startPlace,endPlace))
+            #ide = str(startPlace) + '_' + str(endPlace)
             coords = startCoord + endCoord
             if ide not in list(generated_trips_aggr):
                 generated_trips_aggr[ide] = {
@@ -112,7 +113,7 @@ def findTrips(pfs, stps, plcs, dataName):
     
     return tpls, trps, trpsAgr
 
-def clusterTrips(trps, trpsCount, saveDendogramms = False):
+def clusterTrips(trps, trpsCount, minDistTh, factorTh, dataName, saveDendogramms = False):
     trps['length'] = trps['geom'].length
     trps['cluster'] = None
     
@@ -138,27 +139,29 @@ def clusterTrips(trps, trpsCount, saveDendogramms = False):
         trpsTemp = []
         for j in trpsCount.loc[i,'trpIds']:
             if trps.loc[j,'start_plc'] == endPlace:
-                trpsTemp.append(trps.loc[j,'geom'].coords[:].reverse())
+                temp = [a for a in reversed(trps.loc[j,'geom'].coords[:])]
+                trpsTemp.append(temp)
             else:
                 trpsTemp.append(trps.loc[j,'geom'].coords[:])
-        trpsTemp = [trps.loc[j,'geom'].coords[:] for j in trpsCount.loc[i,'trpIds']]
+        #trpsTemp = [trps.loc[j,'geom'].coords[:] for j in trpsCount.loc[i,'trpIds']]
         distMatrix = hlp.makeDistMatrix(trpsTemp)
         #minIndices = np.where(distMatrix == np.nanmin(distMatrix))
         #minIndices = list(zip(minIndices[0], minIndices[1]))
         #minIndex = minIndices[0]
         
         linkMatrix = linkage(distMatrix, method='complete')
-
         
         tree = cut_tree(linkMatrix)
-        th = max(0.05, max(linkMatrix[:,2])/10)
+        th = max(minDistTh, max(linkMatrix[:,2])/factorTh)
         clusteringResult = fcluster(linkMatrix,th, 'distance')
         #clusteringResult = tree[:,linkMatrix.shape[0] - 4]
         if saveDendogramms:
+            if not os.path.exists('../data/clustering/' + dataName + '/'):
+                os.mkdir('../data/clustering/' + dataName + '/')
             fig = plt.figure(figsize=(25, 10))
             dn = dendrogram(linkMatrix, leaf_font_size=12.)
             #plt.show()
-            fig.savefig('../data/clustering/' + str(startPlace) + '_' + str(endPlace) + '_' +  str(max(clusteringResult)) + '.png')
+            fig.savefig('../data/clustering/' + dataName + '/' + str(startPlace) + '_' + str(endPlace) + '_' +  str(max(clusteringResult)) + '.png')
         
         for idx, j in enumerate(trpsCount.loc[i,'trpIds']):
             #for q in range(len(tree)):
