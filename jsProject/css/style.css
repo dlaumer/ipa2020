@@ -1,26 +1,73 @@
 body {
+  height: 100%;
   background-color: white;
   font-family: sans-serif;
 }
 
-.land {
-  fill: #dddddd;
-  opacity: 0.6;
+.flex-item {
+  	
+	flex-grow: 1; 
+	flex-shrink: 1; 
+	}
+
+.flex-container {
+	display: flex; 
+	flex-flow: row wrap; 
+	justify-content: center; 
+	}
+
+#map-and-places-container {
+  height: 95%
+}
+#map-container {
+	flex-basis: 70%; 
+  min-width: 400px; 
+  height: 100%;
+  }
+
+#mapboxx { 
+  position:relative; 
+  height: 100%;
+
 }
 
-.border {
-  fill: none;
-  stroke-width: 1px;
-  stroke: white;
-
+#places-container {
+    flex-basis: 30%; 
+    min-width: 200px; 
+    height: 100%; 
 }
 
-.interior {
-  stroke: white;
+#places-boxes {
+  height:100%;
+  display: flex; 
+  flex-direction: column;
+  justify-content: space-evenly;
 }
 
-.exterior {
-  stroke: #bbbbbb;
+#chart-container {
+  flex-grow: 5;
+  order:1;
+  display: flex; 
+  flex-direction: column;
+  justify-content: space-evenly;
+}
+
+.boxes {
+  flex-grow: 1;
+  margin:5px;
+  padding: 5px 0;
+  text-align: center; 
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+  -webkit-box-shadow: #666 0px 1px 1px;
+  -moz-box-shadow: #666 0px 1px 1px;
+  box-shadow: #666 0px 1px 1px;
+  background: #a83290;
+}
+
+.boxes:hover {
+  opacity: 0.7;
 }
 
 .place {
@@ -36,45 +83,13 @@ body {
   stroke-opacity: 0.5;
 }
 
-.bars:hover{
-  opacity: 0.7;
-}
-
-.piePart:hover{
-  opacity: 0.7;
-}
-
-.voronoi {
-  fill: none;
-  stroke: none;
-  stroke-width: 1px;
-}
-
-g#voronoi {
-  pointer-events: all;
-}
-
 /* shadow trick from bl.ocks.org */
 #tooltip {
   font-size: 10pt;
   font-weight: 900;
-  fill: white;
-  text-shadow: 1px 1px 0 #252525, 1px -1px 0 #252525, -1px 1px 0 #252525, -1px -1px 0 #252525;
+  fill: black;
 }
 
-#timeline {
-  float: left;
-}
-
-#pieChart {
-  float: left;
-}
-
-/* Home and work balance negative stacked bar */
-#container {
-  float:right;
-  height: 400px; 
-}
 
 .highcharts-figure, .highcharts-data-table table {
   min-width: 310px; 
@@ -108,16 +123,4 @@ g#voronoi {
 }
 .highcharts-data-table tr:hover {
   background: #f1f7ff;
-}
-
-#SemanticInfo {
- width: 400;
- height: 200;
- float: left;
-}
-
-#mapboxx { 
-  position:relative; 
-  width: 900;
-  height: 400;
 }

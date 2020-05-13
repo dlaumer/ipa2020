@@ -39,14 +39,20 @@ map.on("move", function () {
 
 // svg要素をアペンドする
 var container = map.getCanvasContainer()
-var removed = d3.select("#map").select("svg").remove()
+var removed = d3.select("svg#map").remove()
 var svg = d3.select(container).append(function () {
   return removed.node();
 });
 
+var widthMap = d3
+    .select('#map-container')
+    .node()
+    .getBoundingClientRect().width
 // Set dimensions
-var widthMap = 900;
-var heightMap = 400;
+var heightMap = d3
+    .select('#map-container')
+    .node()
+    .getBoundingClientRect().height
 var hypotenuse = Math.sqrt(widthMap * widthMap + heightMap * heightMap);
 
 svg
@@ -76,12 +82,19 @@ var tooltip = d3.select("text#tooltip");
 //svg.call(zoom);
 
 // PREPARE TIMELINE  ////////////////////////////////////////////////////////////////////////////////////
-// set the dimensions and margins of the graph
-var margin = { top: 30, right: 30, bottom: 70, left: 60 },
-  widthTimeline = 600 - margin.left - margin.right,
-  heightTimeline = 300 - margin.top - margin.bottom;
 
-// append the svg object to the body of the page
+
+// set the dimensions and margins of the graph
+var margin = { top: 30, right: 30, bottom: 20, left: 60 };
+var widthTimeline = d3
+  .select('#chart-container')
+  .node()
+  .getBoundingClientRect().width  - margin.left - margin.right;
+// Set dimensions
+var heightTimeline = d3
+  .select('#chart-container')
+  .node()
+  .getBoundingClientRect().height - margin.top - margin.bottom;
 
 
 var svgTimeline = d3.select("#timeline")
@@ -115,33 +128,6 @@ var yAxis = svgTimeline.append("g")
   .attr("class", "myYaxis")
 
 
-// PREPARE PIE CHART  ////////////////////////////////////////////////////////////////////////////////////
-
-var data1 = { a: 9, b: 20, c: 30, d: 8, e: 12 }
-var data2 = { a: 6, b: 16, c: 20, d: 14, e: 19, f: 12 }
-
-var margin = { top: 30, right: 30, bottom: 30, left: 30 },
-  widthPie = 300 - margin.left - margin.right,
-  heightPie = 300 - margin.top - margin.bottom,
-  radius = Math.min(widthPie, heightPie) / 2;
-
-var color = d3.scaleOrdinal(d3.schemeCategory10);
-
-var pie = d3.pie()
-  .value(function (d) { return d[3]; })
-  .sort(null);
-
-var arc = d3.arc()
-  .innerRadius(0)
-  .outerRadius(radius - 20);
-
-var svgPie = d3.select("#piechart")
-  .append("svg")
-  .attr("width", widthPie + margin.left + margin.right)
-  .attr("height", heightPie + margin.top + margin.bottom)
-  .append("g")
-  .attr("transform", "translate(" + widthPie / 2 + "," + heightPie / 2 + ")");
-
 // LOAD DATA  ////////////////////////////////////////////////////////////////////////////////////
 
 // load and draw base map
@@ -151,13 +137,14 @@ var timelineData;
 var places;
 var trips;
 var tripsAgr;
-var pathPie;
 var semanticInfo;
 var bubbles;
 var pathBaseMap;
 var pathTrips;
 var links
 var geojsons;
+var placeIdOfBox;
+var maxCount;
 var mapBlank = true;
 var geomMap = true;
 
@@ -179,8 +166,13 @@ function processData(values) {
   timelineData = values[2];
   semanticInfo = values[3][0];
 
+  fillPlacesBoxes();
+  colorPlacesBoxes(0,23);
   drawTimeline();
-  drawPieChart(timelineData);
+
+  for (let i = 1; i < 11; i++) {
+    document.getElementById("box-" + i).addEventListener('click', event => { updateTimeline(placeIdOfBox[i])});
+  }
 
   console.log("places: " + places.length);
   console.log(" trips: " + trips.length);
@@ -224,40 +216,6 @@ function processData(values) {
 }
 
 // FUNCTIONS ////////////////////////////////////////////////////////////////////////////////////
-function drawPieChart(timelineData) {
-  pathPie = svgPie
-    .datum(timelineData).selectAll("path")
-    .data(pie)
-    .enter().append("path")
-    .attr("fill", function (d, i) { return color(i); })
-    .attr("d", arc)
-    .attr("id", function (d) { return d.data.group; })
-    .classed("piePart", true)
-    .each(function (d) { this._current = d; })
-    .on("mouseover", function (d) {
-      ind = 0;
-      places.forEach(function (dd, ii) {
-        if (dd.placeId == d.data.group) {
-          ind = ii;
-          mousoverFunction(ind);
-
-        }
-      })
-    })
-    .on("mouseout", function (d, i) {
-      ind = 0;
-      places.forEach(function (dd, ii) {
-        if (dd.placeId == d.data.group) {
-          ind = ii;
-          mouseoutFunction(ind)
-
-        }
-      })
-    }); // store the initial angles
-
-  updatePieChart(0, 23);
-
-}
 
 function drawTimeline() {
 
@@ -275,7 +233,56 @@ function drawTimeline() {
 
 }
 
+function fillPlacesBoxes() {
+  var timeData = getPlaceTime(0,23);
+  delete timeData.group;
+  var values = Object.values(timeData);
+  var keys = Object.keys(timeData);
+  count = 1;
+  placeIdOfBox = {};
+  while (count < 11) {
+    var maxIdx = values.indexOf(Math.max.apply(Math,values))
+    var placeId = keys[maxIdx];
+    values.splice(maxIdx, 1);
+    keys.splice(maxIdx, 1);
+    placeIdOfBox[count] = placeId;
+    document.getElementById("box-" + count).innerHTML = "Place ID: " + placeId + ", Time: " +  Math.round(Math.max.apply(Math,values)) ;
+    if (count == 1){
+      maxCount = Math.max.apply(Math,values);
+    }
+    count++;
+  }
 
+}
+
+function getPlaceTime(startTime, endTime){
+
+    var timeData = {};
+    for (var idx = 0; idx < Object.keys(timelineData[0]).length; idx++ ){
+      timeData[Object.keys(timelineData[0])[idx]] = 0;
+    }
+
+    for (let i = startTime; i <= endTime; i++) {
+      for (var idx = 0; idx < Object.keys(timelineData[i]).length; idx++ ){
+        timeData[Object.keys(timelineData[i])[idx]] += parseFloat(timelineData[i][Object.keys(timelineData[i])[idx]]);
+      }
+    }
+    return timeData
+}
+
+function colorPlacesBoxes(startTime, endTime) {
+  var timeData = getPlaceTime(startTime,endTime);
+  delete timeData.group;
+  var color = d3.scaleLinear()
+  .domain([0,Math.max.apply(Math,Object.values(timeData))])
+  .range(["#ffffff ", "#a83290"]);
+  for (let i = 1; i < 11; i++) {
+    document.getElementById("box-" + i).style.backgroundColor = color(timeData[placeIdOfBox[i]]);
+    document.getElementById("box-" + i).innerHTML = "Place ID: " + placeIdOfBox[i] + ", Time: " +  Math.round(timeData[placeIdOfBox[i]]) ;
+
+  }
+
+}
 // draws the underlying map
 function drawMap(map) {
 
@@ -594,6 +601,19 @@ function notHighlight(selection, type) {
 // A function that create / update the plot for a given variable:
 function updateTimeline(selectedVar) {
 
+  order = 0;
+  for (let i = 1; i < 11; i++) {
+    if (placeIdOfBox[i] == selectedVar){
+      document.getElementById("box-" + i).style.order = order;
+      order +=2;
+    }
+    else {
+      document.getElementById("box-" + i).style.order = order;
+
+    }
+
+  }
+
   // Parse the Data
   // X axis
   xScale.domain(timelineData.map(function (d) { return d.group; }))
@@ -628,7 +648,7 @@ function brushend() {
   var areaArray = d3.event.selection;//[x0,x1]
   startTime = xScale.invert(areaArray[0])
   endTime = xScale.invert(areaArray[1])
-  updatePieChart(startTime, endTime);
+  colorPlacesBoxes(parseInt(startTime), parseInt(endTime));
 }
 
 function updatePieChart(startTime, endTime) {
