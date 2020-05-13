@@ -27,6 +27,7 @@ from trackintel.geogr.distances import haversine_dist
 # Local files
 import help_functions as hlp
 import trackintel_modified as tim
+import staypoints_modified as stm
 
 def findStayPoints(locs, dataName, accuracy_threshold, dist_threshold, time_threshold):
     # Calculate time and distance difference
@@ -51,8 +52,7 @@ def findStayPoints(locs, dataName, accuracy_threshold, dist_threshold, time_thre
 def findPlaces(stps, dataName, minDist, minPoints):
     
     # Find places
-    plcs = stps.as_staypoints.extract_places(method='dbscan',
-        epsilon=meters_to_decimal_degrees(minDist, 47.5), num_samples=minPoints)
+    plcs = stm.cluster_staypoints(stps,method='dbscan', epsilon=meters_to_decimal_degrees(minDist, 47.5), num_samples=minPoints)
     return plcs
 
 def findTrips(pfs, stps, plcs, dataName):

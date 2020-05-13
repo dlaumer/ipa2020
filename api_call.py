@@ -17,6 +17,8 @@ import io
 import zipfile
 import os
 import numpy as np
+import shutil
+
 
 
 import gpxpy
@@ -94,8 +96,8 @@ def apiCall(scenarioNumber):
     z = zipfile.ZipFile(io.BytesIO(gpxData.content))
     
     dataPath = "../data/gpxAPI/"
-    if not(os.path.exists(dataPath)):
-        os.makedirs(dataPath)
+    shutil.rmtree(dataPath)
+    os.makedirs(dataPath)
     z.extractall(dataPath)
 
 

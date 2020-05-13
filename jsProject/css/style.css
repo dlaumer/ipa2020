@@ -35,6 +35,7 @@ body {
   stroke-width: 1;
   stroke-opacity: 0.5;
 }
+
 .bars:hover{
   opacity: 0.7;
 }

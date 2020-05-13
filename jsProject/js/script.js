@@ -24,7 +24,7 @@ var map = new mapboxgl.Map({
   container: 'mapboxx', // container id
   style: 'mapbox://styles/dlaumer/ck9vivxcy14761inolbg58hqu',
   center: [8.507412548555335, 47.40639137110055],
-  zoom: 11,
+  zoom: 10
 })
 
 map.addControl(new mapboxgl.NavigationControl());
@@ -72,27 +72,8 @@ var g = {
 };
 var tooltip = d3.select("text#tooltip");
 
-var zoom = d3.zoom()
-  .on('zoom', function () {
-    k = d3.event.transform.k
-
-    g.basemap.selectAll('path')
-      .style("stroke-width", 1 / k)
-      .attr('transform', d3.event.transform);
-    g.places.selectAll('circle')
-      .attr("r", d => scales.places(d.outgoing) / (0.5 * k + 0.5))
-      .style("stroke-width", 1 / k)
-      .attr('transform', d3.event.transform);
-    g.trips.selectAll('path')
-      .style("stroke-width", 1 / k)
-      .attr('transform', d3.event.transform);
-    g.voronoi.selectAll('path')
-      .attr('transform', d3.event.transform);
-
-  });
 
 //svg.call(zoom);
-svg.on("dblclick.zoom", g.voronoi.selectAll("path"))
 
 // PREPARE TIMELINE  ////////////////////////////////////////////////////////////////////////////////////
 // set the dimensions and margins of the graph
@@ -164,7 +145,7 @@ var svgPie = d3.select("#piechart")
 // LOAD DATA  ////////////////////////////////////////////////////////////////////////////////////
 
 // load and draw base map
-d3.json(urls.map).then(drawMap);
+//d3.json(urls.map).then(drawMap);
 
 var timelineData;
 var places;
@@ -175,7 +156,10 @@ var semanticInfo;
 var bubbles;
 var pathBaseMap;
 var pathTrips;
+var links
+var geojsons;
 var mapBlank = true;
+var geomMap = true;
 
 // load the place and trip data together
 let promises = [
@@ -217,7 +201,7 @@ function processData(values) {
 
   // remove places without any trips
   old = places.length;
-  places = places.filter(place => place.outgoing > 0 && place.incoming > 0);
+  places = places.filter(place => place.outgoing > 0 || place.incoming > 0);
   console.log(" removed: " + (old - places.length) + " places without trips");
 
   // sort places by outgoing degree
@@ -321,13 +305,19 @@ function drawPlaces(places) {
   scales.places.domain(extent);
 
   // draw place bubbles
+
+  bubbles = g.places.selectAll("circle.place")
+    .remove()
+
   bubbles = g.places.selectAll("circle.place")
     .data(places, d => d.placeId)
     .enter()
     .append("circle")
     .attr("r", d => scales.places(d.outgoing))
-    .attr("cx", d => d.x) // calculated on load
-    .attr("cy", d => d.y) // calculated on load
+    .attr("cx", d => project(d).x)
+    .attr("cy", d => project(d).y)
+    //.attr("cx", function(d) {if (!mapBlank) {return d.x} else {return d.xSchematic}}) // calculated on load
+    //.attr("cx", function(d) {if (!mapBlank) {return d.y} else {return d.ySchematic}}) // calculated on load
     .attr("class", "place")
     .each(function (d) {
       // adds the circle object to our place
@@ -427,23 +417,34 @@ function drawPolygons(places) {
 
 function drawTrips(places, trips) {
   // break each trip between places into multiple segments
-  let bundle, geojson = addWaypoints(places, trips);
+  geojsons = addWaypoints(trips);
+  if (!mapBlank) {
+    geojson = geojsons[0];
+  }
+  else {
+    geojson = geojsons[1];
+  }
 
   pathTrips = d3.geoPath(projection);
 
-  let links = g.trips.selectAll("path.trip")
+  links = g.trips.selectAll("path.trip")
+    .remove()
+    
+  links = g.trips.selectAll("path.trip")
     .data(geojson.features)
     .enter()
     .append("path")
     .attr("d", pathTrips)
     .attr("class", "trip")
+    .attr("id", function (d) {return "id_" + d.properties.id})
+    //.style("stroke-width", d => d.properties.count*2)
     .each(function (d) {
       // adds the path object to our source place
       // makes it fast to select outgoing paths
       tripTemp = this;
       ind = 0;
       places.forEach(function (dd, ii) {
-        if (dd.placeId == d.properties) {
+        if (dd.placeId == d.properties.placeId) {
           ind = ii;
           places[ind].trips.push(tripTemp)
         }
@@ -455,77 +456,71 @@ function drawTrips(places, trips) {
 
 // Turns a single edge into several segments that can
 // be used for simple edge bundling.
-function addWaypoints(nodes, links) {
-  // generate separate graph for edge bundling
-  // nodes: all nodes including control nodes
-  // links: all individual segments (source to target)
-  // paths: all segments combined into single path for drawing
-  let bundle = { nodes: [], links: [], paths: [] };
+function addWaypoints(links) {
 
-  // make existing nodes fixed
-  bundle.nodes = nodes.map(function (d, i) {
-    d.fx = d.x;
-    d.fy = d.y;
-    return d;
-  });
+  var geojsonSchematic = {
+    "name": "NewFeatureType",
+    "type": "FeatureCollection",
+    "features": []
+  };
+
   var geojson = {
     "name": "NewFeatureType",
     "type": "FeatureCollection",
     "features": []
   };
 
-
+  var count = 0;
   links.forEach(function (d, i) {
+    var featureSchematic = {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": []
+      },
+      "properties": {
+        "placeId": null,
+        "id": null,
+        "count": null
+      }
+    }
+
     var feature = {
       "type": "Feature",
       "geometry": {
         "type": "LineString",
         "coordinates": []
       },
-      "properties": null
+      "properties": {
+        "placeId": null,
+        "id": null,
+        "count": null
+      }
     }
-    // initialize source node
-    let source = d.source;
-    let target = null;
 
-    // add all points to local path
-    let local = [source];
+    for (let j = 0; j < d.waypointsLongSchematic.length; j++) {
+      featureSchematic.geometry.coordinates.push([d.waypointsLongSchematic[j], d.waypointsLatSchematic[j]]);
+      featureSchematic.properties.placeId = d.source.placeId;
+      featureSchematic.properties.id = count;
+      featureSchematic.properties.count = d.count;
+
+    }
 
     for (let j = 0; j < d.waypointsLong.length; j++) {
-
-      //let coords = projection(d.waypointsLong[j], d.waypointsLat[j]);
-      var point = map.project(new mapboxgl.LngLat(d.waypointsLong[j], d.waypointsLat[j]));
-      target = {
-        x: point.x,
-        y: point.y
-      };
-      local.push(target);
-      bundle.nodes.push(target);
-
       feature.geometry.coordinates.push([d.waypointsLong[j], d.waypointsLat[j]]);
-      feature.properties = d.source.placeId;
+      feature.properties.placeId = d.source.placeId;
+      feature.properties.id = count;
+      feature.properties.count = d.count;
 
-      bundle.links.push({
-        source: source,
-        target: target
-      });
-
-      source = target;
     }
-    geojson.features.push(feature)
+    
+    geojsonSchematic.features.push(featureSchematic);
+    geojson.features.push(feature);
+    count += 1;
 
-    local.push(d.target);
-
-    // add last link to target node
-    bundle.links.push({
-      source: target,
-      target: d.target
-    });
-
-    bundle.paths.push(local);
   });
 
-  return bundle, geojson;
+  return [geojson, geojsonSchematic];
 }
 
 
@@ -534,7 +529,8 @@ function addWaypoints(nodes, links) {
 function typePlace(place) {
   place.longitude = parseFloat(place.longitude);
   place.latitude = parseFloat(place.latitude);
-
+  place.longitudeSchematic = parseFloat(place.longitudeSchematic);
+  place.latitudeSchematic = parseFloat(place.latitudeSchematic);
   // use projection hard-coded to match topojson data
   //let coords = projection(place.longitude, place.latitude);
   //place.x = coords[0];
@@ -542,6 +538,10 @@ function typePlace(place) {
   var point = map.project(new mapboxgl.LngLat(place.longitude, place.latitude));
   place.x = point.x;
   place.y = point.y;
+
+  var point = map.project(new mapboxgl.LngLat(place.longitudeSchematic, place.latitudeSchematic));
+  place.xSchematic = point.x;
+  place.ySchematic = point.y;
 
   place.outgoing = 0;  // eventually tracks number of outgoing trips
   place.incoming = 0;  // eventually tracks number of incoming trips
@@ -556,10 +556,10 @@ function typePlace(place) {
 function typeTrip(trip) {
   trip.count = parseInt(trip.count);
   trip.waypointsLong = trip.waypointsLong.split(" ").map(parseFloat);
-  //trip.waypointsLong = trip.waypointsLongSchematic.split(" ").map(parseFloat);
+  trip.waypointsLongSchematic = trip.waypointsLongSchematic.split(" ").map(parseFloat);
 
   trip.waypointsLat = trip.waypointsLat.split(" ").map(parseFloat);
-  //trip.waypointsLat = trip.waypointsLatSchematic.split(" ").map(parseFloat);
+  trip.waypointsLatSchematic = trip.waypointsLatSchematic.split(" ").map(parseFloat);
 
   return trip;
 }
@@ -725,7 +725,12 @@ function project(d) {
   return map.project(getLL(d));
 }
 function getLL(d) {
-  return new mapboxgl.LngLat(+d.longitude, +d.latitude)
+  if (!mapBlank) {
+    return new mapboxgl.LngLat(+d.longitude, +d.latitude)
+  }
+  else {
+    return new mapboxgl.LngLat(+d.longitudeSchematic, +d.latitudeSchematic)
+  }
 }
 
 function render() {
@@ -746,21 +751,48 @@ function render() {
 
 }
 
-function changeMap() {
-  if (mapBlank) {
+
+function changeData() {
+  mapBlank = !mapBlank;
+  if (!mapBlank) {
     map.setStyle('mapbox://styles/mapbox/streets-v8');
   }
   else {
     map.setStyle('mapbox://styles/dlaumer/ck9vivxcy14761inolbg58hqu');
   }
-  mapBlank = !mapBlank;
+
+  bubbles.remove();
+
+  var n = 0;
+  g.trips.selectAll("path.trip")
+  .transition()
+  .duration(3000)
+  .attrTween('d', function (d) {
+    n++;
+    if (!mapBlank) {
+      var startPath = pathTrips(geojsons[1].features[d.properties.id]),
+      endPath = pathTrips(geojsons[0].features[d.properties.id]);
+    }
+    else {
+      var startPath = pathTrips(geojsons[0].features[d.properties.id]),
+      endPath = pathTrips(geojsons[1].features[d.properties.id]);
+    }
+      //var endPath = d3.select("path.tripGeometric#geometric_" + d.properties.id).attr('d'),
+      //startPath = d3.select("path.trip#schematic_" + d.properties.id).attr('d');
+    return d3.morphPath(startPath, endPath);
+  })
+  .on("end", function() { // use to be .each('end', function(){})
+    n--;
+    if (!n) {
+      endall();
+  }
+})
+function endall() {
+  drawTrips(places, trips);
+  drawPlaces(places)
+}
 }
 
-// DOES NOT WORK YET
-function changeData() {
-  d3.morphPath(pathTrips, pathTrips)
-
-}
 
 // Negative stacked bar graph: Home and Work Balance
 // Weekday categories

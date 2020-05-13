@@ -547,6 +547,10 @@ def selectLastMonth(dataPathLoc,dataPathTrip):
 
 def selectRange(dataPathLoc,dataPathTrip, dateStart = 'beginning', dateEnd = 'end', timerange = None):
 
+    newPath = str(Path(dataPathLoc).parents[2]) + "/" + dateStart + "_" + dateEnd + "/"
+
+    if os.path.exists(newPath):
+        return newPath + "Location History.json", newPath + "Semantic Location History/"
     
     # Location File
     if (type(dataPathLoc) is str):
@@ -557,8 +561,8 @@ def selectRange(dataPathLoc,dataPathTrip, dateStart = 'beginning', dateEnd = 'en
     
     print("Start date: " + str(pd.to_datetime(int(jsonData["locations"][0]["timestampMs"]),  unit='ms').date()))
     print("End date: " + str(pd.to_datetime(int(jsonData["locations"][-1]["timestampMs"]),  unit='ms').date()))
-    dateStart = input("Choose a start date: ")
-    dateEnd = input("Choose a end date: ")
+    #dateStart = input("Choose a start date: ")
+    #dateEnd = input("Choose a end date: ")
 
     if timerange:
         dateEnd = int(jsonData["locations"][-1]["timestampMs"])
@@ -696,8 +700,12 @@ def savecsv4js(places, trips, tripsSchematic):
     places['placeId'] = places['placeId'].astype(str)
     places['latitude'] = places['center'].y
     places['longitude'] = places['center'].x
-    places = places.drop(columns = ['user_id', 'extent', 'center'])
+    places.geometry = places['centerSchematic']
+    places['latitudeSchematic'] = places.geometry.y
+    places['longitudeSchematic'] = places.geometry.x
+    places = places.drop(columns = ['user_id', 'extent', 'center', 'centerSchematic'])
     places.to_csv('jsProject/places.csv',  index = False, sep = ";")
+ 
     
     trips = trips.rename(columns = {'start_plc':'origin', 'end_plc':'destination', 'weight':'count'})
     trips["waypointsLat"] = ""
@@ -708,7 +716,7 @@ def savecsv4js(places, trips, tripsSchematic):
         trips.loc[i, "waypointsLongSchematic"] = ' '.join([str(j[0]) for j in tripsSchematic.loc[i,'geom'].coords])
         trips.loc[i, "waypointsLatSchematic"] = ' '.join([str(j[1]) for j in tripsSchematic.loc[i,'geom'].coords])
 
-    trips['count'] = 1
+    trips = trips.rename(columns = {'weight':'count'})
     trips = trips[['origin', 'destination','count','waypointsLong','waypointsLat','waypointsLatSchematic','waypointsLongSchematic']]
     #trips.to_csv('../jsProject/trips.csv',  index = False, sep = ";")
     trips.to_csv('jsProject/tripsAgr.csv',  index = False, sep = ";")
