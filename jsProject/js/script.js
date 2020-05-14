@@ -888,7 +888,7 @@ Highcharts.chart('container', {
   series: [
   {
     name: 'Home at Affoltern',
-    data: [-113.1,-31.6,-55.8,-94.6,-0.9,-8.2,-77],
+    data: [-478.4,-166.8,-151.9,-188.8,-80.9,-53.9,-124.1],
   }, 
   // {
   //   name: 'Home at Schlieren',
@@ -896,10 +896,10 @@ Highcharts.chart('container', {
   // }, 
   {
     name: 'ETH Zurich',
-    data: [0,0,28.5,73.9,3.6,39.4,15.3],
+    data: [0,0,379.4,172.5,3.9,176.1,22.1],
   }, 
   {
     name: 'Acht Grad Ost AG, 4, Wagistrasse, Schlieren',
-    data: [0,0,5,0,12.5,5.9,27.3]
+    data: [0,0,275.7,54.6,64.4,106.9,75.2]
   }]
 });
