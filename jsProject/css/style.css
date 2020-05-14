@@ -4,6 +4,13 @@ body {
   font-family: sans-serif;
 }
 
+#changeMapButton {
+  margin: 10px;
+  height: 30px;
+  width: 100px;
+  background-color: #a83290;
+}
+
 .flex-item {
   	
 	flex-grow: 1; 
@@ -17,7 +24,7 @@ body {
 	}
 
 #map-and-places-container {
-  height: 95%
+  height: 90%
 }
 #map-container {
 	flex-basis: 70%; 
@@ -90,6 +97,11 @@ body {
   fill: black;
 }
 
+
+#homeWorkBalance-container {
+  margin: 100px;
+  width:50%;
+}
 
 .highcharts-figure, .highcharts-data-table table {
   min-width: 310px; 

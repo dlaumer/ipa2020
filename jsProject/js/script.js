@@ -44,6 +44,7 @@ var svg = d3.select(container).append(function () {
   return removed.node();
 });
 
+
 var widthMap = d3
     .select('#map-container')
     .node()
@@ -225,7 +226,7 @@ function drawTimeline() {
   //add brush
   var brush = d3.brushX()
     .extent([[0, 0], [widthTimeline, heightTimeline]])//(x0,y0)  (x1,y1)
-    .on("end", brushend);//when mouse up, move the selection to the exact tick //start(mouse down), brush(mouse move), end(mouse up)
+    .on("brush", brushend);//when mouse up, move the selection to the exact tick //start(mouse down), brush(mouse move), end(mouse up)
 
   svgTimeline.append("g")
     .attr("class", "brush")
