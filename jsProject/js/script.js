@@ -264,6 +264,8 @@ var tripsAgr;
 var semanticInfo;
 var homeworkbal;
 var HomeWorkData;
+var HomeWorkSeries;
+// var NegativeBarSeires;
 var bubbles;
 var pathBaseMap;
 var pathTrips;
@@ -294,23 +296,8 @@ function processData(values) {
   semanticInfo = values[3][0];
   homeworkbal = values[4];
   HomeWorkData = [];
-  
-  for (let i = 0; i < homeworkbal.length; i++){
-    var homework = homeworkbal[i];
-    var homeworkid = homework['id']
-    if (homeworkid=='home') {
-      var homeworkdata = [-homework['Sun'],-homework['Sat'],-homework['Fri'],-homework['Thur'],-homework['Wed'],-homework['Tues'],-homework['Mon']]
-      var data = homeworkdata.map(Number);
-    }
-    else {
-      var homeworkdata = [homework['Sun'],homework['Sat'],homework['Fri'],homework['Thur'],homework['Wed'],homework['Tues'],homework['Mon']]
-      var data = homeworkdata.map(Number);     
-    }
-    var homeworkarray = [homeworkid, data]    
-    HomeWorkData.push(homeworkarray);
-  }
+  HomeWorkSeries = [];
 
-  drawNegativeBar(HomeWorkData);
   fillPlacesBoxes();
   colorPlacesBoxes(0, 23);
   drawTimeline();
@@ -360,6 +347,35 @@ function processData(values) {
 
   // done filtering trips can draw
   drawTrips(places, trips);
+
+
+  for (let i = 0; i < homeworkbal.length; i++){
+    var homework = homeworkbal[i];
+    var homeworkid = homework['id']
+    if (homeworkid=='home') {
+      var homeworkdata = [-homework['Sun'],-homework['Sat'],-homework['Fri'],-homework['Thur'],-homework['Wed'],-homework['Tues'],-homework['Mon']]
+      var data = homeworkdata.map(Number);
+    }
+    else {
+      var homeworkdata = [homework['Sun'],homework['Sat'],homework['Fri'],homework['Thur'],homework['Wed'],homework['Tues'],homework['Mon']]
+      var data = homeworkdata.map(Number);     
+    }
+    var homeworkarray = [homeworkid, data]    
+    HomeWorkData.push(homeworkarray);
+  }
+
+  for (i = 0; i < HomeWorkData.length; i++) {
+    HomeWorkSeries.push({
+      name: HomeWorkData[i][0],
+      data: HomeWorkData[i][1],
+    })
+  }
+
+  console.log('HomeWorkData',HomeWorkData)
+  console.log('HomeWorkSeries',HomeWorkSeries)
+
+  drawNegativeBar(HomeWorkSeries);
+
 }
 
 // FUNCTIONS ////////////////////////////////////////////////////////////////////////////////////
@@ -959,7 +975,7 @@ function changeData() {
 
 
 // Negative stacked bar graph: Home and Work Balance
-function drawNegativeBar(HomeWorkData) {
+function drawNegativeBar(HomeWorkSeries) {
   // Weekday categories
   var categories = [
     'Sunday', 'Saturday', 'Friday', 'Thursday', 'Wednesday', 'Tuesday', 'Monday'
@@ -1029,19 +1045,6 @@ function drawNegativeBar(HomeWorkData) {
       }
     },
 
-    series: [
-      {
-        name: HomeWorkData[0][0],
-        data: HomeWorkData[0][1],
-      },
-      {
-        name: HomeWorkData[1][0],
-        data: HomeWorkData[1][1],
-      },
-      {
-        name: HomeWorkData[2][0],
-        data: HomeWorkData[2][1]
-      }]
+    series: HomeWorkSeries
   });
-  // console.log(series);
 }
