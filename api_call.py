@@ -89,7 +89,7 @@ def apiCall(scenarioNumber):
     urlExecute = urlCore + 'import/' + importID + '/execute'
     networkId = putResponse(urlExecute, scFile)
     
-    webbrowser.open("https://network.zpheres.com/" + networkId)
+    #webbrowser.open("https://network.zpheres.com/" + networkId)
     
     urlDownloadGPX = urlCore + 'network/' + networkId + '/gpx'
     gpxData = requests.get(urlDownloadGPX)  # Get the response 

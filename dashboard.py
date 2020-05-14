@@ -34,7 +34,6 @@ EXPORT_GPX =        True
 API_CALL =          True
 CHECK_NB_POINTS =   False
 
-
 exportShp =         True
 loadTh =            False
 
@@ -45,9 +44,9 @@ thresholds = {
     "dist_threshold" : 170,
     "time_threshold" : 15*60,
     "minDist" : 150,
-    "minPoints" : 4,
-    "minDistTh" : 0.05, 
-    "factorTh" : 2,
+    "minPoints" : 6,
+    "minDistTh" : 0.2, 
+    "factorTh" : 3,
     "dateStart": "2019-12-01",
     "dateEnd": "2019-12-31"
     }

@@ -8,6 +8,12 @@ body {
   margin: 10px;
   height: 30px;
   width: 100px;
+  -webkit-border-radius: 10px;
+  -moz-border-radius: 10px;
+  border-radius: 10px;
+  -webkit-box-shadow: #666 0px 1px 1px;
+  -moz-box-shadow: #666 0px 1px 1px;
+  box-shadow: #666 0px 1px 1px;
   background-color: #a83290;
 }
 
@@ -27,6 +33,7 @@ body {
   height: 90%
 }
 #map-container {
+  background-color: #ececec;
 	flex-basis: 40%; 
   min-width: 400px; 
   height: 100%;
@@ -54,6 +61,14 @@ body {
 #chart-container {
   flex-grow: 5;
   order:1;
+  display: flex; 
+  flex-direction: column;
+  justify-content: space-evenly;
+}
+
+#time-container {
+  flex-grow: 2;
+  order:99;
   display: flex; 
   flex-direction: column;
   justify-content: space-evenly;

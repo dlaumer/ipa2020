@@ -17,7 +17,7 @@ var urls = {
 
 // PERPARE MAP  ////////////////////////////////////////////////////////////////////////////////////
 
-mapboxgl.accessToken = 'pk.eyJ1IjoiZGxhdW1lciIsImEiOiJjazhwdWc1aG8wazZnM2xubG5uaGwxN2RmIn0.cgSC6SK8DdnCPwO4NmjxAQ'
+mapboxgl.accessToken = 'pk.eyJ1IjoiZGxhdW1lciIsImEiOiJjazlyN240NHowOG40M3FwaTBobmJtY282In0.J1FVlpwTp-p6SIihxJy0nw'
 
 //Setup mapbox-gl map
 var map = new mapboxgl.Map({
@@ -27,7 +27,28 @@ var map = new mapboxgl.Map({
   zoom: 10
 })
 
-map.addControl(new mapboxgl.NavigationControl());
+var legendControl = map.addControl(new mapboxgl.NavigationControl());
+class MyCustomControl {
+  onAdd(map){
+    this.map = map;
+    this.container = document.createElement('button');
+    this.container.id = "changeMapButton";
+    this.container.className = 'mapboxgl-ctrl my-custom-control';
+    this.container.textContent = 'Change Map';
+    this.container.type = "button";
+    return this.container;
+  }
+  onRemove(){
+    this.container.parentNode.removeChild(this.container);
+    this.map = undefined;
+  }
+}
+
+const myCustomControl = new MyCustomControl();
+
+map.addControl(myCustomControl, 'top-left');
+
+document.getElementById("changeMapButton").addEventListener('click', event => { changeData() });
 
 // re-render our visualization whenever the view changes
 map.on("viewreset", function () {
@@ -82,11 +103,9 @@ var tooltip = d3.select("text#tooltip");
 
 //svg.call(zoom);
 
-// PREPARE TIMELINE  ////////////////////////////////////////////////////////////////////////////////////
 
-
-// set the dimensions and margins of the graph
-var margin = { top: 30, right: 30, bottom: 20, left: 60 };
+// PREPARE CHART  ////////////////////////////////////////////////////////////////////////////////////
+var margin = { top: 10, right: 30, bottom: 20, left: 60 };
 var widthTimeline = d3
   .select('#chart-container')
   .node()
@@ -99,34 +118,70 @@ var heightTimeline = d3
 
 
 var svgTimeline = d3.select("#timeline")
-  .append("svg")
-  .attr("width", widthTimeline + margin.left + margin.right)
-  .attr("height", heightTimeline + margin.top + margin.bottom)
-  .append("g")
-  .attr("transform",
-    "translate(" + margin.left + "," + margin.top + ")")
-
+.append("svg")
+.attr("width", widthTimeline + margin.left + margin.right)
+.attr("height", heightTimeline + margin.top + margin.bottom)
+.append("g")
+.attr("transform",
+  "translate(" + margin.left + "," + margin.top + ")")
 
 
 // Initialize the X axis
 var xScale = d3.scaleBand()
-  .range([0, widthTimeline])
-  .padding(0.2);
+.range([0, widthTimeline])
+.padding(0.2);
 
 xScale.invert = function (x) {
+var domain = this.domain();
+var range = this.range()
+var scale = d3.scaleQuantize().domain(range).range(domain)
+return scale(x)
+};
+var xAxis = svgTimeline.append("g")
+.attr("transform", "translate(0," + heightTimeline + ")")
+
+// Initialize the Y axis
+var yScale = d3.scaleLinear()
+.range([heightTimeline, 0]);
+var yAxis = svgTimeline.append("g")
+.attr("class", "myYaxis")
+
+
+// PREPARE TIME  ////////////////////////////////////////////////////////////////////////////////////
+
+// set the dimensions and margins of the graph
+var marginTime = { top: 10, right: 20, bottom: 0, left: 50 };
+
+var widthTime = d3
+  .select('#time-container')
+  .node()
+  .getBoundingClientRect().width - marginTime.left - marginTime.right;
+var heightTime = d3
+  .select('#time-container')
+  .node()
+  .getBoundingClientRect().height  - marginTime.top - marginTime.bottom;
+
+var svgTime = d3.select("#time")
+  .append("svg")
+  .attr("width", widthTime  + marginTime.left + marginTime.right)
+  .attr("height", heightTime + marginTime.top + marginTime.bottom)
+  .append("g")
+  .attr("transform",
+    "translate(" + marginTime.left + "," + marginTime.top + ")")
+
+// Initialize the X axis
+var xScaleTime = d3.scaleBand()
+  .range([0, widthTime])
+  .padding(0.2);
+
+xScaleTime.invert = function (x) {
   var domain = this.domain();
   var range = this.range()
   var scale = d3.scaleQuantize().domain(range).range(domain)
   return scale(x)
 };
-var xAxis = svgTimeline.append("g")
-  .attr("transform", "translate(0," + heightTimeline + ")")
+var xAxisTime = svgTime.append("g")
 
-// Initialize the Y axis
-var yScale = d3.scaleLinear()
-  .range([heightTimeline, 0]);
-var yAxis = svgTimeline.append("g")
-  .attr("class", "myYaxis")
 
 
 // LOAD DATA  ////////////////////////////////////////////////////////////////////////////////////
@@ -225,15 +280,26 @@ function drawTimeline() {
   // TIMELINE PLOT
   updateTimeline('1')
 
+  // Parse the Data
+  // X axis
+  xScaleTime.domain(timelineData.map(function (d) { return d.group; }))
+  xAxisTime.call(d3.axisBottom(xScale))
+
   //add brush
   var brush = d3.brushX()
-    .extent([[0, 0], [widthTimeline, heightTimeline]])//(x0,y0)  (x1,y1)
+    .extent([[0,1], [widthTime, heightTime]])//(x0,y0)  (x1,y1)
     .on("brush", brushend)//when mouse up, move the selection to the exact tick //start(mouse down), brush(mouse move), end(mouse up)
   
-    svgTimeline.append("g")
+    svgTime.append("g")
     .attr("class", "brush")
-    .call(brush);
+    .call(brush)
+    .call(brush.move, xScale.range());;
 
+    svgTime.select(".brush")
+    .on("click", function(d) {
+    svgTime.select(".brush")
+    .call(brush.move, xScale.range());
+  });
 }
 
 function fillPlacesBoxes() {
@@ -601,7 +667,6 @@ function notHighlight(selection, type) {
 }
 
 
-// A function that create / update the plot for a given variable:
 function updateTimeline(selectedVar) {
 
   order = 0;
@@ -612,9 +677,7 @@ function updateTimeline(selectedVar) {
     }
     else {
       document.getElementById("box-" + i).style.order = order;
-
     }
-
   }
 
   // Parse the Data
@@ -649,8 +712,8 @@ function brushend() {
   if (!d3.event.sourceEvent) return; // Only transition after input.
   if (!d3.event.selection) return; // Ignore empty selections.
   var areaArray = d3.event.selection;//[x0,x1]
-  startTime = xScale.invert(areaArray[0])
-  endTime = xScale.invert(areaArray[1])
+  startTime = xScaleTime.invert(areaArray[0])
+  endTime = xScaleTime.invert(areaArray[1])
   colorPlacesBoxes(parseInt(startTime), parseInt(endTime));
 }
 
