@@ -27,7 +27,7 @@ body {
   height: 90%
 }
 #map-container {
-	flex-basis: 70%; 
+	flex-basis: 40%; 
   min-width: 400px; 
   height: 100%;
   }
@@ -97,10 +97,10 @@ body {
   fill: black;
 }
 
-
 #homeWorkBalance-container {
-  margin: 100px;
-  width:50%;
+  flex-basis: 30%; 
+  min-width: 200px; 
+  height: 100%; 
 }
 
 .highcharts-figure, .highcharts-data-table table {

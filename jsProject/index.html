@@ -27,18 +27,7 @@
 <body>
 
   <div id="map-and-places-container" class="flex-container">
-    <div id="map-container" class="flex-item">
-      <div id="mapboxx">
-      </div>
-      <svg id="map">
-        <!-- must be in this order for drawing -->
-        <g id="basemap"></g>
-        <g id="trips"></g>
-        <g id="places"></g>
-        <text id="tooltip" style="display: none;"></text>
-      </svg>
-      <button id="changeMapButton" onclick="changeData()" type="button">Change Data</button>
-    </div>
+    
     <div id="places-container" class="flex-item">
       <div id="places-boxes">
         <div id="box-1" class="boxes"></div>
@@ -57,16 +46,29 @@
       </div>
       
     </div>
+    <div id="map-container" class="flex-item">
+      <div id="mapboxx">
+      </div>
+      <svg id="map">
+        <!-- must be in this order for drawing -->
+        <g id="basemap"></g>
+        <g id="trips"></g>
+        <g id="places"></g>
+        <text id="tooltip" style="display: none;"></text>
+      </svg>
+      <button id="changeMapButton" onclick="changeData()" type="button">Change Data</button>
+    </div>
+    <div id="homeWorkBalance-container"  class="flex-item">
+      <!-- Home and work balance negative stacked bar -->
+      <figure class="highcharts-figure">
+        <div id="container"></div>
+        <p class="highcharts-description"></p>
+      </figure>
+    </div>
 
   </div>
 
-  <div id="homeWorkBalance-container">
-    <!-- Home and work balance negative stacked bar -->
-    <figure class="highcharts-figure">
-      <div id="container"></div>
-      <p class="highcharts-description"></p>
-    </figure>
-  </div>
+ 
 
 
 

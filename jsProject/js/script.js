@@ -46,14 +46,14 @@ var svg = d3.select(container).append(function () {
 
 
 var widthMap = d3
-    .select('#map-container')
-    .node()
-    .getBoundingClientRect().width
+  .select('#map-container')
+  .node()
+  .getBoundingClientRect().width
 // Set dimensions
 var heightMap = d3
-    .select('#map-container')
-    .node()
-    .getBoundingClientRect().height
+  .select('#map-container')
+  .node()
+  .getBoundingClientRect().height
 var hypotenuse = Math.sqrt(widthMap * widthMap + heightMap * heightMap);
 
 svg
@@ -90,7 +90,7 @@ var margin = { top: 30, right: 30, bottom: 20, left: 60 };
 var widthTimeline = d3
   .select('#chart-container')
   .node()
-  .getBoundingClientRect().width  - margin.left - margin.right;
+  .getBoundingClientRect().width - margin.left - margin.right;
 // Set dimensions
 var heightTimeline = d3
   .select('#chart-container')
@@ -168,11 +168,13 @@ function processData(values) {
   semanticInfo = values[3][0];
 
   fillPlacesBoxes();
-  colorPlacesBoxes(0,23);
+  colorPlacesBoxes(0, 23);
   drawTimeline();
 
   for (let i = 1; i < 11; i++) {
-    document.getElementById("box-" + i).addEventListener('click', event => { updateTimeline(placeIdOfBox[i])});
+    document.getElementById("box-" + i).addEventListener('click', event => { updateTimeline(placeIdOfBox[i]) });
+    document.getElementById("box-" + i).addEventListener("mouseover", event => { mousoverFunction(placeIdOfBox[i]) });
+    document.getElementById("box-" + i).addEventListener("mouseout", event => { mouseoutFunction(placeIdOfBox[i]) });
   }
 
   console.log("places: " + places.length);
@@ -226,60 +228,60 @@ function drawTimeline() {
   //add brush
   var brush = d3.brushX()
     .extent([[0, 0], [widthTimeline, heightTimeline]])//(x0,y0)  (x1,y1)
-    .on("brush", brushend);//when mouse up, move the selection to the exact tick //start(mouse down), brush(mouse move), end(mouse up)
-
-  svgTimeline.append("g")
+    .on("brush", brushend)//when mouse up, move the selection to the exact tick //start(mouse down), brush(mouse move), end(mouse up)
+  
+    svgTimeline.append("g")
     .attr("class", "brush")
     .call(brush);
 
 }
 
 function fillPlacesBoxes() {
-  var timeData = getPlaceTime(0,23);
+  var timeData = getPlaceTime(0, 23);
   delete timeData.group;
   var values = Object.values(timeData);
   var keys = Object.keys(timeData);
   count = 1;
   placeIdOfBox = {};
   while (count < 11) {
-    var maxIdx = values.indexOf(Math.max.apply(Math,values))
+    var maxIdx = values.indexOf(Math.max.apply(Math, values))
     var placeId = keys[maxIdx];
     values.splice(maxIdx, 1);
     keys.splice(maxIdx, 1);
     placeIdOfBox[count] = placeId;
-    document.getElementById("box-" + count).innerHTML = "Place ID: " + placeId + ", Time: " +  Math.round(Math.max.apply(Math,values)) ;
-    if (count == 1){
-      maxCount = Math.max.apply(Math,values);
+    document.getElementById("box-" + count).innerHTML = "Place ID: " + placeId + ", Time: " + Math.round(Math.max.apply(Math, values));
+    if (count == 1) {
+      maxCount = Math.max.apply(Math, values);
     }
     count++;
   }
 
 }
 
-function getPlaceTime(startTime, endTime){
+function getPlaceTime(startTime, endTime) {
 
-    var timeData = {};
-    for (var idx = 0; idx < Object.keys(timelineData[0]).length; idx++ ){
-      timeData[Object.keys(timelineData[0])[idx]] = 0;
-    }
+  var timeData = {};
+  for (var idx = 0; idx < Object.keys(timelineData[0]).length; idx++) {
+    timeData[Object.keys(timelineData[0])[idx]] = 0;
+  }
 
-    for (let i = startTime; i <= endTime; i++) {
-      for (var idx = 0; idx < Object.keys(timelineData[i]).length; idx++ ){
-        timeData[Object.keys(timelineData[i])[idx]] += parseFloat(timelineData[i][Object.keys(timelineData[i])[idx]]);
-      }
+  for (let i = startTime; i <= endTime; i++) {
+    for (var idx = 0; idx < Object.keys(timelineData[i]).length; idx++) {
+      timeData[Object.keys(timelineData[i])[idx]] += parseFloat(timelineData[i][Object.keys(timelineData[i])[idx]]);
     }
-    return timeData
+  }
+  return timeData
 }
 
 function colorPlacesBoxes(startTime, endTime) {
-  var timeData = getPlaceTime(startTime,endTime);
+  var timeData = getPlaceTime(startTime, endTime);
   delete timeData.group;
   var color = d3.scaleLinear()
-  .domain([0,Math.max.apply(Math,Object.values(timeData))])
-  .range(["#ffffff ", "#a83290"]);
+    .domain([0, Math.max.apply(Math, Object.values(timeData))])
+    .range(["#ffffff ", "#a83290"]);
   for (let i = 1; i < 11; i++) {
     document.getElementById("box-" + i).style.backgroundColor = color(timeData[placeIdOfBox[i]]);
-    document.getElementById("box-" + i).innerHTML = "Place ID: " + placeIdOfBox[i] + ", Time: " +  Math.round(timeData[placeIdOfBox[i]]) ;
+    document.getElementById("box-" + i).innerHTML = "Place ID: " + placeIdOfBox[i] + ", Time: " + Math.round(timeData[placeIdOfBox[i]]);
 
   }
 
@@ -437,14 +439,14 @@ function drawTrips(places, trips) {
 
   links = g.trips.selectAll("path.trip")
     .remove()
-    
+
   links = g.trips.selectAll("path.trip")
     .data(geojson.features)
     .enter()
     .append("path")
     .attr("d", pathTrips)
     .attr("class", "trip")
-    .attr("id", function (d) {return "id_" + d.properties.id})
+    .attr("id", function (d) { return "id_" + d.properties.id })
     //.style("stroke-width", d => d.properties.count*2)
     .each(function (d) {
       // adds the path object to our source place
@@ -521,7 +523,7 @@ function addWaypoints(links) {
       feature.properties.count = d.count;
 
     }
-    
+
     geojsonSchematic.features.push(featureSchematic);
     geojson.features.push(feature);
     count += 1;
@@ -604,9 +606,9 @@ function updateTimeline(selectedVar) {
 
   order = 0;
   for (let i = 1; i < 11; i++) {
-    if (placeIdOfBox[i] == selectedVar){
+    if (placeIdOfBox[i] == selectedVar) {
       document.getElementById("box-" + i).style.order = order;
-      order +=2;
+      order += 2;
     }
     else {
       document.getElementById("box-" + i).style.order = order;
@@ -652,12 +654,6 @@ function brushend() {
   colorPlacesBoxes(parseInt(startTime), parseInt(endTime));
 }
 
-function updatePieChart(startTime, endTime) {
-  //clearTimeout(timeout);
-  pie.value(function (d) { return getPieValues(d, startTime, endTime); }); // change the value function
-  path = pathPie.data(pie); // compute the new angles
-  path.transition().duration(750).attrTween("d", arcTween); // redraw the arcs
-}
 
 // Store the displayed angles in _current.
 // Then, interpolate from _current to the new angles.
@@ -670,70 +666,65 @@ function arcTween(a) {
   }
 }
 
-function getPieValues(d, startTime, endTime) {
-  sum = 0;
-  for (i = parseInt(startTime); i <= parseInt(endTime); i++) {
-    sum += parseFloat(timelineData[i][d.group]);
-  }
-  return sum
-}
-
 function mousoverFunction(i) {
-  let place = places[i];
+  if (parseInt(i) < places.length) {
+    let place = places[i];
 
-  d3.select(place.bubble)
-    .call(highlight);
+    d3.select(place.bubble)
+      .call(highlight);
 
-  d3.selectAll(place.trips)
-    .call(highlight)
-    .raise();
+    d3.selectAll(place.trips)
+      .call(highlight)
+      .raise();
 
-  // make tooltip take up space but keep it invisible
-  tooltip.style("display", null);
-  tooltip.style("visibility", "hidden");
+    // make tooltip take up space but keep it invisible
+    tooltip.style("display", null);
+    tooltip.style("visibility", "hidden");
 
-  var pos = place.bubble.getBoundingClientRect();
-  var x = pos.left + pos.width / 2, y = pos.top + pos.height / 2;
+    var pos = place.bubble.getBBox();
+    var x = pos.x + pos.width / 2, y = pos.y + pos.height / 2;
 
 
-  // set default tooltip positioning
-  tooltip.attr("text-anchor", "middle");
-  tooltip.attr("dy", -scales.places(place.outgoing) - 10);
-  tooltip.attr("x", x);
-  tooltip.attr("y", y - scales.places(place.outgoing));
+    // set default tooltip positioning
+    tooltip.attr("text-anchor", "middle");
+    tooltip.attr("dy", -scales.places(place.outgoing) - 10);
+    tooltip.attr("x", x);
+    tooltip.attr("y", y - scales.places(place.outgoing));
 
-  // set the tooltip text
-  tooltip.text("Place ID: " + place.placeId);
+    // set the tooltip text
+    tooltip.text("Place ID: " + place.placeId);
 
-  // double check if the anchor needs to be changed
-  let bbox = tooltip.node().getBBox();
+    // double check if the anchor needs to be changed
+    let bbox = tooltip.node().getBBox();
 
-  if (bbox.x <= 0) {
-    tooltip.attr("text-anchor", "start");
+    if (bbox.x <= 0) {
+      tooltip.attr("text-anchor", "start");
+    }
+    else if (bbox.x + bbox.width >= widthMap) {
+      tooltip.attr("text-anchor", "end");
+    }
+
+    tooltip.style("visibility", "visible");
+
+    d3.select("#SemanticInfo").text(semanticInfo[place.placeId]);
+
   }
-  else if (bbox.x + bbox.width >= widthMap) {
-    tooltip.attr("text-anchor", "end");
-  }
-
-  tooltip.style("visibility", "visible");
-
-  d3.select("#SemanticInfo").text(semanticInfo[place.placeId]);
-
-
 }
 
 function mouseoutFunction(i) {
-  let place = places[i];
+  if (parseInt(i) < places.length) {
 
-  d3.select(place.bubble)
-    .call(notHighlight, 'aiport');
+    let place = places[i];
 
-  d3.selectAll(place.trips)
-    .call(notHighlight, 'trip');
+    d3.select(place.bubble)
+      .call(notHighlight, 'aiport');
 
-  d3.select("text#tooltip").style("visibility", "hidden");
-  d3.select("#SemanticInfo").text("");
+    d3.selectAll(place.trips)
+      .call(notHighlight, 'trip');
 
+    d3.select("text#tooltip").style("visibility", "hidden");
+    d3.select("#SemanticInfo").text("");
+  }
 }
 
 function projectPoint(lon, lat) {
@@ -776,7 +767,7 @@ function render() {
 function changeData() {
   mapBlank = !mapBlank;
   if (!mapBlank) {
-    map.setStyle('mapbox://styles/mapbox/streets-v8');
+    map.setStyle('mapbox://styles/mapbox/light-v10');
   }
   else {
     map.setStyle('mapbox://styles/dlaumer/ck9vivxcy14761inolbg58hqu');
@@ -786,39 +777,39 @@ function changeData() {
 
   var n = 0;
   g.trips.selectAll("path.trip")
-  .transition()
-  .duration(3000)
-  .attrTween('d', function (d) {
-    n++;
-    if (!mapBlank) {
-      var startPath = pathTrips(geojsons[1].features[d.properties.id]),
-      endPath = pathTrips(geojsons[0].features[d.properties.id]);
-    }
-    else {
-      var startPath = pathTrips(geojsons[0].features[d.properties.id]),
-      endPath = pathTrips(geojsons[1].features[d.properties.id]);
-    }
+    .transition()
+    .duration(3000)
+    .attrTween('d', function (d) {
+      n++;
+      if (!mapBlank) {
+        var startPath = pathTrips(geojsons[1].features[d.properties.id]),
+          endPath = pathTrips(geojsons[0].features[d.properties.id]);
+      }
+      else {
+        var startPath = pathTrips(geojsons[0].features[d.properties.id]),
+          endPath = pathTrips(geojsons[1].features[d.properties.id]);
+      }
       //var endPath = d3.select("path.tripGeometric#geometric_" + d.properties.id).attr('d'),
       //startPath = d3.select("path.trip#schematic_" + d.properties.id).attr('d');
-    return d3.morphPath(startPath, endPath);
-  })
-  .on("end", function() { // use to be .each('end', function(){})
-    n--;
-    if (!n) {
-      endall();
+      return d3.morphPath(startPath, endPath);
+    })
+    .on("end", function () { // use to be .each('end', function(){})
+      n--;
+      if (!n) {
+        endall();
+      }
+    })
+  function endall() {
+    drawTrips(places, trips);
+    drawPlaces(places)
   }
-})
-function endall() {
-  drawTrips(places, trips);
-  drawPlaces(places)
-}
 }
 
 
 // Negative stacked bar graph: Home and Work Balance
 // Weekday categories
 var categories = [
-  'Sunday', 'Saturday', 'Friday', 'Thursday', 'Wednesday','Tuesday', 'Monday'
+  'Sunday', 'Saturday', 'Friday', 'Thursday', 'Wednesday', 'Tuesday', 'Monday'
 ];
 
 Highcharts.chart('container', {
@@ -881,25 +872,25 @@ Highcharts.chart('container', {
   tooltip: {
     formatter: function () {
       return '<b>' + this.series.name + ', ' + this.point.category + '</b><br/>' +
-         Highcharts.numberFormat(Math.abs(this.point.y), 1) + ' hrs';
+        Highcharts.numberFormat(Math.abs(this.point.y), 1) + ' hrs';
     }
   },
 
   series: [
-  {
-    name: 'Home at Affoltern',
-    data: [-478.4,-166.8,-151.9,-188.8,-80.9,-53.9,-124.1],
-  }, 
-  // {
-  //   name: 'Home at Schlieren',
-  //   data: [0,0,0,0,-0.9,0,-0.5],
-  // }, 
-  {
-    name: 'ETH Zurich',
-    data: [0,0,379.4,172.5,3.9,176.1,22.1],
-  }, 
-  {
-    name: 'Acht Grad Ost AG, 4, Wagistrasse, Schlieren',
-    data: [0,0,275.7,54.6,64.4,106.9,75.2]
-  }]
+    {
+      name: 'Home at Affoltern',
+      data: [-478.4, -166.8, -151.9, -188.8, -80.9, -53.9, -124.1],
+    },
+    // {
+    //   name: 'Home at Schlieren',
+    //   data: [0,0,0,0,-0.9,0,-0.5],
+    // }, 
+    {
+      name: 'ETH Zurich',
+      data: [0, 0, 379.4, 172.5, 3.9, 176.1, 22.1],
+    },
+    {
+      name: 'Acht Grad Ost AG, 4, Wagistrasse, Schlieren',
+      data: [0, 0, 275.7, 54.6, 64.4, 106.9, 75.2]
+    }]
 });
