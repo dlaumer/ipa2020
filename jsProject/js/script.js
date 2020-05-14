@@ -1,67 +1,3 @@
-Highcharts.chart('piechart-container', {
-  chart: {
-    plotBackgroundColor: null,
-    plotBorderWidth: null,
-    plotShadow: false,
-    type: 'pie'
-  },
-  title: {
-    text: 'Transportation Modes Preferences'
-  },
-  tooltip: {
-    pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
-  },
-  accessibility: {
-    point: {
-      valueSuffix: '%'
-    }
-  },
-  plotOptions: {
-    pie: {
-      allowPointSelect: true,
-      cursor: 'pointer',
-      dataLabels: {
-        enabled: true,
-        format: '<b>{point.name}</b>: {point.percentage:.1f} %'
-      }
-    }
-  },
-  series: [{
-    name: 'Transportation modes',
-    colorByPoint: true,
-    data: [{
-      name: 'IN_PASSENGER_VEHICLE',
-      y: 42.74,
-      sliced: true,
-      selected: true
-    }, {
-      name: 'IN_TRAIN',
-      y: 21.11
-    }, {
-      name: 'FLYING',
-      y: 13.11
-    }, {
-      name: 'WALKING',
-      y: 9.89
-    }, {
-      name: 'IN_BUS',
-      y: 8.10
-    }, {
-      name: 'CYCLING',
-      y: 3.55
-    }, {
-      name: 'IN_TRAM',
-      y: 0.93
-    }, {
-      name: 'IN_FERRY',
-      y: 0.43
-    }, {
-      name: 'RUNNING',
-      y: 0.13
-    }]
-  }]
-});
-
 // Data files to import
 var urls = {
   map: "swiss.json",
@@ -80,7 +16,9 @@ var urls = {
   
   homeworkbal:
     "HomeWorkStaytimeAll.csv",
-
+  
+  transportation:
+    "TransportationMode.csv",
 };
 
 // PERPARE MAP  ////////////////////////////////////////////////////////////////////////////////////
@@ -265,7 +203,9 @@ var semanticInfo;
 var homeworkbal;
 var HomeWorkData;
 var HomeWorkSeries;
-// var NegativeBarSeires;
+var transportationmode;
+var transportationData;
+var transportationSeries;
 var bubbles;
 var pathBaseMap;
 var pathTrips;
@@ -282,7 +222,8 @@ let promises = [
   d3.dsv(';', urls.trips, typeTrip),
   d3.csv(urls.timeline),
   d3.csv(urls.semanticInfo),
-  d3.csv(urls.homeworkbal)
+  d3.csv(urls.homeworkbal),
+  d3.csv(urls.transportation)  
 ];
 
 Promise.all(promises).then(processData);
@@ -295,8 +236,12 @@ function processData(values) {
   timelineData = values[2];
   semanticInfo = values[3][0];
   homeworkbal = values[4];
+  transportationmode = values[5];
+
   HomeWorkData = [];
   HomeWorkSeries = [];
+  transportationData = [];
+  transportationSeries = [];
 
   fillPlacesBoxes();
   colorPlacesBoxes(0, 23);
@@ -348,7 +293,7 @@ function processData(values) {
   // done filtering trips can draw
   drawTrips(places, trips);
 
-
+  // reformat homeworkbalance data
   for (let i = 0; i < homeworkbal.length; i++){
     var homework = homeworkbal[i];
     var homeworkid = homework['id']
@@ -363,19 +308,33 @@ function processData(values) {
     var homeworkarray = [homeworkid, data]    
     HomeWorkData.push(homeworkarray);
   }
-
   for (i = 0; i < HomeWorkData.length; i++) {
     HomeWorkSeries.push({
       name: HomeWorkData[i][0],
       data: HomeWorkData[i][1],
     })
   }
-
-  console.log('HomeWorkData',HomeWorkData)
-  console.log('HomeWorkSeries',HomeWorkSeries)
-
+  // console.log('HomeWorkData',HomeWorkData)
+  // console.log('HomeWorkSeries',HomeWorkSeries)
   drawNegativeBar(HomeWorkSeries);
 
+  // reformat transportation data
+  for (let i = 0; i < transportationmode.length; i++){
+    var transportationi = transportationmode[i];
+    var mode = transportationi['mode']
+    var percentage = transportationi['percentage']*100
+    var transarray = [mode, percentage]    
+    transportationData.push(transarray);
+  }
+  for (i = 0; i < transportationData.length; i++) {
+    transportationSeries.push({
+      name: transportationData[i][0],
+      y: transportationData[i][1],
+    })
+  }
+  console.log(transportationSeries);
+  console.log(HomeWorkSeries);
+  drawTransPieChart(transportationSeries);
 }
 
 // FUNCTIONS ////////////////////////////////////////////////////////////////////////////////////
@@ -973,7 +932,6 @@ function changeData() {
   }
 }
 
-
 // Negative stacked bar graph: Home and Work Balance
 function drawNegativeBar(HomeWorkSeries) {
   // Weekday categories
@@ -1047,4 +1005,69 @@ function drawNegativeBar(HomeWorkSeries) {
 
     series: HomeWorkSeries
   });
+}
+
+function drawTransPieChart (transportationSeries) {
+  Highcharts.chart('piechart-container', {
+    chart: {
+      plotBackgroundColor: null,
+      plotBorderWidth: null,
+      plotShadow: false,
+      type: 'pie'
+    },
+    title: {
+      text: 'Transportation Modes Preferences'
+    },
+    tooltip: {
+      pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+    },
+    accessibility: {
+      point: {
+        valueSuffix: '%'
+      }
+    },
+    plotOptions: {
+      pie: {
+        allowPointSelect: true,
+        cursor: 'pointer',
+        dataLabels: {
+          enabled: true,
+          format: '<b>{point.name}</b>: {point.percentage:.1f} %'
+        }
+      }
+    },
+    series: [{
+      name: 'Transportation modes',
+      colorByPoint: true,
+      data: transportationSeries,
+      // [{
+      //   name: 'IN_PASSENGER_VEHICLE',
+      //   y: 42.74,
+      // }, {
+      //   name: 'IN_TRAIN',
+      //   y: 21.11
+      // }, {
+      //   name: 'FLYING',
+      //   y: 13.11
+      // }, {
+      //   name: 'WALKING',
+      //   y: 9.89
+      // }, {
+      //   name: 'IN_BUS',
+      //   y: 8.10
+      // }, {
+      //   name: 'CYCLING',
+      //   y: 3.55
+      // }, {
+      //   name: 'IN_TRAM',
+      //   y: 0.93
+      // }, {
+      //   name: 'IN_FERRY',
+      //   y: 0.43
+      // }, {
+      //   name: 'RUNNING',
+      //   y: 0.13
+      // }]
+    }]
+  });  
 }
