@@ -1008,6 +1008,20 @@ function drawNegativeBar(HomeWorkSeries) {
 }
 
 function drawTransPieChart (transportationSeries) {
+  // Make monochrome colors
+  var pieColors = (function () {
+    var colors = [],
+        base = Highcharts.getOptions().colors[0],
+        i;
+
+    for (i = 0; i < 10; i += 1) {
+        // Start out with a darkened base color (negative brighten), and end
+        // up with a much brighter color
+        colors.push(Highcharts.color(base).brighten((i - 3) / 7).get());
+    }
+    return colors;
+  }());
+
   Highcharts.chart('piechart-container', {
     chart: {
       plotBackgroundColor: null,
@@ -1019,7 +1033,9 @@ function drawTransPieChart (transportationSeries) {
       text: 'Transportation Modes Preferences'
     },
     tooltip: {
-      pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+      headerFormat: '<span style="font-size:11px">{series.name}</span><br>',
+      pointFormat: '{point.name}</span>: <b>{point.y:.2f}%</b> of total<br/>'
+      // pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
     },
     accessibility: {
       point: {
@@ -1030,44 +1046,23 @@ function drawTransPieChart (transportationSeries) {
       pie: {
         allowPointSelect: true,
         cursor: 'pointer',
+        colors: pieColors,
         dataLabels: {
           enabled: true,
-          format: '<b>{point.name}</b>: {point.percentage:.1f} %'
-        }
+          format: '<b>{point.name}</b><br>{point.percentage:.1f} %',
+          distance: -50,
+          filter: {
+              property: 'percentage',
+              operator: '>',
+              value: 4
+          }
+      }
       }
     },
     series: [{
       name: 'Transportation modes',
       colorByPoint: true,
       data: transportationSeries,
-      // [{
-      //   name: 'IN_PASSENGER_VEHICLE',
-      //   y: 42.74,
-      // }, {
-      //   name: 'IN_TRAIN',
-      //   y: 21.11
-      // }, {
-      //   name: 'FLYING',
-      //   y: 13.11
-      // }, {
-      //   name: 'WALKING',
-      //   y: 9.89
-      // }, {
-      //   name: 'IN_BUS',
-      //   y: 8.10
-      // }, {
-      //   name: 'CYCLING',
-      //   y: 3.55
-      // }, {
-      //   name: 'IN_TRAM',
-      //   y: 0.93
-      // }, {
-      //   name: 'IN_FERRY',
-      //   y: 0.43
-      // }, {
-      //   name: 'RUNNING',
-      //   y: 0.13
-      // }]
     }]
   });  
 }
