@@ -76,7 +76,11 @@ var urls = {
     "AverStayTimebyHour.csv",
 
   semanticInfo:
-    "AverStayTimebyHourwithLocinfo.csv"
+    "AverStayTimebyHourwithLocinfo.csv",
+  
+  homeworkbal:
+    "HomeWorkStaytimeAll.csv",
+
 };
 
 // PERPARE MAP  ////////////////////////////////////////////////////////////////////////////////////
@@ -258,6 +262,8 @@ var places;
 var trips;
 var tripsAgr;
 var semanticInfo;
+var homeworkbal;
+var HomeWorkData;
 var bubbles;
 var pathBaseMap;
 var pathTrips;
@@ -273,7 +279,8 @@ let promises = [
   d3.dsv(';', urls.places, typePlace),
   d3.dsv(';', urls.trips, typeTrip),
   d3.csv(urls.timeline),
-  d3.csv(urls.semanticInfo)
+  d3.csv(urls.semanticInfo),
+  d3.csv(urls.homeworkbal)
 ];
 
 Promise.all(promises).then(processData);
@@ -285,7 +292,25 @@ function processData(values) {
   trips = values[1];
   timelineData = values[2];
   semanticInfo = values[3][0];
+  homeworkbal = values[4];
+  HomeWorkData = [];
+  
+  for (let i = 0; i < homeworkbal.length; i++){
+    var homework = homeworkbal[i];
+    var homeworkid = homework['id']
+    if (homeworkid=='home') {
+      var homeworkdata = [-homework['Sun'],-homework['Sat'],-homework['Fri'],-homework['Thur'],-homework['Wed'],-homework['Tues'],-homework['Mon']]
+      var data = homeworkdata.map(Number);
+    }
+    else {
+      var homeworkdata = [homework['Sun'],homework['Sat'],homework['Fri'],homework['Thur'],homework['Wed'],homework['Tues'],homework['Mon']]
+      var data = homeworkdata.map(Number);     
+    }
+    var homeworkarray = [homeworkid, data]    
+    HomeWorkData.push(homeworkarray);
+  }
 
+  drawNegativeBar(HomeWorkData);
   fillPlacesBoxes();
   colorPlacesBoxes(0, 23);
   drawTimeline();
@@ -934,90 +959,89 @@ function changeData() {
 
 
 // Negative stacked bar graph: Home and Work Balance
-// Weekday categories
-var categories = [
-  'Sunday', 'Saturday', 'Friday', 'Thursday', 'Wednesday', 'Tuesday', 'Monday'
-];
+function drawNegativeBar(HomeWorkData) {
+  // Weekday categories
+  var categories = [
+    'Sunday', 'Saturday', 'Friday', 'Thursday', 'Wednesday', 'Tuesday', 'Monday'
+  ];
 
-Highcharts.chart('container', {
-  chart: {
-    type: 'bar'
-  },
-  title: {
-    text: 'Home and Work Balance'
-  },
-  // subtitle: {
-  //   text: ''
-  // },
-  accessibility: {
-    point: {
-      valueDescriptionFormat: '{index}. StayTime {xDescription}, {value}hrs.'
-    }
-  },
-  xAxis: [{
-    categories: categories,
-    reversed: false,
-    labels: {
-      step: 1
+  Highcharts.chart('container', {
+    chart: {
+      type: 'bar'
     },
-    accessibility: {
-      description: 'StayTime (Home)'
-    }
-  }, { // mirror axis on right side
-    opposite: true,
-    reversed: false,
-    categories: categories,
-    linkedTo: 0,
-    labels: {
-      step: 1
-    },
-    accessibility: {
-      description: 'StayTime (Work)'
-    }
-  }],
-  yAxis: {
     title: {
-      text: null
+      text: 'Home and Work Balance'
     },
-    labels: {
-      formatter: function () {
-        return Math.abs(this.value);
+    // subtitle: {
+    //   text: ''
+    // },
+    accessibility: {
+      point: {
+        valueDescriptionFormat: '{index}. StayTime {xDescription}, {value}hrs.'
       }
     },
-    // accessibility: {
-    //   description: 'Stay Time in Minutes',
-    //   rangeDescription: 'above 0'
-    // }
-  },
-
-  plotOptions: {
-    series: {
-      stacking: 'normal'
-    }
-  },
-
-  tooltip: {
-    formatter: function () {
-      return '<b>' + this.series.name + ', ' + this.point.category + '</b><br/>' +
-        Highcharts.numberFormat(Math.abs(this.point.y), 1) + ' hrs';
-    }
-  },
-
-  series: [
-    {
-      name: 'Home at Affoltern',
-      data: [-478.4, -166.8, -151.9, -188.8, -80.9, -53.9, -124.1],
+    xAxis: [{
+      categories: categories,
+      reversed: false,
+      labels: {
+        step: 1
+      },
+      accessibility: {
+        description: 'StayTime (Home)'
+      }
+    }, { // mirror axis on right side
+      opposite: true,
+      reversed: false,
+      categories: categories,
+      linkedTo: 0,
+      labels: {
+        step: 1
+      },
+      accessibility: {
+        description: 'StayTime (Work)'
+      }
+    }],
+    yAxis: {
+      title: {
+        text: null
+      },
+      labels: {
+        formatter: function () {
+          return Math.abs(this.value);
+        }
+      },
+      // accessibility: {
+      //   description: 'Stay Time in Minutes',
+      //   rangeDescription: 'above 0'
+      // }
     },
-    // {
-    //   name: 'Home at Schlieren',
-    //   data: [0,0,0,0,-0.9,0,-0.5],
-    // }, 
-    {
-      name: 'ETH Zurich',
-      data: [0, 0, 379.4, 172.5, 3.9, 176.1, 22.1],
+
+    plotOptions: {
+      series: {
+        stacking: 'normal'
+      }
     },
-    {
-      name: 'Acht Grad Ost AG, 4, Wagistrasse, Schlieren',
-      data: [0, 0, 275.7, 54.6, 64.4, 106.9, 75.2]
-    }]
-});
+
+    tooltip: {
+      formatter: function () {
+        return '<b>' + this.series.name + ', ' + this.point.category + '</b><br/>' +
+          Highcharts.numberFormat(Math.abs(this.point.y), 1) + ' hrs';
+      }
+    },
+
+    series: [
+      {
+        name: HomeWorkData[0][0],
+        data: HomeWorkData[0][1],
+      },
+      {
+        name: HomeWorkData[1][0],
+        data: HomeWorkData[1][1],
+      },
+      {
+        name: HomeWorkData[2][0],
+        data: HomeWorkData[2][1]
+      }]
+  });
+  // console.log(series);
+}
