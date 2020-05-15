@@ -55,6 +55,25 @@ locs, locsgdf = hlp.parseLocs(dataPathLocs)
 trips, tripdf, tripsgdf = hlp.parseTrips(dataPathTrips)
 # tripsgdf = hlp.parseTripsWithLocs(dataPathTrips, locsgdf)
 
+#%% TRANSPORTATION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+transtat = hlp.pieChartInfoPlus(trips)
+hlp.transModeCsv(transtat)
+
+# def transModeCsv(transtat):
+#     transtatdf = pd.DataFrame(list(transtat))
+#     transtatdf = transtatdf.T
+#     transtatdf['percentage'] = ""
+#     transtatdf.columns = ['mode','value','percentage']
+    
+#     for i in range(0,len(transtatdf)):
+#         valsum = transtatdf['value'].sum(axis=0)
+#         transtatdf.iloc[i,2] = round(transtatdf.iloc[i,1]/valsum,4)
+    
+#     transtatdf.sort_values("percentage", axis = 0, ascending = False, 
+#                      inplace = True, na_position ='last') 
+#     transtatdf.to_csv('E:/1_IPA/3_project/data/stat/'+dataName+'/TransportationMode.csv', index = True)
+
+
 #%% EXPORT SHP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if SAVE_SHP:
     hlp.loc2shp(locsgdf, dataName)
@@ -99,18 +118,13 @@ if FIND_STAY_POINTS:
     #plcs_shp.geometry = plcs_shp['extent']
     #plcs_shp.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/Places_extent.shp')
 
-    # Calculate stay time for stay points
-    stps['stay_time'] = 0
-    for i in range(0,len(stps)):
-        stps['stay_time'].iloc[i] = (stps['finished_at'].iloc[i]-stps['started_at'].iloc[i]).total_seconds()/60
-
-#%% STATISTICS FOR PLACES
+#%% STATISTICS FOR PLACES BY WORKING DAY
 # Calculate stay time
 stps['stay_time'] = 0
 for i in range(0,len(stps)):
     stps['stay_time'].iloc[i] = (stps['finished_at'].iloc[i]-stps['started_at'].iloc[i]).total_seconds()
 
-#%% Calcualte stay time for each place for each working day
+# Calcualte stay time for each place for each working day
 stps['started_at_weekday'] = 0
 for i in range(0,len(stps)): stps['started_at_weekday'].iloc[i] = stps['started_at'].iloc[i].weekday() # 0 for Monday, 6 for Sunday
 
@@ -134,13 +148,19 @@ for i in range(0,len(plcs)):
     plcs.loc[plcs['place_id']==place_id,'Sat_totalstay']=stps_placeid_weekday6['stay_time'].sum()
     stps_placeid_weekday7 = stps_placeid[stps_placeid['started_at_weekday']==6]
     plcs.loc[plcs['place_id']==place_id,'Sun_totalstay']=stps_placeid_weekday7['stay_time'].sum()
-for col in cols: plcs[col] =  plcs[col]/60
+for col in cols: plcs[col] =  plcs[col]/60 # in min
 
 #%% ADD POI INFORMATION
-# plcs = poi.reverseGeoCoding(plcs)
+plcs = poi.reverseGeoCoding(plcs)
 # plcs = poi.poiClassify(plcs)
 
-#%% Calcualte stay time for each place for each hour
+#%% STATISTICS FOR PLACES BY HOUR
+# Calculate stay time
+stps['stay_time'] = 0
+for i in range(0,len(stps)):
+    stps['stay_time'].iloc[i] = (stps['finished_at'].iloc[i]-stps['started_at'].iloc[i]).total_seconds()
+    
+# Calcualte stay time for each place for each hour
 stps['started_at_hour'] = 0
 for i in range(0,len(stps)): stps['started_at_hour'].iloc[i] = stps['started_at'].iloc[i].hour
 
@@ -168,7 +188,112 @@ plcs = poi.reverseGeoCoding(plcs)
 plcstocsv_transpose.columns = plcs['location']
 plcstocsv_transpose.to_csv('E:/1_IPA/3_project/data/stat/'+dataName+'/AverStayTimebyHourwithLocinfo.csv', index = True)
 
-#%% FIND HOME
+#%% FIND HOME AND WORKING ADDRESS FOR ALL PAST DATA
+import datetime  
+from datetime import datetime
+
+pfs['tracked_at_hour'] = 0
+for i in range(0,len(pfs)): pfs['tracked_at_hour'].iloc[i] = pfs['tracked_at'].iloc[i].hour
+pfs['tracked_at_weekday'] = 0
+for i in range(0,len(pfs)): pfs['tracked_at_weekday'].iloc[i] = pfs['tracked_at'].iloc[i].weekday() # 0 for Monday, 6 for Sunday
+
+## HOME ADDRESS
+homepfs = pfs[(pfs['tracked_at_hour']<=7) | (pfs['tracked_at_hour']>=22)]
+homestps = tim.extract_staypoints_ipa(homepfs, method='sliding',dist_threshold=100, time_threshold=15*60)
+homeplcs = homestps.as_staypoints.extract_places(method='dbscan',epsilon=meters_to_decimal_degrees(80, 47.5), num_samples=6)
+# workstps = tim.extract_staypoints_ipa(workpfs, method='sliding',dist_threshold=100, time_threshold=15*60)
+# workplcs = workstps.as_staypoints.extract_places(method='dbscan',epsilon=meters_to_decimal_degrees(30,10), num_samples=6)
+
+# WORKING ADDRESS STATISTICS
+## calcualte stay time for each place for each working day
+homestps['started_at_hour'] = 0
+for i in range(0,len(homestps)): homestps['started_at_hour'].iloc[i] = homestps['started_at'].iloc[i].hour
+homestps['started_at_weekday'] = 0
+for i in range(0,len(homestps)): homestps['started_at_weekday'].iloc[i] = homestps['started_at'].iloc[i].weekday() # 0 for Monday, 6 for Sunday
+
+# calculate stay time
+homestps['stay_time'] = 0
+for i in range(0,len(homestps)):
+    homestps['stay_time'].iloc[i] = (homestps['finished_at'].iloc[i]-homestps['started_at'].iloc[i]).total_seconds()
+
+# summarize stay time by weekday for each clustered place
+cols = ['Sun','Sat','Fri','Thur','Wed','Tues','Mon']
+for col in cols: homeplcs[col] = 0
+for i in range(0,len(homeplcs)):
+    place_id = i+1
+    homestps_placeid = homestps[homestps['place_id']==place_id]
+    homestps_placeid_weekday1 = homestps_placeid[homestps_placeid['started_at_weekday']==0]
+    homeplcs.loc[homeplcs['place_id']==place_id,'Mon']=homestps_placeid_weekday1['stay_time'].sum()
+    homestps_placeid_weekday2 = homestps_placeid[homestps_placeid['started_at_weekday']==1]
+    homeplcs.loc[homeplcs['place_id']==place_id,'Tues']=homestps_placeid_weekday2['stay_time'].sum()
+    homestps_placeid_weekday3 = homestps_placeid[homestps_placeid['started_at_weekday']==2]
+    homeplcs.loc[homeplcs['place_id']==place_id,'Wed']=homestps_placeid_weekday3['stay_time'].sum()
+    homestps_placeid_weekday4 = homestps_placeid[homestps_placeid['started_at_weekday']==3]
+    homeplcs.loc[homeplcs['place_id']==place_id,'Thur']=homestps_placeid_weekday4['stay_time'].sum()
+    homestps_placeid_weekday5 = homestps_placeid[homestps_placeid['started_at_weekday']==4]
+    homeplcs.loc[homeplcs['place_id']==place_id,'Fri']=homestps_placeid_weekday5['stay_time'].sum()
+    homestps_placeid_weekday6 = homestps_placeid[homestps_placeid['started_at_weekday']==5]
+    homeplcs.loc[homeplcs['place_id']==place_id,'Sat']=homestps_placeid_weekday6['stay_time'].sum()
+    homestps_placeid_weekday7 = homestps_placeid[homestps_placeid['started_at_weekday']==6]
+    homeplcs.loc[homeplcs['place_id']==place_id,'Sun']=homestps_placeid_weekday7['stay_time'].sum()
+       
+for col in cols: homeplcs[col] =  round(homeplcs[col]/3600,1)
+
+#%% WORKING ADDRESS
+# choose only working days and hours
+workpfs = pfs[pfs['tracked_at_weekday']<=4] 
+workpfs = workpfs[((workpfs['tracked_at_hour']>=9) & (workpfs['tracked_at_hour']<=12)) | ((workpfs['tracked_at_hour']>=14) & (workpfs['tracked_at_hour']<=17))]
+
+workstps = tim.extract_staypoints_ipa(workpfs, method='sliding',dist_threshold=100, time_threshold=15*60)
+workplcs = workstps.as_staypoints.extract_places(method='dbscan',epsilon=meters_to_decimal_degrees(80, 47.5), num_samples=6)
+# workstps = tim.extract_staypoints_ipa(workpfs, method='sliding',dist_threshold=100, time_threshold=15*60)
+# workplcs = workstps.as_staypoints.extract_places(method='dbscan',epsilon=meters_to_decimal_degrees(30,10), num_samples=6)
+
+## WORKING ADDRESS STATISTICS
+# calcualte stay time for each place for each working day
+workstps['started_at_hour'] = 0
+for i in range(0,len(workstps)): workstps['started_at_hour'].iloc[i] = workstps['started_at'].iloc[i].hour
+workstps['started_at_weekday'] = 0
+for i in range(0,len(workstps)): workstps['started_at_weekday'].iloc[i] = workstps['started_at'].iloc[i].weekday() # 0 for Monday, 6 for Sunday
+
+# calculate stay time
+workstps['stay_time'] = 0
+for i in range(0,len(workstps)):
+    workstps['stay_time'].iloc[i] = (workstps['finished_at'].iloc[i]-workstps['started_at'].iloc[i]).total_seconds()
+
+# summarize stay time by weekday for each clustered place
+cols = ['Sun','Sat','Fri','Thur','Wed','Tues','Mon']
+for col in cols: workplcs[col] = 0
+for i in range(0,len(workplcs)):
+    place_id = i+1
+    workstps_placeid = workstps[workstps['place_id']==place_id]
+    workstps_placeid_weekday1 = workstps_placeid[workstps_placeid['started_at_weekday']==0]
+    workplcs.loc[workplcs['place_id']==place_id,'Mon']=workstps_placeid_weekday1['stay_time'].sum()
+    workstps_placeid_weekday2 = workstps_placeid[workstps_placeid['started_at_weekday']==1]
+    workplcs.loc[workplcs['place_id']==place_id,'Tues']=workstps_placeid_weekday2['stay_time'].sum()
+    workstps_placeid_weekday3 = workstps_placeid[workstps_placeid['started_at_weekday']==2]
+    workplcs.loc[workplcs['place_id']==place_id,'Wed']=workstps_placeid_weekday3['stay_time'].sum()
+    workstps_placeid_weekday4 = workstps_placeid[workstps_placeid['started_at_weekday']==3]
+    workplcs.loc[workplcs['place_id']==place_id,'Thur']=workstps_placeid_weekday4['stay_time'].sum()
+    workstps_placeid_weekday5 = workstps_placeid[workstps_placeid['started_at_weekday']==4]
+    workplcs.loc[workplcs['place_id']==place_id,'Fri']=workstps_placeid_weekday5['stay_time'].sum()
+    workstps_placeid_weekday6 = workstps_placeid[workstps_placeid['started_at_weekday']==5]
+    workplcs.loc[workplcs['place_id']==place_id,'Sat']=workstps_placeid_weekday6['stay_time'].sum()
+    workstps_placeid_weekday7 = workstps_placeid[workstps_placeid['started_at_weekday']==6]
+    workplcs.loc[workplcs['place_id']==place_id,'Sun']=workstps_placeid_weekday7['stay_time'].sum()
+    
+for col in cols: workplcs[col] =  round(workplcs[col]/3600,1)
+
+#%%
+homeplcs = poi.reverseGeoCoding(homeplcs)
+homeplcs['id'] = 'home'
+workplcs = poi.reverseGeoCoding(workplcs)
+workplcs['id'] = 'work'
+homeworkplcs = pd.concat([homeplcs, workplcs], axis=0)
+
+homeworkplcs.to_csv('E:/1_IPA/3_project/data/stat/'+dataName+'/'+'HomeWorkStaytimeAll.csv', index = True)
+
+#%% FIND HOME AND WORKING ADDRESS BY MONTH
 import datetime
 
 pfs['tracked_at_hour'] = 0
@@ -211,7 +336,6 @@ workstps['stay_time'] = 0
 for i in range(0,len(workstps)):
     workstps['stay_time'].iloc[i] = (workstps['finished_at'].iloc[i]-workstps['started_at'].iloc[i]).total_seconds()
 
-#%%
 months = np.unique(homestps['started_at_month'])
 
 for month in months:
@@ -279,53 +403,6 @@ for month in months:
 # homeplcs.geometry = plcs['extent']
 # homeplcs.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/HomePlaces_extent.shp')
 
-#%% FIND WORKING ADDRESS
-import datetime  
-from datetime import datetime
-  
-pfs['tracked_at_weekday'] = 0
-for i in range(0,len(pfs)): pfs['tracked_at_weekday'].iloc[i] = pfs['tracked_at'].iloc[i].weekday() # 0 for Monday, 6 for Sunday
-
-# choose only working days and hours
-workpfs = pfs[pfs['tracked_at_weekday']<=4] 
-workpfs = workpfs[((workpfs['tracked_at_hour']>=9) & (workpfs['tracked_at_hour']<=12)) | ((workpfs['tracked_at_hour']>=14) & (workpfs['tracked_at_hour']<=17))]
-
-workstps = tim.extract_staypoints_ipa(workpfs, method='sliding',dist_threshold=100, time_threshold=15*60)
-workplcs = workstps.as_staypoints.extract_places(method='dbscan',epsilon=meters_to_decimal_degrees(80, 47.5), num_samples=6)
-# workstps = tim.extract_staypoints_ipa(workpfs, method='sliding',dist_threshold=100, time_threshold=15*60)
-# workplcs = workstps.as_staypoints.extract_places(method='dbscan',epsilon=meters_to_decimal_degrees(30,10), num_samples=6)
-
 # workplcs.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/WorkPlaces.shp')
 # workplcs.geometry = plcs['extent']
 # workplcs.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/WorkPlaces_extent.shp')
-
-#%% WORKING ADDRESS STATISTICS
-## calcualte stay time for each place for each working day
-workstps['started_at_hour'] = 0
-for i in range(0,len(workstps)): workstps['started_at_hour'].iloc[i] = workstps['started_at'].iloc[i].hour
-workstps['started_at_weekday'] = 0
-for i in range(0,len(workstps)): workstps['started_at_weekday'].iloc[i] = workstps['started_at'].iloc[i].weekday() # 0 for Monday, 6 for Sunday
-
-# calculate stay time
-workstps['stay_time'] = 0
-for i in range(0,len(workstps)):
-    workstps['stay_time'].iloc[i] = (workstps['finished_at'].iloc[i]-workstps['started_at'].iloc[i]).total_seconds()
-
-# summarize stay time by weekday for each clustered place
-cols = ['Mon_totalstay','Tues_totalstay','Wed_totalstay','Thur_totalstay','Fri_totalstay']
-for col in cols: workplcs[col] = 0
-for i in range(0,len(workplcs)):
-    place_id = i+1
-    workstps_placeid = workstps[workstps['place_id']==place_id]
-    workstps_placeid_weekday1 = workstps_placeid[workstps_placeid['started_at_weekday']==0]
-    workplcs.loc[workplcs['place_id']==place_id,'Mon_totalstay']=workstps_placeid_weekday1['stay_time'].sum()
-    workstps_placeid_weekday2 = workstps_placeid[workstps_placeid['started_at_weekday']==1]
-    workplcs.loc[workplcs['place_id']==place_id,'Tues_totalstay']=workstps_placeid_weekday2['stay_time'].sum()
-    workstps_placeid_weekday3 = workstps_placeid[workstps_placeid['started_at_weekday']==2]
-    workplcs.loc[workplcs['place_id']==place_id,'Wed_totalstay']=workstps_placeid_weekday3['stay_time'].sum()
-    workstps_placeid_weekday4 = workstps_placeid[workstps_placeid['started_at_weekday']==3]
-    workplcs.loc[workplcs['place_id']==place_id,'Thur_totalstay']=workstps_placeid_weekday4['stay_time'].sum()
-    workstps_placeid_weekday5 = workstps_placeid[workstps_placeid['started_at_weekday']==4]
-    workplcs.loc[workplcs['place_id']==place_id,'Fri_totalstay']=workstps_placeid_weekday5['stay_time'].sum()
-    
-for col in cols: workplcs[col] =  workplcs[col]/60

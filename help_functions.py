@@ -314,6 +314,32 @@ def pieChartInfoPlus(trips):
     
     return list(data), list(data.values())
 
+def transModeCsv(transtat):
+    """
+    Generate csv including percentage for transportation modes
+
+    Parameters
+    ----------
+    transtat : tuple - returned results of pieChartInfoPlus() function
+
+    Returns
+    -------
+    None
+    """
+    
+    transtatdf = pd.DataFrame(list(transtat))
+    transtatdf = transtatdf.T
+    transtatdf['percentage'] = ""
+    transtatdf.columns = ['mode','value','percentage']
+    
+    for i in range(0,len(transtatdf)):
+        valsum = transtatdf['value'].sum(axis=0)
+        transtatdf.iloc[i,2] = round(transtatdf.iloc[i,1]/valsum,4)
+    
+    transtatdf.sort_values("percentage", axis = 0, ascending = False, 
+                     inplace = True, na_position ='last') 
+    transtatdf.to_csv('E:/1_IPA/3_project/data/stat/'+dataName+'/TransportationMode.csv', index = True)
+    
 def checkTrips(trips):
     """
     This function checks if the endtime of one activity is the same as the 

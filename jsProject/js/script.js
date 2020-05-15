@@ -12,7 +12,13 @@ var urls = {
     "AverStayTimebyHour.csv",
 
   semanticInfo:
-    "AverStayTimebyHourwithLocinfo.csv"
+    "AverStayTimebyHourwithLocinfo.csv",
+  
+  homeworkbal:
+    "HomeWorkStaytimeAll.csv",
+  
+  transportation:
+    "TransportationMode.csv",
 };
 
 // PERPARE MAP  ////////////////////////////////////////////////////////////////////////////////////
@@ -194,6 +200,12 @@ var places;
 var trips;
 var tripsAgr;
 var semanticInfo;
+var homeworkbal;
+var HomeWorkData;
+var HomeWorkSeries;
+var transportationmode;
+var transportationData;
+var transportationSeries;
 var bubbles;
 var pathBaseMap;
 var pathTrips;
@@ -209,7 +221,9 @@ let promises = [
   d3.dsv(';', urls.places, typePlace),
   d3.dsv(';', urls.trips, typeTrip),
   d3.csv(urls.timeline),
-  d3.csv(urls.semanticInfo)
+  d3.csv(urls.semanticInfo),
+  d3.csv(urls.homeworkbal),
+  d3.csv(urls.transportation)  
 ];
 
 Promise.all(promises).then(processData);
@@ -221,6 +235,13 @@ function processData(values) {
   trips = values[1];
   timelineData = values[2];
   semanticInfo = values[3][0];
+  homeworkbal = values[4];
+  transportationmode = values[5];
+
+  HomeWorkData = [];
+  HomeWorkSeries = [];
+  transportationData = [];
+  transportationSeries = [];
 
   fillPlacesBoxes();
   colorPlacesBoxes(0, 23);
@@ -271,6 +292,49 @@ function processData(values) {
 
   // done filtering trips can draw
   drawTrips(places, trips);
+
+  // reformat homeworkbalance data
+  for (let i = 0; i < homeworkbal.length; i++){
+    var homework = homeworkbal[i];
+    var homeworkid = homework['id']
+    if (homeworkid=='home') {
+      var homeworkdata = [-homework['Sun'],-homework['Sat'],-homework['Fri'],-homework['Thur'],-homework['Wed'],-homework['Tues'],-homework['Mon']]
+      var data = homeworkdata.map(Number);
+    }
+    else {
+      var homeworkdata = [homework['Sun'],homework['Sat'],homework['Fri'],homework['Thur'],homework['Wed'],homework['Tues'],homework['Mon']]
+      var data = homeworkdata.map(Number);     
+    }
+    var homeworkarray = [homeworkid, data]    
+    HomeWorkData.push(homeworkarray);
+  }
+  for (i = 0; i < HomeWorkData.length; i++) {
+    HomeWorkSeries.push({
+      name: HomeWorkData[i][0],
+      data: HomeWorkData[i][1],
+    })
+  }
+  // console.log('HomeWorkData',HomeWorkData)
+  // console.log('HomeWorkSeries',HomeWorkSeries)
+  drawNegativeBar(HomeWorkSeries);
+
+  // reformat transportation data
+  for (let i = 0; i < transportationmode.length; i++){
+    var transportationi = transportationmode[i];
+    var mode = transportationi['mode']
+    var percentage = transportationi['percentage']*100
+    var transarray = [mode, percentage]    
+    transportationData.push(transarray);
+  }
+  for (i = 0; i < transportationData.length; i++) {
+    transportationSeries.push({
+      name: transportationData[i][0],
+      y: transportationData[i][1],
+    })
+  }
+  console.log(transportationSeries);
+  console.log(HomeWorkSeries);
+  drawTransPieChart(transportationSeries);
 }
 
 // FUNCTIONS ////////////////////////////////////////////////////////////////////////////////////
@@ -868,92 +932,137 @@ function changeData() {
   }
 }
 
-
 // Negative stacked bar graph: Home and Work Balance
-// Weekday categories
-var categories = [
-  'Sunday', 'Saturday', 'Friday', 'Thursday', 'Wednesday', 'Tuesday', 'Monday'
-];
+function drawNegativeBar(HomeWorkSeries) {
+  // Weekday categories
+  var categories = [
+    'Sunday', 'Saturday', 'Friday', 'Thursday', 'Wednesday', 'Tuesday', 'Monday'
+  ];
 
-Highcharts.chart('container', {
-  chart: {
-    type: 'bar'
-  },
-  title: {
-    text: 'Home and Work Balance'
-  },
-  // subtitle: {
-  //   text: ''
-  // },
-  accessibility: {
-    point: {
-      valueDescriptionFormat: '{index}. StayTime {xDescription}, {value}hrs.'
-    }
-  },
-  xAxis: [{
-    categories: categories,
-    reversed: false,
-    labels: {
-      step: 1
+  Highcharts.chart('container', {
+    chart: {
+      type: 'bar'
     },
-    accessibility: {
-      description: 'StayTime (Home)'
-    }
-  }, { // mirror axis on right side
-    opposite: true,
-    reversed: false,
-    categories: categories,
-    linkedTo: 0,
-    labels: {
-      step: 1
-    },
-    accessibility: {
-      description: 'StayTime (Work)'
-    }
-  }],
-  yAxis: {
     title: {
-      text: null
+      text: 'Home and Work Balance'
     },
-    labels: {
-      formatter: function () {
-        return Math.abs(this.value);
+    // subtitle: {
+    //   text: ''
+    // },
+    accessibility: {
+      point: {
+        valueDescriptionFormat: '{index}. StayTime {xDescription}, {value}hrs.'
       }
     },
-    // accessibility: {
-    //   description: 'Stay Time in Minutes',
-    //   rangeDescription: 'above 0'
-    // }
-  },
-
-  plotOptions: {
-    series: {
-      stacking: 'normal'
-    }
-  },
-
-  tooltip: {
-    formatter: function () {
-      return '<b>' + this.series.name + ', ' + this.point.category + '</b><br/>' +
-        Highcharts.numberFormat(Math.abs(this.point.y), 1) + ' hrs';
-    }
-  },
-
-  series: [
-    {
-      name: 'Home at Affoltern',
-      data: [-478.4, -166.8, -151.9, -188.8, -80.9, -53.9, -124.1],
+    xAxis: [{
+      categories: categories,
+      reversed: false,
+      labels: {
+        step: 1
+      },
+      accessibility: {
+        description: 'StayTime (Home)'
+      }
+    }, { // mirror axis on right side
+      opposite: true,
+      reversed: false,
+      categories: categories,
+      linkedTo: 0,
+      labels: {
+        step: 1
+      },
+      accessibility: {
+        description: 'StayTime (Work)'
+      }
+    }],
+    yAxis: {
+      title: {
+        text: null
+      },
+      labels: {
+        formatter: function () {
+          return Math.abs(this.value);
+        }
+      },
+      // accessibility: {
+      //   description: 'Stay Time in Minutes',
+      //   rangeDescription: 'above 0'
+      // }
     },
-    // {
-    //   name: 'Home at Schlieren',
-    //   data: [0,0,0,0,-0.9,0,-0.5],
-    // }, 
-    {
-      name: 'ETH Zurich',
-      data: [0, 0, 379.4, 172.5, 3.9, 176.1, 22.1],
+
+    plotOptions: {
+      series: {
+        stacking: 'normal'
+      }
     },
-    {
-      name: 'Acht Grad Ost AG, 4, Wagistrasse, Schlieren',
-      data: [0, 0, 275.7, 54.6, 64.4, 106.9, 75.2]
+
+    tooltip: {
+      formatter: function () {
+        return '<b>' + this.series.name + ', ' + this.point.category + '</b><br/>' +
+          Highcharts.numberFormat(Math.abs(this.point.y), 1) + ' hrs';
+      }
+    },
+
+    series: HomeWorkSeries
+  });
+}
+
+function drawTransPieChart (transportationSeries) {
+  // Make monochrome colors
+  var pieColors = (function () {
+    var colors = [],
+        base = Highcharts.getOptions().colors[0],
+        i;
+
+    for (i = 0; i < 10; i += 1) {
+        // Start out with a darkened base color (negative brighten), and end
+        // up with a much brighter color
+        colors.push(Highcharts.color(base).brighten((i - 3) / 7).get());
+    }
+    return colors;
+  }());
+
+  Highcharts.chart('piechart-container', {
+    chart: {
+      plotBackgroundColor: null,
+      plotBorderWidth: null,
+      plotShadow: false,
+      type: 'pie'
+    },
+    title: {
+      text: 'Transportation Modes Preferences'
+    },
+    tooltip: {
+      headerFormat: '<span style="font-size:11px">{series.name}</span><br>',
+      pointFormat: '{point.name}</span>: <b>{point.y:.2f}%</b> of total<br/>'
+      // pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+    },
+    accessibility: {
+      point: {
+        valueSuffix: '%'
+      }
+    },
+    plotOptions: {
+      pie: {
+        allowPointSelect: true,
+        cursor: 'pointer',
+        colors: pieColors,
+        dataLabels: {
+          enabled: true,
+          format: '<b>{point.name}</b><br>{point.percentage:.1f} %',
+          distance: -50,
+          filter: {
+              property: 'percentage',
+              operator: '>',
+              value: 4
+          }
+      }
+      }
+    },
+    series: [{
+      name: 'Transportation modes',
+      colorByPoint: true,
+      data: transportationSeries,
     }]
-});
+  });  
+}
