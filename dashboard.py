@@ -20,13 +20,14 @@ pio.renderers.default = "browser"
 # Local files
 import main_functions as main
 import help_functions as hlp
+import thresholds_function as thred
 import stat_functions as calstat
 import api_call as api
 
 #import noiserm_functions as nrm
 
-dataName = '1'
-SELECT_RANGE =      False
+dataName = '2'
+SELECT_RANGE =      True
 FIND_STAY_POINTS =  True
 FIND_PLACES =       True
 FIND_TRIPS =        True
@@ -43,16 +44,25 @@ TransmodeStat =     True
 HomeWorkStat =      True
 
 #%%
+# dateStart = '2020-01-01'
+# dateEnd = 'end'
+# dataNameList = ["1","2","3","4","5","6","17","20","25","28"]
+# stythred = thred.stydiffstat(dataNameList, SELECT_RANGE, dateStart, dateEnd)
+# stythred.to_csv('../data/csv'+'/StayDiffStatRange.csv', index=False)
+
+staythred = pd.read_csv('../data/csv'+'/StayDiffStat.csv') 
+staythredrange = pd.read_csv('../data/csv'+'/StayDiffStatRange.csv') 
+
 thresholds = {
     "accuracy_threshold" : 70,
-    "dist_threshold" : 170,
-    "time_threshold" : 15*60,
+    "dist_threshold" : staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][0],
+    "time_threshold" : staythredrange[staythredrange['dataName']==int(dataName)]['time_quarter'][0],
     "minDist" : 150,
     "minPoints" : 6,
     "minDistTh" : 0.2, 
     "factorTh" : 3,
-    "dateStart": "2019-12-01",
-    "dateEnd": "2019-12-31"
+    "dateStart": "2020-01-01",
+    "dateEnd": "end"
     }
 
 #with open('../data/thresholds/' + dataName + '.json', 'w') as outfile:

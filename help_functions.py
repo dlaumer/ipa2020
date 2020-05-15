@@ -173,7 +173,7 @@ def parseTripsWithLocs(dataPath, locs):
     df : df - pandas dataframe of the data
 
     """
-    timestamps = locs["timestampMs"].astype(int)
+    timestamps = locs["timestampMs"].astype(np.int64)
     
     df = pd.DataFrame(columns=['Year', 'Month', 'Type', 'startTime', 'endTime', 'geom', 'distance', 'actType', 'confidence', 'correspondingLocs'])
 
@@ -473,10 +473,10 @@ def selectLastMonth(dataPathLoc,dataPathTrip):
 
 def selectRange(dataPathLoc,dataPathTrip, dateStart = 'beginning', dateEnd = 'end', timerange = None):
 
-    newPath = str(Path(dataPathLoc).parents[2]) + "/" + dateStart + "_" + dateEnd + "/"
+    newPath = str(Path(dataPathLoc).parents[2]) + "\\" + dateStart + "_" + dateEnd + "\\"
 
     if os.path.exists(newPath):
-        return newPath + "Location History.json", newPath + "Semantic Location History/"
+        return newPath + "Location History.json", newPath + "Semantic Location History\\"
     
     # Location File
     if (type(dataPathLoc) is str):
@@ -486,7 +486,11 @@ def selectRange(dataPathLoc,dataPathTrip, dateStart = 'beginning', dateEnd = 'en
         jsonData = dataPathLoc
     
     print("Start date: " + str(pd.to_datetime(int(jsonData["locations"][0]["timestampMs"]),  unit='ms').date()))
-    print("End date: " + str(pd.to_datetime(int(jsonData["locations"][-1]["timestampMs"]),  unit='ms').date()))
+    print("Start date: " + str(dateStart))
+    if (dateEnd == "end"):
+        print("End date: " + str(pd.to_datetime(int(jsonData["locations"][-1]["timestampMs"]),  unit='ms').date()))
+    else:
+        print("End date: " + str(dateEnd))
     #dateStart = input("Choose a start date: ")
     #dateEnd = input("Choose a end date: ")
 
@@ -508,15 +512,15 @@ def selectRange(dataPathLoc,dataPathTrip, dateStart = 'beginning', dateEnd = 'en
     
 
     
-    newPath = str(Path(dataPathLoc).parents[2]) + "/" + str(pd.to_datetime(dateStart,  unit='ms').date()) + "_" + str(pd.to_datetime(dateEnd,  unit='ms').date()) + "/"
+    newPath = str(Path(dataPathLoc).parents[2]) + "\\" + str(pd.to_datetime(dateStart,  unit='ms').date()) + "_" + str(pd.to_datetime(dateEnd,  unit='ms').date()) + "\\"
     
     if os.path.exists(newPath):
-        return newPath + "Location History.json", newPath + "Semantic Location History/"
+        return newPath + "Location History.json", newPath + "Semantic Location History\\"
     else:
         os.makedirs(newPath)
     
-    #timestamps = pd.json_normalize(jsonData, 'locations')['timestampMs'].astype(int)
-    timestamps = pd.Series([x['timestampMs'] for x in jsonData['locations']]).astype(int)
+    #timestamps = pd.json_normalize(jsonData, 'locations')['timestampMs'].astype(np.int64)
+    timestamps = pd.Series([x['timestampMs'] for x in jsonData['locations']]).astype(np.int64)
     
     indexStart = bisect.bisect_right(timestamps,dateStart)
     indexEnd = bisect.bisect_left(timestamps,dateEnd)
@@ -538,20 +542,20 @@ def selectRange(dataPathLoc,dataPathTrip, dateStart = 'beginning', dateEnd = 'en
     endMonth = pd.to_datetime(dateEnd,  unit='ms').month
     
     
-    newDataPathTrip = newPath + "Semantic Location History/"
+    newDataPathTrip = newPath + "Semantic Location History\\"
     if not(os.path.exists(newDataPathTrip)):
         os.makedirs(newDataPathTrip)
     
     for year in years:
         if int(year) >= startYear and int(year) <=endYear:
-            if not(os.path.exists(newDataPathTrip + year + "/")):
-                os.makedirs(newDataPathTrip + year + "/")
+            if not(os.path.exists(newDataPathTrip + year + "\\")):
+                os.makedirs(newDataPathTrip + year + "\\")
 
             for month in range(1,13):
                 dateTemp = pd.to_datetime([year + '-' + str(month)])
                 if dateTemp >= pd.to_datetime([str(startYear) + '-' + str(startMonth)]) and dateTemp <= pd.to_datetime([str(endYear) + '-' + str(endMonth)]):
-                    filePath = dataPathTrip + year + "/" + year + "_" + calendar.month_name[month].upper() + ".json"
-                    newFilePath = newDataPathTrip + year + "/" + year + "_" + calendar.month_name[month].upper() + ".json"
+                    filePath = dataPathTrip + year + "\\" + year + "_" + calendar.month_name[month].upper() + ".json"
+                    newFilePath = newDataPathTrip + year + "\\" + year + "_" + calendar.month_name[month].upper() + ".json"
                     if os.path.exists(filePath):
                         if (int(year) == startYear) and month == startMonth:
                             _splitTripFile(filePath, newFilePath, dateStart, dateEnd)
@@ -566,7 +570,7 @@ def _splitTripFile(filePath, newFilePath, dateStart, dateEnd):
     with open(filePath) as f:
         jsonData = json.load(f)
             
-    timestamps = pd.Series([x[list(x)[0]]['duration']['startTimestampMs'] for x in jsonData['timelineObjects']]).astype(int)
+    timestamps = pd.Series([x[list(x)[0]]['duration']['startTimestampMs'] for x in jsonData['timelineObjects']]).astype(np.int64)
     
     indexStart = bisect.bisect_right(timestamps,dateStart)
     indexEnd = bisect.bisect_left(timestamps,dateEnd)
