@@ -239,106 +239,6 @@ def parseTripsWithLocs(dataPath, locs):
     df = df.append(generated_trips)
     gdf = gpd.GeoDataFrame(df, geometry='geom', crs={'init':'epsg:4326'})
     return gdf
-
-
-def stats(locs, trips):
-    """
-    Get some statistics of the files 
-    TODO: Add more statistics
-
-    Parameters
-    ----------
-    locs : gdf - individual location data
-    trips : dict - Semantic information (nested)
-
-    Returns
-    -------
-    None.
-
-    """
-    countPlace = 0
-    countAct = 0
-    countPoints = 0
-    for year in trips:
-        for month in trips[year]:        
-            for event in trips[year][month]:
-                if list(event)[0] == 'placeVisit':
-                    countPlace = countPlace + 1
-                    countPoints = countPoints + 1
-                elif list(event)[0] == 'activitySegment':
-                    countAct = countAct + 1
-                    countPoints = countPoints + 2
-                    try:
-                        countPoints = countPoints + len(event['activitySegment']['waypointPath']['waypoints'])
-                    except:
-                        pass
-                    try:
-                        countPoints = countPoints + len(event['activitySegment']['transitPath']['transitStops'])
-                    except:
-                        pass
-    print('Number of points: '+str(len(locs)))
-    print('Number of stays (placeVisit): '+ str(countPlace))
-    print('Number of trips (activitySegment): ' + str(countAct))
-    print('Number of points in the trip file: ' + str(countPoints))
-    
-
-
-def pieChartInfoPlus(trips):
-    """
-    Calculates the total distance per activity mode
-
-    Parameters
-    ----------
-    trips : dict - Semantic information (nested)
-
-    Returns
-    -------
-    list(data): list - labels of the activity modes
-    list(data.values()): list - distance per activity mode
-
-    """
-    labels = ["IN_PASSENGER_VEHICLE","STILL","WALKING","IN_BUS","CYCLING","FLYING","RUNNING","IN_FERRY","IN_TRAIN","SKIING","SAILING","IN_SUBWAY","IN_TRAM","IN_VEHICLE"]
-    data = {}
-    for year in trips:
-        for month in trips[year]:        
-            for event in trips[year][month]:
-                if list(event)[0] == 'activitySegment':
-                    try:
-                        dist = event['activitySegment']['distance']
-                    except:
-                        print('There is no distance!')
-                    for label in labels:
-                        if label == event['activitySegment']['activityType']:
-                            data[label] = data.get(label,0) + dist
-    
-    
-    return list(data), list(data.values())
-
-def transModeCsv(transtat):
-    """
-    Generate csv including percentage for transportation modes
-
-    Parameters
-    ----------
-    transtat : tuple - returned results of pieChartInfoPlus() function
-
-    Returns
-    -------
-    None
-    """
-    
-    transtatdf = pd.DataFrame(list(transtat))
-    transtatdf = transtatdf.T
-    transtatdf['percentage'] = ""
-    transtatdf.columns = ['mode','value','percentage']
-    
-    for i in range(0,len(transtatdf)):
-        valsum = transtatdf['value'].sum(axis=0)
-        transtatdf.iloc[i,2] = round(transtatdf.iloc[i,1]/valsum,4)
-    
-    transtatdf.sort_values("percentage", axis = 0, ascending = False, 
-                     inplace = True, na_position ='last') 
-    transtatdf.to_csv('E:/1_IPA/3_project/data/stat/'+dataName+'/TransportationMode.csv', index = True)
     
 def checkTrips(trips):
     """
@@ -746,3 +646,6 @@ def savecsv4js(places, trips, tripsSchematic):
     trips = trips[['origin', 'destination','count','waypointsLong','waypointsLat','waypointsLatSchematic','waypointsLongSchematic']]
     #trips.to_csv('../jsProject/trips.csv',  index = False, sep = ";")
     trips.to_csv('jsProject/tripsAgr.csv',  index = False, sep = ";")
+
+    
+

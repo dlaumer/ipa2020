@@ -20,6 +20,7 @@ pio.renderers.default = "browser"
 # Local files
 import main_functions as main
 import help_functions as hlp
+import stat_functions as calstat
 import api_call as api
 
 #import noiserm_functions as nrm
@@ -37,6 +38,9 @@ CHECK_NB_POINTS =   False
 exportShp =         True
 loadTh =            False
 
+TimelineStat =      True
+TransmodeStat =     True
+HomeWorkStat =      True
 
 #%%
 thresholds = {
@@ -72,7 +76,7 @@ locs, locsgdf = hlp.parseLocs(dataPathLocs)
 trips, tripdf, tripsgdf = hlp.parseTrips(dataPathTrips)
 
 # add location data to the trips file
-tripsgdf = hlp.parseTripsWithLocs(dataPathTrips, locsgdf)
+# tripsgdf = hlp.parseTripsWithLocs(dataPathTrips, locsgdf)
 
 # export to shapefile
 if exportShp:
@@ -103,7 +107,16 @@ if FIND_PLACES:
         #plcs_shp.geometry = plcs_shp['extent']
         #plcs_shp.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/Places_extent.shp')
 
-    
+#%%
+if TimelineStat:
+    calstat.plcsStayHour(stps, plcs, dataName)
+
+if TransmodeStat:
+    transtat = calstat.pieChartInfoPlus(trips)
+    calstat.transModeCsv(transtat, dataName)
+
+if HomeWorkStat:
+    calstat.homeworkStay(pfs, dataName)
 #%% Find trips from staypoints
 if FIND_TRIPS:
     print("-> Finding the trips ")
@@ -181,4 +194,13 @@ if API_CALL:
 
     # Read the gpx response and convert to csv
     hlp.savecsv4js(plcs, trpsAgr, tripsAgrSchematic)    
+
+
+
+
+
+
+
+
+
 

@@ -3,22 +3,22 @@ var urls = {
   map: "swiss.json",
 
   places:
-    "places.csv",
+    "./stat/places.csv",
 
   trips:
-    "tripsAgr.csv",
+    "./stat/tripsAgr.csv",
 
   timeline:
-    "AverStayTimebyHour.csv",
+    "./stat/StaybyHour.csv",
 
   semanticInfo:
-    "AverStayTimebyHourwithLocinfo.csv",
+    "./stat/StaybyHourLocinfo.csv",
   
   homeworkbal:
-    "HomeWorkStaytimeAll.csv",
+    "./stat/HomeWorkStay.csv",
   
   transportation:
-    "TransportationMode.csv",
+    "./stat/TransportationMode.csv",
 };
 
 // PERPARE MAP  ////////////////////////////////////////////////////////////////////////////////////
