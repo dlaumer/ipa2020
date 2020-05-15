@@ -28,7 +28,7 @@ mapboxgl.accessToken = 'pk.eyJ1IjoiZGxhdW1lciIsImEiOiJjazlyN240NHowOG40M3FwaTBob
 //Setup mapbox-gl map
 var map = new mapboxgl.Map({
   container: 'mapboxx', // container id
-  style: 'mapbox://styles/dlaumer/ck9vivxcy14761inolbg58hqu',
+  style: 'mapbox://styles/dlaumer/ck9viuh1c0ysh1irw0jadcwgc',
   center: [8.507412548555335, 47.40639137110055],
   zoom: 10
 })
@@ -897,7 +897,7 @@ function changeData() {
     map.setStyle('mapbox://styles/mapbox/light-v10');
   }
   else {
-    map.setStyle('mapbox://styles/dlaumer/ck9vivxcy14761inolbg58hqu');
+    map.setStyle('mapbox://styles/dlaumer/ck9viuh1c0ysh1irw0jadcwgc');
   }
 
   bubbles.remove();
