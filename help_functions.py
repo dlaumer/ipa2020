@@ -485,8 +485,8 @@ def selectRange(dataPathLoc,dataPathTrip, dateStart = 'beginning', dateEnd = 'en
     else:
         jsonData = dataPathLoc
     
-    print("Start date: " + str(pd.to_datetime(int(jsonData["locations"][0]["timestampMs"]),  unit='ms').date()))
-    print("Start date: " + str(dateStart))
+    print("Collected Start date: " + str(pd.to_datetime(int(jsonData["locations"][0]["timestampMs"]),  unit='ms').date()))
+    print("Setted Start date: " + str(dateStart))
     if (dateEnd == "end"):
         print("End date: " + str(pd.to_datetime(int(jsonData["locations"][-1]["timestampMs"]),  unit='ms').date()))
     else:

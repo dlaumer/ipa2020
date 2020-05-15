@@ -20,13 +20,14 @@ pio.renderers.default = "browser"
 # Local files
 import main_functions as main
 import help_functions as hlp
+import poi_classification as poi
 import thresholds_function as thred
 import stat_functions as calstat
 import api_call as api
 
 #import noiserm_functions as nrm
 
-dataName = '2'
+dataName = '28'
 SELECT_RANGE =      True
 FIND_STAY_POINTS =  True
 FIND_PLACES =       True
@@ -52,12 +53,14 @@ HomeWorkStat =      True
 
 staythred = pd.read_csv('../data/csv'+'/StayDiffStat.csv') 
 staythredrange = pd.read_csv('../data/csv'+'/StayDiffStatRange.csv') 
+# staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
+# staythredrange[staythredrange['dataName']==int(dataName)]['time_quarter'][dataNameList.index(dataName)],
 
 thresholds = {
     "accuracy_threshold" : 70,
-    "dist_threshold" : staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][0],
-    "time_threshold" : staythredrange[staythredrange['dataName']==int(dataName)]['time_quarter'][0],
-    "minDist" : 150,
+    "dist_threshold" : 30,
+    "time_threshold" : staythredrange[staythredrange['dataName']==int(dataName)]['time_quarter'][dataNameList.index(dataName)],
+    "minDist" : 100,
     "minPoints" : 6,
     "minDistTh" : 0.2, 
     "factorTh" : 3,
@@ -116,7 +119,8 @@ if FIND_PLACES:
         plcs_shp.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/Places.shp')
         #plcs_shp.geometry = plcs_shp['extent']
         #plcs_shp.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/Places_extent.shp')
-
+    
+    plcs = poi.reverseGeoCoding(plcs)
 #%%
 if TimelineStat:
     calstat.plcsStayHour(stps, plcs, dataName)
