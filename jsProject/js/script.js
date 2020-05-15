@@ -323,17 +323,19 @@ function processData(values) {
     var transportationi = transportationmode[i];
     var mode = transportationi['mode']
     var percentage = transportationi['percentage']*100
-    var transarray = [mode, percentage]    
+    var val = transportationi['value']/1000
+    var transarray = [mode, percentage, val]    
     transportationData.push(transarray);
   }
   for (i = 0; i < transportationData.length; i++) {
     transportationSeries.push({
       name: transportationData[i][0],
       y: transportationData[i][1],
+      val: transportationData[i][2]
     })
   }
-  console.log(transportationSeries);
-  console.log(HomeWorkSeries);
+  // console.log(transportationSeries);
+  // console.log(HomeWorkSeries);
   drawTransPieChart(transportationSeries);
 }
 
@@ -1034,8 +1036,7 @@ function drawTransPieChart (transportationSeries) {
     },
     tooltip: {
       headerFormat: '<span style="font-size:11px">{series.name}</span><br>',
-      pointFormat: '{point.name}</span>: <b>{point.y:.2f}%</b> of total<br/>'
-      // pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+      pointFormat: '{point.name}</span>: <b>{point.y:.1f}%</b> of total<br/>Corresponding to <b>{point.val:.1f} km</b>'
     },
     accessibility: {
       point: {
@@ -1060,7 +1061,7 @@ function drawTransPieChart (transportationSeries) {
       }
     },
     series: [{
-      name: 'Transportation modes',
+      name: 'Transportation mode',
       colorByPoint: true,
       data: transportationSeries,
     }]
