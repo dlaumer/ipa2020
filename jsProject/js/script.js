@@ -390,7 +390,7 @@ function fillPlacesBoxes() {
     values.splice(maxIdx, 1);
     keys.splice(maxIdx, 1);
     placeIdOfBox[count] = placeId;
-    document.getElementById("box-" + count).innerHTML = "Place ID: " + placeId + ", Time: " + Math.round(Math.max.apply(Math, values));
+    document.getElementById("box-" + count).innerHTML = semanticInfo[placeId] + ", Time: " + Math.round(Math.max.apply(Math, values));
     if (count == 1) {
       maxCount = Math.max.apply(Math, values);
     }
@@ -422,7 +422,7 @@ function colorPlacesBoxes(startTime, endTime) {
     .range(["#ffffff ", "#1F407A"]);
   for (let i = 1; i < 11; i++) {
     document.getElementById("box-" + i).style.backgroundColor = color(timeData[placeIdOfBox[i]]);
-    document.getElementById("box-" + i).innerHTML = "Place ID: " + placeIdOfBox[i] + ", Time: " + Math.round(timeData[placeIdOfBox[i]]);
+    document.getElementById("box-" + i).innerHTML = semanticInfo[placeIdOfBox[i]] + ", Time: " + Math.round(timeData[placeIdOfBox[i]]);
 
   }
 
@@ -534,7 +534,7 @@ function drawPolygons(places) {
       tooltip.attr("y", y - scales.places(place.outgoing));
 
       // set the tooltip text
-      tooltip.text("Place ID: " + place.placeId);
+      tooltip.text(semanticInfo[place.placeId]);
 
       // double check if the anchor needs to be changed
       let bbox = tooltip.node().getBBox();
@@ -840,7 +840,7 @@ function mousoverFunction(i) {
     tooltip.attr("y", y - scales.places(place.outgoing));
 
     // set the tooltip text
-    tooltip.text("Place ID: " + place.placeId);
+    tooltip.text(semanticInfo[place.placeId]);
 
     // double check if the anchor needs to be changed
     let bbox = tooltip.node().getBBox();
@@ -853,8 +853,6 @@ function mousoverFunction(i) {
     }
 
     tooltip.style("visibility", "visible");
-
-    d3.select("#SemanticInfo").text(semanticInfo[place.placeId]);
 
   }
 }
