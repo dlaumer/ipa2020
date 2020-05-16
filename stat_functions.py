@@ -497,10 +497,10 @@ def accuracyStat(dataName, dataNames, timestart, timeend):
     dfPhoneModel = dfPhoneModel.rename(columns = {"id":"Enter your participant ID:", "phoneModel":"What is your mobile phone's brand used to collect data?"})
     
     generated_dfStatistics = []
-
+    
     for dataName in dataNames:
         print('Processing '+ dataName)
-        dfStatistics = pd.DataFrame(columns =['id','30','40','50','60','70', 'NumDays', 'NumPoints', 'AvgNumPoints', 'phoneModel'])
+        dfStatistics = pd.DataFrame(columns =['id','30','40','50','60','70', 'NumDays', 'NumPoints', 'AvgNumPoints', 'phoneModel','dateStart','dateEnd'])
 
         tempStat = {}
 
@@ -508,15 +508,14 @@ def accuracyStat(dataName, dataNames, timestart, timeend):
         tempStat['id'] = dataName
         
         dataPathLocs,dataPathTrips = hlp.getDataPaths(dataName)
-        dataPathLocs,dataPathTrips = hlp.selectRange(dataPathLocs, dataPathTrips, dateStart = timestart, dateEnd = timeend)
+        dataPathLocs,dataPathTrips,labelStart,labelEnd = hlp.selectRange(dataPathLocs, dataPathTrips, dateStart = timestart, dateEnd = timeend)
         
         locs, locsgdf = hlp.parseLocs(dataPathLocs)
         #trips, tripdf, tripsgdf = hlp.parseTrips(dataPathTrips)
-        
-        #Accuracy
-        for i in [30,40,50,60,70]:
-            tempStat[str(i)] =  round(100*len(locs[locs['accuracy'].lt(i)])/len(locs),2)
     
+        tempStat['dateStart'] = labelStart
+        tempStat['dateEnd'] = lebelEnd
+        
         # Number of points per day
         idx = pd.date_range(locs.index[0].date(), locs.index[-1].date())
         perDay = (locs.groupby(locs.index.date).count()['timestampMs'])
@@ -528,6 +527,10 @@ def accuracyStat(dataName, dataNames, timestart, timeend):
         #hlp.checkTrips(trips)
         tempStat['phoneModel'] = dfPhoneModel.loc[np.where(dfPhoneModel["Enter your participant ID:"] == int(dataName))[0][0],"What is your mobile phone's brand used to collect data?"]
         
+        #Accuracy
+        for i in [30,40,50,60,70]:
+            tempStat[str(i)] =  round(100*len(locs[locs['accuracy'].lt(i)])/len(locs),2)
+            
         generated_dfStatistics.append(tempStat)
         dfStatistics = dfStatistics.append(generated_dfStatistics)
         
