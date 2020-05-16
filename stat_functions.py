@@ -107,14 +107,15 @@ def pieChartInfoPlus(trips):
     return list(data), list(data.values())
 
 
-def transModeCsv(transtat,dataName):
+def transModeCsv(transtat, dataname):
     """
     Generate csv including percentage for transportation modes
 
     Parameters
     ----------
     transtat : tuple - returned results of pieChartInfoPlus() function
-
+    dataname: str
+    
     Returns
     -------
     None
@@ -131,10 +132,13 @@ def transModeCsv(transtat,dataName):
     
     transtatdf.sort_values("percentage", axis = 0, ascending = False, 
                      inplace = True, na_position ='last') 
-    transtatdf.to_csv('E:/1_IPA/3_project/data/stat/'+dataName+'/TransportationMode.csv', index = True)
+        
+    if not(os.path.exists('../data/stat/'+ dataname + '/')):
+        os.makedirs('../data/stat/'+ dataname + '/')
+    transtatdf.to_csv('../data/stat/'+dataname+'/TransportationMode.csv', index = True)
     
     
-def plcsStayWorkday(stps, plcs):
+def plcsStayWorkday(stps, plcs, dataname):
     """
     Calculate stay time statistics of each place for each working day
 
@@ -183,15 +187,17 @@ def plcsStayWorkday(stps, plcs):
     plcstocsv = plcs[cols]
     plcstocsv_transpose = plcstocsv.T
     plcstocsv_transpose.columns = plcs['place_id']
-    plcstocsv_transpose.to_csv('E:/1_IPA/3_project/data/stat/'+dataName+'/StaybyWorkday.csv', index = True)
+    if not(os.path.exists('../data/stat/'+ dataname + '/')):
+        os.makedirs('../data/stat/'+ dataname + '/')
+    plcstocsv_transpose.to_csv('../data/stat/'+ dataname + '/' + '/StaybyWorkday.csv', index = True)
     
     # V2: with more information
     plcs = poi.reverseGeoCoding(plcs)
     plcstocsv_transpose.columns = plcs['location']
-    plcstocsv_transpose.to_csv('E:/1_IPA/3_project/data/stat/'+dataName+'/StaybyWorkdayLocinfo.csv', index = True)
+    plcstocsv_transpose.to_csv('../data/stat/'+ dataname + '/' + '/StaybyWorkdayLocinfo.csv', index = True)
 
 
-def plcsStayHour(stps, plcs, dataName):
+def plcsStayHour(stps, plcs, dataname):
     """
     Calculate stay time statistics of each place for each hour
 
@@ -231,21 +237,26 @@ def plcsStayHour(stps, plcs, dataName):
     plcstocsv = plcs[cols]
     plcstocsv_transpose = plcstocsv.T
     plcstocsv_transpose.columns = plcs['place_id']
-    plcstocsv_transpose.to_csv('E:/1_IPA/3_project/data/stat/'+dataName+'/StaybyHour.csv', index = True)
+    if not(os.path.exists('../data/stat/'+ dataname + '/')):
+        os.makedirs('../data/stat/'+ dataname + '/')
+    plcstocsv_transpose.to_csv('../data/stat/'+ dataname + '/' + '/StaybyHour.csv', index = True)
     
     # V2: with more information
     plcs = poi.reverseGeoCoding(plcs)
     plcstocsv_transpose.columns = plcs['location']
-    plcstocsv_transpose.to_csv('E:/1_IPA/3_project/data/stat/'+dataName+'/StaybyHourLocinfo.csv', index = True)
+    plcstocsv_transpose.to_csv('../data/stat/'+ dataname + '/' + '/StaybyHourLocinfo.csv', index = True)
     
     
-def homeworkStay(pfs, dataName):
+def homeworkStay(pfs, dataname, dist_threshold, time_threshold, minDist, minPoints):
     """
     Calculate stay time statistics of home and work places for all past data
 
     Parameters
     ----------
     pfs : dataframe - location points
+    dataname: str
+    dist_threshold, time_threshold - parameters for stay point detection
+    minDist, minPoints - parameters for DBSCAN Clustering
 
     Returns
     -------
@@ -259,8 +270,8 @@ def homeworkStay(pfs, dataName):
     
     ## HOME ADDRESS
     homepfs = pfs[(pfs['tracked_at_hour']<=7) | (pfs['tracked_at_hour']>=22)]
-    homestps = tim.extract_staypoints_ipa(homepfs, method='sliding',dist_threshold=100, time_threshold=15*60)
-    homeplcs = homestps.as_staypoints.extract_places(method='dbscan',epsilon=meters_to_decimal_degrees(80, 47.5), num_samples=6)
+    homestps = tim.extract_staypoints_ipa(homepfs, method='sliding',dist_threshold=dist_threshold, time_threshold=time_threshold)
+    homeplcs = homestps.as_staypoints.extract_places(method='dbscan',epsilon=meters_to_decimal_degrees(minDist, 47.5), num_samples=minPoints)
  
     # HOME ADDRESS STATISTICS
     ## calcualte stay time for each place for each working day
@@ -348,17 +359,22 @@ def homeworkStay(pfs, dataName):
     workplcs['id'] = 'work'
     homeworkplcs = pd.concat([homeplcs, workplcs], axis=0)
     
-    homeworkplcs.to_csv('E:/1_IPA/3_project/data/stat/'+dataName+'/'+'HomeWorkStay.csv', index = True)
+    if not(os.path.exists('../data/stat/'+ dataname + '/')):
+        os.makedirs('../data/stat/'+ dataname + '/')
+    homeworkplcs.to_csv('../data/stat/'+ dataname + '/' + 'HomeWorkStay.csv', index = True)
 
 
-def homeworkStayMonth(pfs):
+def homeworkStayMonth(pfs, dataname, dist_threshold, time_threshold, minDist, minPoints):
     """
     Calculate stay time statistics of home and work places for all past data by Month
 
     Parameters
     ----------
     pfs : dataframe - location points
-
+    dataname: str
+    dist_threshold, time_threshold - parameters for stay point detection
+    minDist, minPoints - parameters for DBSCAN Clustering
+    
     Returns
     -------
     None
@@ -370,7 +386,7 @@ def homeworkStayMonth(pfs):
     ### For home address ###
     # homepfs = pfs[(pfs['tracked_at_hour']<=6)]
     homepfs = pfs[(pfs['tracked_at_hour']<=7) | (pfs['tracked_at_hour']>=22)]
-    homestps = tim.extract_staypoints_ipa(homepfs, method='sliding',dist_threshold=100, time_threshold=15*60)
+    homestps = tim.extract_staypoints_ipa(homepfs, method='sliding',dist_threshold=dist_threshold, time_threshold=time_threshold)
     # homestps = tim.extract_staypoints_ipa(homepfs, method='sliding',dist_threshold=5, time_threshold=1*60)
     # homeplcs = homestps.as_staypoints.extract_places(method='dbscan',epsilon=meters_to_decimal_degrees(10,2), num_samples=6)
     
@@ -391,7 +407,7 @@ def homeworkStayMonth(pfs):
     
     workpfs = pfs[pfs['tracked_at_weekday']<=4] 
     workpfs = workpfs[((workpfs['tracked_at_hour']>=9) & (workpfs['tracked_at_hour']<=12)) | ((workpfs['tracked_at_hour']>=14) & (workpfs['tracked_at_hour']<=17))]
-    workstps = tim.extract_staypoints_ipa(workpfs, method='sliding',dist_threshold=100, time_threshold=15*60)
+    workstps = tim.extract_staypoints_ipa(workpfs, method='sliding',dist_threshold=dist_threshold, time_threshold=time_threshold)
     
     workstps['started_at_hour'] = 0
     for i in range(0,len(workstps)): workstps['started_at_hour'].iloc[i] = workstps['started_at'].iloc[i].hour
@@ -410,9 +426,9 @@ def homeworkStayMonth(pfs):
         # month = 2
         # Select data by month
         homestps_month = homestps[homestps['started_at_month']==month]
-        homeplcs = homestps_month.as_staypoints.extract_places(method='dbscan',epsilon=meters_to_decimal_degrees(150, 47.5), num_samples=6)
+        homeplcs = homestps_month.as_staypoints.extract_places(method='dbscan',epsilon=meters_to_decimal_degrees(minDist, 47.5), num_samples=minPoints)
         workstps_month = workstps[workstps['started_at_month']==month]
-        workplcs = workstps.as_staypoints.extract_places(method='dbscan',epsilon=meters_to_decimal_degrees(80, 47.5), num_samples=6)
+        workplcs = workstps.as_staypoints.extract_places(method='dbscan',epsilon=meters_to_decimal_degrees(minDist, 47.5), num_samples=minPoints)
     
         # summarize stay time by weekday for each clustered place
         cols = ['Mon','Tues','Wed','Thur','Fri','Sat','Sun']
@@ -463,48 +479,50 @@ def homeworkStayMonth(pfs):
         workplcs = poi.reverseGeoCoding(workplcs)
         workplcs['id'] = 'work'
         homeworkplcs = pd.concat([homeplcs, workplcs], axis=0)
-        
-        homeworkplcs.to_csv('E:/1_IPA/3_project/data/stat/'+dataName+'/'+str(month)+'HomeWorkStaybyMonth.csv', index = True)
+
+        if not(os.path.exists('../data/stat/'+ dataname + '/')):
+            os.makedirs('../data/stat/'+ dataname + '/')
+        homeworkplcs.to_csv('../data/stat/'+ dataname + '/' + str(month) + 'HomeWorkStaybyMonth.csv', index = True)
     
     
-# def accuracyStat():
-#     # Trip files
-#     if len(dataNames) == 0:
-#         for root,dirs,files in os.walk("../../4-Collection/DataParticipants/"):
-#            dataNames = dirs
-#            break
+def accuracyStat():
+    # Trip files
+    if len(dataNames) == 0:
+        for root,dirs,files in os.walk("../../4-Collection/DataParticipants/"):
+            dataNames = dirs
+            break
     
-#     dfAccuracy = pd.DataFrame(columns =['Id','30','40','50','60','70', 'NumDays', 'AvgNumPoints'])
+    dfAccuracy = pd.DataFrame(columns =['Id','30','40','50','60','70', 'NumDays', 'AvgNumPoints'])
     
-#     for dataName in dataNames:
-#         print('Processing '+ dataName)
-#         dfAccuracy = dfAccuracy.append(pd.Series(name=dataName))
-#         dfAccuracy['Id'][dataName] = dataName
+    for dataName in dataNames:
+        print('Processing '+ dataName)
+        dfAccuracy = dfAccuracy.append(pd.Series(name=dataName))
+        dfAccuracy['Id'][dataName] = dataName
         
-#         dataPathLocs,dataPathTrips = hlp.getDataPaths(dataName)
+        dataPathLocs,dataPathTrips = hlp.getDataPaths(dataName)
         
-#         locs, locsgdf = hlp.parseLocs(dataPathLocs)
-#         #trips, tripdf, tripsgdf = hlp.parseTrips(dataPathTrips)
+        locs, locsgdf = hlp.parseLocs(dataPathLocs)
+        #trips, tripdf, tripsgdf = hlp.parseTrips(dataPathTrips)
         
-#         #Accuracy
-#         if CHECK_ACCURACY:
-#             for i in [30,40,50,60,70]:
-#                 dfAccuracy[str(i)][dataName] = round(100*len(locs[locs['accuracy'].lt(i)])/len(locs),2)
+        #Accuracy
+        if CHECK_ACCURACY:
+            for i in [30,40,50,60,70]:
+                dfAccuracy[str(i)][dataName] = round(100*len(locs[locs['accuracy'].lt(i)])/len(locs),2)
         
-#         # Number of points per day
-#         if CHECK_NB_POINTS:
-#             idx = pd.date_range(locs.index[0].date(), locs.index[-1].date())
-#             perDay = (locs.groupby(locs.index.date).count()['timestampMs'])
-#             #perDay = perDay.reindex(idx, fill_value=0)
-#             dfAccuracy['NumDays'][dataName] = len(perDay)
-#             dfAccuracy['AvgNumPoints'][dataName] = perDay.mean()
+        # Number of points per day
+        if CHECK_NB_POINTS:
+            idx = pd.date_range(locs.index[0].date(), locs.index[-1].date())
+            perDay = (locs.groupby(locs.index.date).count()['timestampMs'])
+            #perDay = perDay.reindex(idx, fill_value=0)
+            dfAccuracy['NumDays'][dataName] = len(perDay)
+            dfAccuracy['AvgNumPoints'][dataName] = perDay.mean()
         
-#         #hlp.checkTrips(trips)
+        #hlp.checkTrips(trips)
     
-#         dfQuestionnaire = pd.read_csv("../data/Pre-Questionnaire - Location Diary.csv")
-#         dfPhoneModel = dfQuestionnaire[["Enter your participant ID:","What is your mobile phone's brand used to collect data?"]]
-#         dfAccuracy['Id'] = dfAccuracy['Id'].astype(int)
-#         dfAccuracy = pd.merge(dfAccuracy, dfPhoneModel, left_on='Id',right_on="Enter your participant ID:")
-#         #dfAccuracy = dfAccuracy.drop("Enter your participant ID:")
+        dfQuestionnaire = pd.read_csv("../data/Pre-Questionnaire - Location Diary.csv")
+        dfPhoneModel = dfQuestionnaire[["Enter your participant ID:","What is your mobile phone's brand used to collect data?"]]
+        dfAccuracy['Id'] = dfAccuracy['Id'].astype(int)
+        dfAccuracy = pd.merge(dfAccuracy, dfPhoneModel, left_on='Id',right_on="Enter your participant ID:")
+        #dfAccuracy = dfAccuracy.drop("Enter your participant ID:")
         
-#     dfAccuracy.to_csv('../data/statistics.csv', index=False, sep=';')
+    dfAccuracy.to_csv('../data/statistics.csv', index=False, sep=';')
