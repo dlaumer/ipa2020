@@ -26,8 +26,9 @@ import stat_functions as calstat
 import api_call as api
 
 #import noiserm_functions as nrm
+dataNameList = ["1","2","3","4","5","6","17","20","25","28"]
+dataName = '2'
 
-dataName = '28'
 SELECT_RANGE =      True
 FIND_STAY_POINTS =  True
 FIND_PLACES =       True
@@ -47,7 +48,6 @@ HomeWorkStat =      True
 #%%
 # dateStart = '2020-01-01'
 # dateEnd = 'end'
-# dataNameList = ["1","2","3","4","5","6","17","20","25","28"]
 # stythred = thred.stydiffstat(dataNameList, SELECT_RANGE, dateStart, dateEnd)
 # stythred.to_csv('../data/csv'+'/StayDiffStatRange.csv', index=False)
 
@@ -59,9 +59,9 @@ staythredrange = pd.read_csv('../data/csv'+'/StayDiffStatRange.csv')
 thresholds = {
     "accuracy_threshold" : 70,
     "dist_threshold" : 30,
-    "time_threshold" : staythredrange[staythredrange['dataName']==int(dataName)]['time_quarter'][dataNameList.index(dataName)],
-    "minDist" : 100,
-    "minPoints" : 6,
+    "time_threshold" : staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
+    "minDist" : 30,
+    "minPoints" : 3,
     "minDistTh" : 0.2, 
     "factorTh" : 3,
     "dateStart": "2020-01-01",
@@ -76,7 +76,9 @@ if loadTh:
         thresholds = json.load(file)
 
 
-#%% IMPORT DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+dfaccuracy = calstat.accuracyStat(dataName, dataNameList, thresholds["dateStart"], thresholds["dateEnd"])
+
+ #%% IMPORT DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 print("-> Loading the data")
 dataPathLocs,dataPathTrips = hlp.getDataPaths(dataName)
 
@@ -130,7 +132,7 @@ if TransmodeStat:
     calstat.transModeCsv(transtat, dataName)
 
 if HomeWorkStat:
-    calstat.homeworkStay(pfs, dataName)
+    calstat.homeworkStay(pfs, dataName, thresholds["dist_threshold"], thresholds["time_threshold"], thresholds["minDist"], thresholds["minPoints"])
 #%% Find trips from staypoints
 if FIND_TRIPS:
     print("-> Finding the trips ")
@@ -208,7 +210,6 @@ if API_CALL:
 
     # Read the gpx response and convert to csv
     hlp.savecsv4js(plcs, trpsAgr, tripsAgrSchematic)    
-
 
 
 

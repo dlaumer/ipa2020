@@ -485,7 +485,7 @@ def homeworkStayMonth(pfs, dataname, dist_threshold, time_threshold, minDist, mi
         homeworkplcs.to_csv('../data/stat/'+ dataname + '/' + str(month) + 'HomeWorkStaybyMonth.csv', index = True)
     
     
-def accuracyStat():
+def accuracyStat(dataName, dataNames, timestart, timeend):
     # Trip files
     if len(dataNames) == 0:
         for root,dirs,files in os.walk("../../4-Collection/DataParticipants/"):
@@ -500,25 +500,24 @@ def accuracyStat():
         dfAccuracy['Id'][dataName] = dataName
         
         dataPathLocs,dataPathTrips = hlp.getDataPaths(dataName)
+        dataPathLocs,dataPathTrips = hlp.selectRange(dataPathLocs, dataPathTrips, dateStart = timestart, dateEnd = timeend)
         
         locs, locsgdf = hlp.parseLocs(dataPathLocs)
         #trips, tripdf, tripsgdf = hlp.parseTrips(dataPathTrips)
         
         #Accuracy
-        if CHECK_ACCURACY:
-            for i in [30,40,50,60,70]:
-                dfAccuracy[str(i)][dataName] = round(100*len(locs[locs['accuracy'].lt(i)])/len(locs),2)
-        
+        for i in [30,40,50,60,70]:
+            dfAccuracy[str(i)][dataName] = round(100*len(locs[locs['accuracy'].lt(i)])/len(locs),2)
+    
         # Number of points per day
-        if CHECK_NB_POINTS:
-            idx = pd.date_range(locs.index[0].date(), locs.index[-1].date())
-            perDay = (locs.groupby(locs.index.date).count()['timestampMs'])
-            #perDay = perDay.reindex(idx, fill_value=0)
-            dfAccuracy['NumDays'][dataName] = len(perDay)
-            dfAccuracy['AvgNumPoints'][dataName] = perDay.mean()
+        idx = pd.date_range(locs.index[0].date(), locs.index[-1].date())
+        perDay = (locs.groupby(locs.index.date).count()['timestampMs'])
+        #perDay = perDay.reindex(idx, fill_value=0)
+        dfAccuracy['NumDays'][dataName] = len(perDay)
+        dfAccuracy['AvgNumPoints'][dataName] = perDay.mean()
         
         #hlp.checkTrips(trips)
-    
+   
         dfQuestionnaire = pd.read_csv("../data/Pre-Questionnaire - Location Diary.csv")
         dfPhoneModel = dfQuestionnaire[["Enter your participant ID:","What is your mobile phone's brand used to collect data?"]]
         dfAccuracy['Id'] = dfAccuracy['Id'].astype(int)
@@ -526,3 +525,4 @@ def accuracyStat():
         #dfAccuracy = dfAccuracy.drop("Enter your participant ID:")
         
     dfAccuracy.to_csv('../data/statistics.csv', index=False, sep=';')
+    return dfAccuracy
