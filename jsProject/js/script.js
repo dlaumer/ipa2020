@@ -294,6 +294,19 @@ function processData(values) {
   drawTrips(places, trips);
 
   // reformat homeworkbalance data
+  // Make monochrome colors
+  var barColors = (function () {
+    var colors = [],
+        base = Highcharts.getOptions().colors[2],
+        i;
+
+    for (i = 0; i < homeworkbal.length; i += 1) {
+        // Start out with a darkened base color (negative brighten), and end
+        // up with a much brighter color
+        colors.push(Highcharts.color(base).brighten((i - 3) / 7).get());
+    }
+    return colors;
+  }());
   for (let i = 0; i < homeworkbal.length; i++){
     var homework = homeworkbal[i];
     var homeworkid = homework['id']
@@ -305,13 +318,15 @@ function processData(values) {
       var homeworkdata = [homework['Sun'],homework['Sat'],homework['Fri'],homework['Thur'],homework['Wed'],homework['Tues'],homework['Mon']]
       var data = homeworkdata.map(Number);     
     }
-    var homeworkarray = [homeworkid, data]    
+    var homeworkname = homework['location']
+    var homeworkarray = [homeworkname, data, barColors[i]]    
     HomeWorkData.push(homeworkarray);
   }
   for (i = 0; i < HomeWorkData.length; i++) {
     HomeWorkSeries.push({
       name: HomeWorkData[i][0],
       data: HomeWorkData[i][1],
+      color: HomeWorkData[i][2],
     })
   }
   // console.log('HomeWorkData',HomeWorkData)
