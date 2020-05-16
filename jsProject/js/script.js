@@ -197,6 +197,7 @@ var xAxisTime = svgTime.append("g")
 
 var timelineData;
 var places;
+var placeId;
 var trips;
 var tripsAgr;
 var semanticInfo;
@@ -261,7 +262,7 @@ function processData(values) {
 
   // convert places array (pre filter) into map for fast lookup
   // Basically make a dictionary (like in python) with placeId as key
-  let placeId = new Map(places.map(node => [node.placeId, node]));
+  placeId = new Map(places.map(node => [node.placeId, node]));
 
   // calculate incoming and outgoing degree based on trips
   // trips are given by place placeId code (not index)
@@ -843,7 +844,7 @@ function arcTween(a) {
 
 function mousoverFunction(i) {
   if (parseInt(i) < places.length) {
-    let place = places[i];
+    let place =  placeId.get(i);
 
     d3.select(place.bubble)
       .call(highlight);
@@ -887,7 +888,7 @@ function mousoverFunction(i) {
 function mouseoutFunction(i) {
   if (parseInt(i) < places.length) {
 
-    let place = places[i];
+    let place = placeId.get(i);
 
     d3.select(place.bubble)
       .call(notHighlight, 'aiport');
