@@ -111,7 +111,7 @@ var tooltip = d3.select("text#tooltip");
 
 
 // PREPARE CHART  ////////////////////////////////////////////////////////////////////////////////////
-var margin = { top: 10, right: 30, bottom: 20, left: 60 };
+var margin = { top: 10, right: 30, bottom: 40, left: 60 };
 var widthTimeline = d3
   .select('#chart-container')
   .node()
@@ -348,8 +348,13 @@ function drawTimeline() {
 
   // Parse the Data
   // X axis
+  
   xScaleTime.domain(timelineData.map(function (d) { return d.group; }))
-  xAxisTime.call(d3.axisBottom(xScale).tickFormat(d3.timeFormat("%H:%M"))).selectAll("text")
+  xAxisTime.call(d3.axisBottom(xScale).tickFormat(function(d) {
+    var parseDate = d3.timeParse("%H");
+    return d3.timeFormat("%H:%M")(parseDate(d))}
+    ))
+  .selectAll("text")
   .style("text-anchor", "end")
   .attr("dx", "-.8em")
   .attr("dy", ".15em")
@@ -753,7 +758,17 @@ function updateTimeline(selectedVar) {
   // Parse the Data
   // X axis
   xScale.domain(timelineData.map(function (d) { return d.group; }))
-  xAxis.transition().duration(1000).call(d3.axisBottom(xScale))
+  xAxis.transition().duration(1000).call(d3.axisBottom(xScale).tickFormat(function(d) {
+    var parseDate = d3.timeParse("%H");
+    return d3.timeFormat("%H:%M")(parseDate(d))}
+    ))
+  .selectAll("text")
+  .style("text-anchor", "end")
+  .attr("dx", "-.8em")
+  .attr("dy", ".15em")
+  .attr("transform", "rotate(-65)")
+
+
 
   // Add Y axis
   yScale.domain([0, d3.max(timelineData, function (d) { return +d[selectedVar] })]);
@@ -1071,3 +1086,56 @@ function drawTransPieChart (transportationSeries) {
     }]
   });  
 }
+
+document.getElementById("collapeButton2").addEventListener("click", function(){
+  let toggle = d3.select("#homeWorkBalance-container").classed("collapse");
+  d3.select("#homeWorkBalance-container")
+  .classed("collapse", !toggle);
+  
+});
+
+document.getElementById("collapeButton1").addEventListener("click", function(){
+  let toggle = d3.select("#places-container").classed("collapse");
+  d3.select("#places-container")
+  .classed("collapse", !toggle);
+  
+});
+
+document.getElementById("buttonChangeHighcart").addEventListener("click", function(){
+  d1 = document.getElementById("balance-div");
+   d2 = document.getElementById("piechart-div");
+   if( d2.style.display == "none" )
+   {
+      d1.style.display = "none";
+      d2.style.display = "block";
+   }
+   else
+   {
+      d1.style.display = "block";
+      d2.style.display = "none";
+   }
+  
+});
+
+
+d3.selectAll(".flex-item")
+.on("transitionend", function(){
+  map.resize();
+
+  var widthMap = d3
+  .select('#map-container')
+  .node()
+  .getBoundingClientRect().width
+  // Set dimensions
+  var heightMap = d3
+    .select('#map-container')
+    .node()
+    .getBoundingClientRect().height
+
+  svg
+    .attr('width', widthMap)
+    .attr('height', heightMap)
+});
+
+
+

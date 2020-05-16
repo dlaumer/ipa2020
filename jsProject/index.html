@@ -21,7 +21,7 @@
   <script src="https://code.highcharts.com/modules/exporting.js"></script>
   <script src="https://code.highcharts.com/modules/export-data.js"></script>
   <script src="https://code.highcharts.com/modules/accessibility.js"></script>
-  
+
   <!-- <script src="tooltip.js"></script> -->
 
   <link href="css/style.css" rel="stylesheet">
@@ -31,7 +31,7 @@
 
 <body>
   <div id="map-and-places-container" class="flex-container">
-    
+
     <div id="places-container" class="flex-item">
       <div id="places-boxes">
         <div id="box-1" class="boxes"></div>
@@ -51,8 +51,10 @@
           <div id="time"></div>
         </div>
       </div>
-      
+
     </div>
+    <div id="collapeButton1" class="flex-item hover-button"></div>
+
     <div id="map-container" class="flex-item">
       <div id="mapboxx">
       </div>
@@ -64,24 +66,30 @@
         <text id="tooltip" style="display: none;"></text>
       </svg>
     </div>
-    
-    <div id="homeWorkBalance-container"  class="flex-item">
-      <!-- Home and work balance negative stacked bar -->
-      <figure class="highcharts-figure">
-        <div id="container"></div>
-        <p class="highcharts-description"></p>
-      </figure>
+
+    <div id="collapeButton2" class="flex-item hover-button"></div>
+
+    <div id="homeWorkBalance-container" class="flex-item">
+      <div id=highcharts-container>
         <!-- Home and work balance negative stacked bar -->
+        <div id="balance-div" style="display:block;">
+          <figure class="highcharts-figure">
+            <div id="container"></div>
+            <p class="highcharts-description"></p>
+          </figure>
+        </div>
+      
+      <!-- Home and work balance negative stacked bar -->
+      <div id="piechart-div" style="display:none;">
         <figure class="highcharts-figure">
           <div id="piechart-container"></div>
           <p class="highcharts-description"></p>
         </figure>
+      </div>
     </div>
+    <div id="buttonChangeHighcart" class="boxes hover-button">Change Diagramm</div>
   </div>
-  
-
- 
-
+  </div>
 
 
   <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.52.0/mapbox-gl.js'></script>
