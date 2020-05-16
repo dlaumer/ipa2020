@@ -492,12 +492,20 @@ def accuracyStat(dataName, dataNames, timestart, timeend):
             dataNames = dirs
             break
     
-    dfAccuracy = pd.DataFrame(columns =['Id','30','40','50','60','70', 'NumDays', 'AvgNumPoints'])
+    dfQuestionnaire = pd.read_csv("../data/Pre-Questionnaire - Location Diary.csv")
+    dfPhoneModel = dfQuestionnaire[["Enter your participant ID:","What is your mobile phone's brand used to collect data?"]]
+    dfPhoneModel = dfPhoneModel.rename(columns = {"id":"Enter your participant ID:", "phoneModel":"What is your mobile phone's brand used to collect data?"})
     
+    generated_dfStatistics = []
+
     for dataName in dataNames:
         print('Processing '+ dataName)
-        dfAccuracy = dfAccuracy.append(pd.Series(name=dataName))
-        dfAccuracy['Id'][dataName] = dataName
+        dfStatistics = pd.DataFrame(columns =['id','30','40','50','60','70', 'NumDays', 'NumPoints', 'AvgNumPoints', 'phoneModel'])
+
+        tempStat = {}
+
+        #dfStatistics = dfStatistics.append(pd.Series(name=dataName))
+        tempStat['id'] = dataName
         
         dataPathLocs,dataPathTrips = hlp.getDataPaths(dataName)
         dataPathLocs,dataPathTrips = hlp.selectRange(dataPathLocs, dataPathTrips, dateStart = timestart, dateEnd = timeend)
@@ -507,22 +515,21 @@ def accuracyStat(dataName, dataNames, timestart, timeend):
         
         #Accuracy
         for i in [30,40,50,60,70]:
-            dfAccuracy[str(i)][dataName] = round(100*len(locs[locs['accuracy'].lt(i)])/len(locs),2)
+            tempStat[str(i)] =  round(100*len(locs[locs['accuracy'].lt(i)])/len(locs),2)
     
         # Number of points per day
         idx = pd.date_range(locs.index[0].date(), locs.index[-1].date())
         perDay = (locs.groupby(locs.index.date).count()['timestampMs'])
         #perDay = perDay.reindex(idx, fill_value=0)
-        dfAccuracy['NumDays'][dataName] = len(perDay)
-        dfAccuracy['AvgNumPoints'][dataName] = perDay.mean()
+        tempStat['NumDays'] = len(perDay)
+        tempStat['NumPoints'] = perDay.sum()
+        tempStat['AvgNumPoints'] = perDay.mean()
         
         #hlp.checkTrips(trips)
-   
-        dfQuestionnaire = pd.read_csv("../data/Pre-Questionnaire - Location Diary.csv")
-        dfPhoneModel = dfQuestionnaire[["Enter your participant ID:","What is your mobile phone's brand used to collect data?"]]
-        dfAccuracy['Id'] = dfAccuracy['Id'].astype(int)
-        dfAccuracy = pd.merge(dfAccuracy, dfPhoneModel, left_on='Id',right_on="Enter your participant ID:")
-        #dfAccuracy = dfAccuracy.drop("Enter your participant ID:")
+        tempStat['phoneModel'] = dfPhoneModel.loc[np.where(dfPhoneModel["Enter your participant ID:"] == int(dataName))[0][0],"What is your mobile phone's brand used to collect data?"]
         
-    dfAccuracy.to_csv('../data/statistics.csv', index=False, sep=';')
-    return dfAccuracy
+        generated_dfStatistics.append(tempStat)
+        dfStatistics = dfStatistics.append(generated_dfStatistics)
+        
+        dfStatistics.to_csv('../data/statistics.csv', index=False, sep=';')
+    return dfStatistics

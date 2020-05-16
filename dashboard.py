@@ -51,15 +51,15 @@ HomeWorkStat =      True
 # stythred = thred.stydiffstat(dataNameList, SELECT_RANGE, dateStart, dateEnd)
 # stythred.to_csv('../data/csv'+'/StayDiffStatRange.csv', index=False)
 
-staythred = pd.read_csv('../data/csv'+'/StayDiffStat.csv') 
-staythredrange = pd.read_csv('../data/csv'+'/StayDiffStatRange.csv') 
+#staythred = pd.read_csv('../data/csv'+'/StayDiffStat.csv') 
+#staythredrange = pd.read_csv('../data/csv'+'/StayDiffStatRange.csv') 
 # staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
 # staythredrange[staythredrange['dataName']==int(dataName)]['time_quarter'][dataNameList.index(dataName)],
 
 thresholds = {
     "accuracy_threshold" : 70,
     "dist_threshold" : 30,
-    "time_threshold" : staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
+    "time_threshold" : 15*60, #staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
     "minDist" : 30,
     "minPoints" : 3,
     "minDistTh" : 0.2, 
@@ -76,7 +76,7 @@ if loadTh:
         thresholds = json.load(file)
 
 
-dfaccuracy = calstat.accuracyStat(dataName, dataNameList, thresholds["dateStart"], thresholds["dateEnd"])
+dfStatistics = calstat.accuracyStat(dataName, dataNameList, thresholds["dateStart"], thresholds["dateEnd"])
 
  #%% IMPORT DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 print("-> Loading the data")
