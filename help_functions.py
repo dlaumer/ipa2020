@@ -497,12 +497,30 @@ def selectRange(dataPathLoc,dataPathTrip, mac, dateStart = 'beginning', dateEnd 
     else:
         jsonData = dataPathLoc
     
-    print("Collected Start date: " + str(pd.to_datetime(int(jsonData["locations"][0]["timestampMs"]),  unit='ms').date()))
-    print("Setted Start date: " + str(dateStart))
-    if (dateEnd == "end"):
-        print("End date: " + str(pd.to_datetime(int(jsonData["locations"][-1]["timestampMs"]),  unit='ms').date()))
+    collectDate = pd.to_datetime(int(jsonData["locations"][0]["timestampMs"]),  unit='ms')
+    setDate = pd.to_datetime([dateStart])
+
+    if (collectDate < setDate):
+        # print("Start date: " + str(dateStart))
+        labelStart = str(dateStart)
+        print("Start date: " + labelStart)
     else:
-        print("End date: " + str(dateEnd))
+        # print("Start date: " + str(pd.to_datetime(int(jsonData["locations"][0]["timestampMs"]),  unit='ms').date()))
+        labelStart = str(pd.to_datetime(int(jsonData["locations"][0]["timestampMs"]),  unit='ms').date())
+        print("Start date: " + labelStart)
+        
+    # print("Collected Start date: " + str(pd.to_datetime(int(jsonData["locations"][0]["timestampMs"]),  unit='ms').date()))
+    # print("Setted Start date: " + str(dateStart))
+
+    if (dateEnd == "end"):
+        labelEnd = str(pd.to_datetime(int(jsonData["locations"][-1]["timestampMs"]),  unit='ms').date())
+        print("End date: " + labelEnd)
+        # print("End date: " + str(pd.to_datetime(int(jsonData["locations"][-1]["timestampMs"]),  unit='ms').date()))
+        # labelEnd = str(pd.to_datetime(int(jsonData["locations"][-1]["timestampMs"]),  unit='ms').date())
+    else:
+        # print("End date: " + str(dateEnd))
+        lebelEnd = str(dateEnd)
+        print("End date: " + labelEnd)
     #dateStart = input("Choose a start date: ")
     #dateEnd = input("Choose a end date: ")
 
@@ -521,10 +539,9 @@ def selectRange(dataPathLoc,dataPathTrip, mac, dateStart = 'beginning', dateEnd 
         else:
             dateTemp = pd.to_datetime([dateEnd])
             dateEnd = ((dateTemp - pd.Timestamp("1970-01-01")) // pd.Timedelta('1ms'))[0]  
-    
 
-    
     newPath = str(Path(dataPathLoc).parents[2]) + slash + str(pd.to_datetime(dateStart,  unit='ms').date()) + "_" + str(pd.to_datetime(dateEnd,  unit='ms').date()) + slash
+
     
     if os.path.exists(newPath):
         return newPath + "Location History.json", newPath + "Semantic Location History" + slash
@@ -552,8 +569,13 @@ def selectRange(dataPathLoc,dataPathTrip, mac, dateStart = 'beginning', dateEnd 
     endYear = pd.to_datetime(dateEnd,  unit='ms').year
     startMonth = pd.to_datetime(dateStart,  unit='ms').month
     endMonth = pd.to_datetime(dateEnd,  unit='ms').month
+<<<<<<< HEAD
     
     newDataPathTrip = newPath + "Semantic Location History" + slash
+=======
+
+    newDataPathTrip = newPath + "Semantic Location History\\"
+>>>>>>> 49b5d445ba58d7c562f61ee6ff0cb4298bc7a322
     if not(os.path.exists(newDataPathTrip)):
         os.makedirs(newDataPathTrip)
     
@@ -575,7 +597,7 @@ def selectRange(dataPathLoc,dataPathTrip, mac, dateStart = 'beginning', dateEnd 
                         else:
                             copyfile(filePath , newFilePath)
                 
-    return newDataPathLoc, newDataPathTrip
+    return newDataPathLoc,newDataPathTrip,labelStart,labelEnd
 
 def _splitTripFile(filePath, newFilePath, dateStart, dateEnd):
     with open(filePath) as f:

@@ -57,17 +57,17 @@ HomeWorkStat =      True
 # stythred = thred.stydiffstat(dataNameList, SELECT_RANGE, dateStart, dateEnd)
 # stythred.to_csv('../data/csv'+'/StayDiffStatRange.csv', index=False)
 
-#staythred = pd.read_csv('../data/csv'+'/StayDiffStat.csv') 
-#staythredrange = pd.read_csv('../data/csv'+'/StayDiffStatRange.csv') 
+# staythred = pd.read_csv('../data/csv'+'/StayDiffStat.csv') 
+# staythredrange = pd.read_csv('../data/csv'+'/StayDiffStatRange.csv') 
 # staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
 # staythredrange[staythredrange['dataName']==int(dataName)]['time_quarter'][dataNameList.index(dataName)],
 
 thresholds = {
-    "accuracy_threshold" : 70,
-    "dist_threshold" : 30,
-    "time_threshold" : 15*60, #staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
-    "minDist" : 30,
-    "minPoints" : 3,
+    "accuracy_threshold" : 30,
+    "dist_threshold" : 50,
+    "time_threshold" : 5*60, #staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
+    "minDist" : 15,
+    "minPoints" : 2,
     "minDistTh" : 0.2, 
     "factorTh" : 3,
     "dateStart": "2020-01-01",
@@ -84,12 +84,17 @@ if loadTh:
 
 #dfStatistics = calstat.accuracyStat(dataName, dataNameList, thresholds["dateStart"], thresholds["dateEnd"])
 
+dfStatistics = calstat.accuracyStat(dataName, dataNameList, thresholds["dateStart"], thresholds["dateEnd"])
+# dfStatistics = pd.read_csv('../data/statistics.csv')
+
+
  #%% IMPORT DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 print("-> Loading the data")
 dataPathLocs,dataPathTrips = hlp.getDataPaths(dataName)
 
 if SELECT_RANGE:    
     dataPathLocs,dataPathTrips = hlp.selectRange(dataPathLocs, dataPathTrips, mac, dateStart = thresholds["dateStart"], dateEnd = thresholds["dateEnd"],)
+
     #dataPathLocs,dataPathTrips = hlp.selectLastMonth(dataPathLocs, dataPathTrips)
     
 locs, locsgdf = hlp.parseLocs(dataPathLocs)

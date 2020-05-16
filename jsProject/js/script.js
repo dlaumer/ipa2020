@@ -203,6 +203,7 @@ var semanticInfo;
 var homeworkbal;
 var HomeWorkData;
 var HomeWorkSeries;
+var yAxisMax;
 var transportationmode;
 var transportationData;
 var transportationSeries;
@@ -242,6 +243,8 @@ function processData(values) {
   HomeWorkSeries = [];
   transportationData = [];
   transportationSeries = [];
+  yAxisMax = [];
+  var tempabs = [];
 
   fillPlacesBoxes();
   colorPlacesBoxes(0, 23);
@@ -294,6 +297,19 @@ function processData(values) {
   drawTrips(places, trips);
 
   // reformat homeworkbalance data
+  // Make monochrome colors
+  var barColors = (function () {
+    var colors = [],
+        base = Highcharts.getOptions().colors[4],
+        i;
+
+    for (i = 0; i < homeworkbal.length; i += 1) {
+        // Start out with a darkened base color (negative brighten), and end
+        // up with a much brighter color
+        colors.push(Highcharts.color(base).brighten((i - 1) / 5).get());
+    }
+    return colors;
+  }());
   for (let i = 0; i < homeworkbal.length; i++){
     var homework = homeworkbal[i];
     var homeworkid = homework['id']
@@ -305,18 +321,29 @@ function processData(values) {
       var homeworkdata = [homework['Sun'],homework['Sat'],homework['Fri'],homework['Thur'],homework['Wed'],homework['Tues'],homework['Mon']]
       var data = homeworkdata.map(Number);     
     }
-    var homeworkarray = [homeworkid, data]    
+    for (let k = 0; k < data.length; k++){
+      var datai = Math.abs(data[k]);
+      tempabs.push(datai);
+    }
+    // console.log(data);
+    var homeworkname = homework['location']
+    var homeworkarray = [homeworkname, data, barColors[i]]    
     HomeWorkData.push(homeworkarray);
   }
+  // console.log(tempabs);
+  yAxisMax = Math.max(...tempabs)
+  yAxisMax = Math.ceil(yAxisMax / 50) * 50;
+  // console.log(yAxisMax)
   for (i = 0; i < HomeWorkData.length; i++) {
     HomeWorkSeries.push({
       name: HomeWorkData[i][0],
       data: HomeWorkData[i][1],
+      color: HomeWorkData[i][2],
     })
   }
   // console.log('HomeWorkData',HomeWorkData)
   // console.log('HomeWorkSeries',HomeWorkSeries)
-  drawNegativeBar(HomeWorkSeries);
+  drawNegativeBar(HomeWorkSeries,yAxisMax);
 
   // reformat transportation data
   for (let i = 0; i < transportationmode.length; i++){
@@ -952,7 +979,7 @@ function changeData() {
 }
 
 // Negative stacked bar graph: Home and Work Balance
-function drawNegativeBar(HomeWorkSeries) {
+function drawNegativeBar(HomeWorkSeries,yAxisMax) {
   // Weekday categories
   var categories = [
     'Sunday', 'Saturday', 'Friday', 'Thursday', 'Wednesday', 'Tuesday', 'Monday'
@@ -972,6 +999,17 @@ function drawNegativeBar(HomeWorkSeries) {
       point: {
         valueDescriptionFormat: '{index}. StayTime {xDescription}, {value}hrs.'
       }
+    },
+    exporting: {
+      enabled: false, // disable all buttons
+      // buttons: { 
+      //   exportButton: {
+      //       enabled:false
+      //   },
+      //   printButton: {
+      //       enabled:false
+      //   }
+      // }
     },
     xAxis: [{
       categories: categories,
@@ -995,6 +1033,8 @@ function drawNegativeBar(HomeWorkSeries) {
       }
     }],
     yAxis: {
+      max: yAxisMax,
+      min: -yAxisMax,
       title: {
         text: null
       },
@@ -1049,8 +1089,12 @@ function drawTransPieChart (transportationSeries) {
       type: 'pie'
     },
     title: {
-      text: 'Transportation Modes Preferences'
+      text: 'Commuting Preferences'
     },
+    subtitle:{
+      text: 'Your total CO2 submission is xxx: xx km by Bus x xx/km + xx km by Car x xx/km + xx km by Train x xx/km + xx km by Tram x xx/km + xx km on Foot x xx/km + xx km by Bike x xx/km +',
+      // align: "left"
+     },
     tooltip: {
       headerFormat: '<span style="font-size:11px">{series.name}</span><br>',
       pointFormat: '{point.name}</span>: <b>{point.y:.1f}%</b> of total<br/>Corresponding to <b>{point.val:.1f} km</b>'
@@ -1060,15 +1104,28 @@ function drawTransPieChart (transportationSeries) {
         valueSuffix: '%'
       }
     },
+    exporting: {
+      enabled: false, // disable all buttons
+      // buttons: { 
+      //   exportButton: {
+      //       enabled:false
+      //   },
+      //   printButton: {
+      //       enabled:false
+      //   }
+      // }
+    },
     plotOptions: {
       pie: {
         allowPointSelect: true,
         cursor: 'pointer',
         colors: pieColors,
+        center: ["50%", "50%"],
+        size: "75%",
         dataLabels: {
           enabled: true,
           format: '<b>{point.name}</b><br>{point.percentage:.1f} %',
-          distance: -50,
+          distance: -40,
           filter: {
               property: 'percentage',
               operator: '>',
