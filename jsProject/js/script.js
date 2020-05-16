@@ -349,7 +349,11 @@ function drawTimeline() {
   // Parse the Data
   // X axis
   xScaleTime.domain(timelineData.map(function (d) { return d.group; }))
-  xAxisTime.call(d3.axisBottom(xScale))
+  xAxisTime.call(d3.axisBottom(xScale).tickFormat(d3.timeFormat("%H:%M"))).selectAll("text")
+  .style("text-anchor", "end")
+  .attr("dx", "-.8em")
+  .attr("dy", ".15em")
+  .attr("transform", "rotate(-65)")
 
   //add brush
   var brush = d3.brushX()
