@@ -10,6 +10,7 @@ Authors:    Daniel Laumer (laumerd@ethz.ch)
 import pandas as pd
 import json
 import shutil
+import math
 
 from statistics import median 
 from shapely.geometry import Point
@@ -25,14 +26,19 @@ import thresholds_function as thred
 import stat_functions as calstat
 import api_call as api
 
+from trackintel.geogr.distances import haversine_dist
+
 #import noiserm_functions as nrm
 dataNameList = ["1","2","3","4","5","6","17","20","25","28"]
-dataName = '2'
+dataName = '1'
+
+mac = True
 
 SELECT_RANGE =      True
 FIND_STAY_POINTS =  True
 FIND_PLACES =       True
 FIND_TRIPS =        True
+FIND_SEMANTIC_INFO =True
 CLUSTER_TRPS =      True
 EXPORT_GPX =        True
 API_CALL =          True
@@ -76,15 +82,14 @@ if loadTh:
         thresholds = json.load(file)
 
 
-dfStatistics = calstat.accuracyStat(dataName, dataNameList, thresholds["dateStart"], thresholds["dateEnd"])
+#dfStatistics = calstat.accuracyStat(dataName, dataNameList, thresholds["dateStart"], thresholds["dateEnd"])
 
  #%% IMPORT DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 print("-> Loading the data")
 dataPathLocs,dataPathTrips = hlp.getDataPaths(dataName)
 
 if SELECT_RANGE:    
-    
-    dataPathLocs,dataPathTrips = hlp.selectRange(dataPathLocs, dataPathTrips, dateStart = thresholds["dateStart"], dateEnd = thresholds["dateEnd"])
+    dataPathLocs,dataPathTrips = hlp.selectRange(dataPathLocs, dataPathTrips, mac, dateStart = thresholds["dateStart"], dateEnd = thresholds["dateEnd"],)
     #dataPathLocs,dataPathTrips = hlp.selectLastMonth(dataPathLocs, dataPathTrips)
     
 locs, locsgdf = hlp.parseLocs(dataPathLocs)
@@ -123,6 +128,20 @@ if FIND_PLACES:
         #plcs_shp.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/Places_extent.shp')
     
     plcs = poi.reverseGeoCoding(plcs)
+
+#%%    
+if FIND_SEMANTIC_INFO:
+    places = tripsgdf[tripsgdf['Type']=='placeVisit']
+    places.drop_duplicates(subset ="placeId", keep = 'first', inplace = True) 
+    
+    
+    plcs = hlp.findSemanticInfo(places, plcs)
+            
+    if exportShp:
+        places['startTime'] = places['startTime'].astype(str)
+        places['endTime'] = places['endTime'].astype(str)
+        places.to_file('../data/shp/'+dataName +'/Places_google.shp')
+ 
 #%%
 if TimelineStat:
     calstat.plcsStayHour(stps, plcs, dataName)

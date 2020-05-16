@@ -29,10 +29,15 @@ from shutil import copyfile
 import shapely
 from functools import partial
 import pyproj
+import math
+
+from trackintel.geogr.distances import haversine_dist
+
 
 from scipy.spatial.distance import euclidean
 from fastdtw import fastdtw
 
+global mac
 
 def getDataPaths(participantId):
     rootPath = "../../4-Collection/DataParticipants/"
@@ -153,6 +158,9 @@ def parseTrips(dataPath):
                                             shape = Point(coordinates)
                                         except:
                                             shape = Point()
+                                    gdf.loc[i,"placeId"] = entry['location'].get('placeId', None)
+                                    gdf.loc[i, "placeName"] = entry['location'].get('name', None)
+
                                 gdf.loc[i, 'geometry'] = shape
                                 i = i + 1
                         f.close()                       
@@ -471,12 +479,16 @@ def selectLastMonth(dataPathLoc,dataPathTrip):
     dataPathLocs,dataPathTrips = selectRange(dataPathLoc,dataPathTrip, timerange = oneMonth)
     return dataPathLocs,dataPathTrips
 
-def selectRange(dataPathLoc,dataPathTrip, dateStart = 'beginning', dateEnd = 'end', timerange = None):
+def selectRange(dataPathLoc,dataPathTrip, mac, dateStart = 'beginning', dateEnd = 'end', timerange = None):
 
-    newPath = str(Path(dataPathLoc).parents[2]) + "\\" + dateStart + "_" + dateEnd + "\\"
+    if mac:
+        slash = "/"
+    else:
+        slash = "\\"
+    newPath = str(Path(dataPathLoc).parents[2]) + slash + dateStart + "_" + dateEnd + slash
 
     if os.path.exists(newPath):
-        return newPath + "Location History.json", newPath + "Semantic Location History\\"
+        return newPath + "Location History.json", newPath + "Semantic Location History" + slash
     
     # Location File
     if (type(dataPathLoc) is str):
@@ -512,10 +524,10 @@ def selectRange(dataPathLoc,dataPathTrip, dateStart = 'beginning', dateEnd = 'en
     
 
     
-    newPath = str(Path(dataPathLoc).parents[2]) + "\\" + str(pd.to_datetime(dateStart,  unit='ms').date()) + "_" + str(pd.to_datetime(dateEnd,  unit='ms').date()) + "\\"
+    newPath = str(Path(dataPathLoc).parents[2]) + slash + str(pd.to_datetime(dateStart,  unit='ms').date()) + "_" + str(pd.to_datetime(dateEnd,  unit='ms').date()) + slash
     
     if os.path.exists(newPath):
-        return newPath + "Location History.json", newPath + "Semantic Location History\\"
+        return newPath + "Location History.json", newPath + "Semantic Location History" + slash
     else:
         os.makedirs(newPath)
     
@@ -541,21 +553,20 @@ def selectRange(dataPathLoc,dataPathTrip, dateStart = 'beginning', dateEnd = 'en
     startMonth = pd.to_datetime(dateStart,  unit='ms').month
     endMonth = pd.to_datetime(dateEnd,  unit='ms').month
     
-    
-    newDataPathTrip = newPath + "Semantic Location History\\"
+    newDataPathTrip = newPath + "Semantic Location History" + slash
     if not(os.path.exists(newDataPathTrip)):
         os.makedirs(newDataPathTrip)
     
     for year in years:
         if int(year) >= startYear and int(year) <=endYear:
-            if not(os.path.exists(newDataPathTrip + year + "\\")):
-                os.makedirs(newDataPathTrip + year + "\\")
+            if not(os.path.exists(newDataPathTrip + year + slash)):
+                os.makedirs(newDataPathTrip + year + slash)
 
             for month in range(1,13):
                 dateTemp = pd.to_datetime([year + '-' + str(month)])
                 if dateTemp >= pd.to_datetime([str(startYear) + '-' + str(startMonth)]) and dateTemp <= pd.to_datetime([str(endYear) + '-' + str(endMonth)]):
-                    filePath = dataPathTrip + year + "\\" + year + "_" + calendar.month_name[month].upper() + ".json"
-                    newFilePath = newDataPathTrip + year + "\\" + year + "_" + calendar.month_name[month].upper() + ".json"
+                    filePath = dataPathTrip + year + slash + year + "_" + calendar.month_name[month].upper() + ".json"
+                    newFilePath = newDataPathTrip + year + slash + year + "_" + calendar.month_name[month].upper() + ".json"
                     if os.path.exists(filePath):
                         if (int(year) == startYear) and month == startMonth:
                             _splitTripFile(filePath, newFilePath, dateStart, dateEnd)
@@ -622,6 +633,22 @@ def combineTrajectory(cluster1, cluster2):
         newGeom.append(np.average(np.asarray([cluster1['geom'][i], cluster2['geom'][j]]), axis= 0, weights=[cluster1['weight'],cluster2['weight']]).tolist())
     return newGeom
 
+def findSemanticInfo(places, plcs):
+    for idx in plcs.index:
+        minDist = math.inf
+        minIdx = None
+        for jdx in places.index:
+            dist = haversine_dist(plcs.loc[idx,'center'].x, plcs.loc[idx,'center'].y, places.loc[jdx,'geometry'].x, places.loc[jdx,'geometry'].y)
+            if dist<minDist:
+                minDist = dist
+                minIdx = jdx
+                
+        a = plcs.loc[idx,'extent'].bounds
+        extent = haversine_dist(a[0],a[1],a[2],a[3])
+        if minDist < 3*extent:
+            plcs.loc[idx,'placeName'] = places.loc[minIdx,'placeName']
+    return plcs
+
 def savecsv4js(places, trips, tripsSchematic):
     places['city'] = 'Zurich'
     places['state'] = 'Zurich'
@@ -634,7 +661,7 @@ def savecsv4js(places, trips, tripsSchematic):
     places['latitudeSchematic'] = places.geometry.y
     places['longitudeSchematic'] = places.geometry.x
     places = places.drop(columns = ['user_id', 'extent', 'center', 'centerSchematic'])
-    places.to_csv('jsProject/places.csv',  index = False, sep = ";")
+    places.to_csv('jsProject/stat/places.csv',  index = False, sep = ";")
  
     
     trips = trips.rename(columns = {'start_plc':'origin', 'end_plc':'destination', 'weight':'count'})
@@ -648,8 +675,8 @@ def savecsv4js(places, trips, tripsSchematic):
 
     trips = trips.rename(columns = {'weight':'count'})
     trips = trips[['origin', 'destination','count','waypointsLong','waypointsLat','waypointsLatSchematic','waypointsLongSchematic']]
-    #trips.to_csv('../jsProject/trips.csv',  index = False, sep = ";")
-    trips.to_csv('jsProject/tripsAgr.csv',  index = False, sep = ";")
+    #trips.to_csv('../jsProject/stat/trips.csv',  index = False, sep = ";")
+    trips.to_csv('jsProject/stat/tripsAgr.csv',  index = False, sep = ";")
 
     
 

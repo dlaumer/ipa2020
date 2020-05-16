@@ -243,7 +243,7 @@ def plcsStayHour(stps, plcs, dataname):
     
     # V2: with more information
     plcs = poi.reverseGeoCoding(plcs)
-    plcstocsv_transpose.columns = plcs['location']
+    plcstocsv_transpose.columns = plcs['placeName']
     plcstocsv_transpose.to_csv('../data/stat/'+ dataname + '/' + '/StaybyHourLocinfo.csv', index = True)
     
     
