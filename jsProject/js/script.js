@@ -990,6 +990,17 @@ function drawNegativeBar(HomeWorkSeries) {
         valueDescriptionFormat: '{index}. StayTime {xDescription}, {value}hrs.'
       }
     },
+    exporting: {
+      enabled: false, // disable all buttons
+      // buttons: { 
+      //   exportButton: {
+      //       enabled:false
+      //   },
+      //   printButton: {
+      //       enabled:false
+      //   }
+      // }
+    },
     xAxis: [{
       categories: categories,
       reversed: false,
@@ -1066,8 +1077,12 @@ function drawTransPieChart (transportationSeries) {
       type: 'pie'
     },
     title: {
-      text: 'Transportation Modes Preferences'
+      text: 'Commuting Preferences'
     },
+    subtitle:{
+      text: 'Your total CO2 submission is xxx: xx km by Bus x xx/km + xx km by Car x xx/km + xx km by Train x xx/km + xx km by Tram x xx/km + xx km on Foot x xx/km + xx km by Bike x xx/km +',
+      // align: "left"
+     },
     tooltip: {
       headerFormat: '<span style="font-size:11px">{series.name}</span><br>',
       pointFormat: '{point.name}</span>: <b>{point.y:.1f}%</b> of total<br/>Corresponding to <b>{point.val:.1f} km</b>'
@@ -1077,15 +1092,28 @@ function drawTransPieChart (transportationSeries) {
         valueSuffix: '%'
       }
     },
+    exporting: {
+      enabled: false, // disable all buttons
+      // buttons: { 
+      //   exportButton: {
+      //       enabled:false
+      //   },
+      //   printButton: {
+      //       enabled:false
+      //   }
+      // }
+    },
     plotOptions: {
       pie: {
         allowPointSelect: true,
         cursor: 'pointer',
         colors: pieColors,
+        center: ["50%", "50%"],
+        size: "75%",
         dataLabels: {
           enabled: true,
           format: '<b>{point.name}</b><br>{point.percentage:.1f} %',
-          distance: -50,
+          distance: -40,
           filter: {
               property: 'percentage',
               operator: '>',
