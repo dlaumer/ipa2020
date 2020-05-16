@@ -203,6 +203,7 @@ var semanticInfo;
 var homeworkbal;
 var HomeWorkData;
 var HomeWorkSeries;
+var yAxisMax;
 var transportationmode;
 var transportationData;
 var transportationSeries;
@@ -242,6 +243,8 @@ function processData(values) {
   HomeWorkSeries = [];
   transportationData = [];
   transportationSeries = [];
+  yAxisMax = [];
+  var tempabs = [];
 
   fillPlacesBoxes();
   colorPlacesBoxes(0, 23);
@@ -297,13 +300,13 @@ function processData(values) {
   // Make monochrome colors
   var barColors = (function () {
     var colors = [],
-        base = Highcharts.getOptions().colors[2],
+        base = Highcharts.getOptions().colors[4],
         i;
 
     for (i = 0; i < homeworkbal.length; i += 1) {
         // Start out with a darkened base color (negative brighten), and end
         // up with a much brighter color
-        colors.push(Highcharts.color(base).brighten((i - 3) / 7).get());
+        colors.push(Highcharts.color(base).brighten((i - 1) / 5).get());
     }
     return colors;
   }());
@@ -318,10 +321,19 @@ function processData(values) {
       var homeworkdata = [homework['Sun'],homework['Sat'],homework['Fri'],homework['Thur'],homework['Wed'],homework['Tues'],homework['Mon']]
       var data = homeworkdata.map(Number);     
     }
+    for (let k = 0; k < data.length; k++){
+      var datai = Math.abs(data[k]);
+      tempabs.push(datai);
+    }
+    // console.log(data);
     var homeworkname = homework['location']
     var homeworkarray = [homeworkname, data, barColors[i]]    
     HomeWorkData.push(homeworkarray);
   }
+  // console.log(tempabs);
+  yAxisMax = Math.max(...tempabs)
+  yAxisMax = Math.ceil(yAxisMax / 50) * 50;
+  // console.log(yAxisMax)
   for (i = 0; i < HomeWorkData.length; i++) {
     HomeWorkSeries.push({
       name: HomeWorkData[i][0],
@@ -331,7 +343,7 @@ function processData(values) {
   }
   // console.log('HomeWorkData',HomeWorkData)
   // console.log('HomeWorkSeries',HomeWorkSeries)
-  drawNegativeBar(HomeWorkSeries);
+  drawNegativeBar(HomeWorkSeries,yAxisMax);
 
   // reformat transportation data
   for (let i = 0; i < transportationmode.length; i++){
@@ -969,7 +981,7 @@ function changeData() {
 }
 
 // Negative stacked bar graph: Home and Work Balance
-function drawNegativeBar(HomeWorkSeries) {
+function drawNegativeBar(HomeWorkSeries,yAxisMax) {
   // Weekday categories
   var categories = [
     'Sunday', 'Saturday', 'Friday', 'Thursday', 'Wednesday', 'Tuesday', 'Monday'
@@ -1023,6 +1035,8 @@ function drawNegativeBar(HomeWorkSeries) {
       }
     }],
     yAxis: {
+      max: yAxisMax,
+      min: -yAxisMax,
       title: {
         text: null
       },
