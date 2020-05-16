@@ -419,7 +419,7 @@ function colorPlacesBoxes(startTime, endTime) {
   delete timeData.group;
   var color = d3.scaleLinear()
     .domain([0, Math.max.apply(Math, Object.values(timeData))])
-    .range(["#ffffff ", "#a83290"]);
+    .range(["#ffffff ", "#1F407A"]);
   for (let i = 1; i < 11; i++) {
     document.getElementById("box-" + i).style.backgroundColor = color(timeData[placeIdOfBox[i]]);
     document.getElementById("box-" + i).innerHTML = "Place ID: " + placeIdOfBox[i] + ", Time: " + Math.round(timeData[placeIdOfBox[i]]);
@@ -727,7 +727,7 @@ function distance(source, target) {
 function highlight(selection) {
   selection
     .style("opacity", 1)
-    .style("stroke", "a83290")
+    .style("stroke", "1F407A")
     .style("stroke-opacity", 0.8);
 }
 
@@ -789,7 +789,7 @@ function updateTimeline(selectedVar) {
     .attr("y", function (d) { return yScale(d[selectedVar]); })
     .attr("width", xScale.bandwidth())
     .attr("height", function (d) { return heightTimeline - yScale(d[selectedVar]); })
-    .attr("fill", "#a83290")
+    .attr("fill", "#1F407A")
     .attr("class", "bars")
 }
 

@@ -15,7 +15,7 @@ body {
   -webkit-box-shadow: #666 0px 1px 1px;
   -moz-box-shadow: #666 0px 1px 1px;
   box-shadow: #666 0px 1px 1px;
-  background-color: #a83290;
+  background-color: #1F407A;
 }
 
 .flex-item {
@@ -94,7 +94,7 @@ body {
   -webkit-box-shadow: #666 0px 1px 1px;
   -moz-box-shadow: #666 0px 1px 1px;
   box-shadow: #666 0px 1px 1px;
-  background: #a83290;
+  background: #1F407A;
 }
 
 .boxes:hover {
@@ -189,7 +189,7 @@ input[type="number"] {
 #buttonChangeHighcart {
   width:100%;
   height: 30px;
-  background-color: #a83290;
+  background-color: #1F407A;
   text-align:center;
 }
 
