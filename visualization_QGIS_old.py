@@ -10,7 +10,7 @@
 import os
 
 # Define which participant should be visualized. If the list is empty, all available participants will be visualized
-dataNames = ['6']
+dataNames = ['15']
 # Define which layers it should contain. You can only choose from the ones in 'allLayers'. If the list is empty, all available layers are taken.
 layers = []
 # Folder where the results are stored. They must be a folder per participant and the folder structure must be unchanged 
@@ -54,6 +54,10 @@ if not layers:
 
 root = QgsProject.instance().layerTreeRoot()
 	
+# Delete all existing layers
+oldLayers = QgsMapLayerRegistry.instance().mapLayers()
+for oldLayer in iface.legendInterface().layers():
+	QgsMapLayerRegistry.instance().removeMapLayer(oldLayer)
 
 # Iterate over all participants
 for dataName in dataNames:
@@ -78,3 +82,21 @@ for dataName in dataNames:
         if layer in hiddenLayers:
             legend = iface.legendInterface()  # access the legend
             legend.setLayerVisible(qgisLayer, False)  # hide the layer
+ 
+# Load the google maps background (I just copied that from a forum)
+mapProvider = 'OpenStreetMap' #also use e.g. 'OpenStreetMap', 'Bing Maps' etc. as given in the Web->OpenLayers plugin menu
+openLayersMap = 'OpenStreetMap' #also use e.g. 'Google Streets', 'OpenStreetMap', 'Bing Road' etc. as given in the Web->OpenLayers plugin menu
+
+webMenu = qgis.utils.iface.webMenu() #get object of the Web menu of QGIS
+
+for webMenuItem in webMenu.actions(): #open the Web menu of QGIS and loop through the list of web plugins
+    if 'OpenLayers plugin' in webMenuItem.text(): #look for OpenLayers plugin entry in the Web menu
+        openLayersMenu = webMenuItem #and open it
+
+        for openLayersMenuItem in openLayersMenu.menu().actions(): #open the OpenLayers plugin menu entry and loop through the list of map providers
+            if mapProvider in openLayersMenuItem.text(): #if the desired mapProvider is found
+                mapProviderMenu = openLayersMenuItem #open its menu entry
+
+                for map in mapProviderMenu.menu().actions(): #loop through the list of maps for the opened provider
+                    if openLayersMap in map.text(): #if the desired map entry is found
+                        map.trigger() #click the entry to load the map as a layer

@@ -37,7 +37,6 @@ from trackintel.geogr.distances import haversine_dist
 from scipy.spatial.distance import euclidean
 from fastdtw import fastdtw
 
-global mac
 
 def getDataPaths(participantId):
     rootPath = "../../4-Collection/DataParticipants/"
@@ -569,13 +568,9 @@ def selectRange(dataPathLoc,dataPathTrip, mac, dateStart = 'beginning', dateEnd 
     endYear = pd.to_datetime(dateEnd,  unit='ms').year
     startMonth = pd.to_datetime(dateStart,  unit='ms').month
     endMonth = pd.to_datetime(dateEnd,  unit='ms').month
-<<<<<<< HEAD
     
     newDataPathTrip = newPath + "Semantic Location History" + slash
-=======
 
-    newDataPathTrip = newPath + "Semantic Location History\\"
->>>>>>> 49b5d445ba58d7c562f61ee6ff0cb4298bc7a322
     if not(os.path.exists(newDataPathTrip)):
         os.makedirs(newDataPathTrip)
     
@@ -671,6 +666,23 @@ def findSemanticInfo(places, plcs):
             plcs.loc[idx,'placeName'] = places.loc[minIdx,'placeName']
     return plcs
 
+def removeLongTrips(trps, trpsCount):
+    for idx in trpsCount.index:
+        trpIds = []
+        for jdx in trpsCount.loc[idx,'trpIds']:
+            # Check if the trip is too long:
+            if trps.loc[jdx,"geom"].length < 4*trpsCount.loc[idx,'geom'].length:
+                trpIds.append(jdx)
+            else:
+                trps = trps.drop(jdx)   
+        if len(trpIds) == 0:
+            trpsCount = trpsCount.drop(idx)
+        else:
+            trpsCount.at[idx,'trpIds'] = trpIds
+            trpsCount.at[idx,'count'] = len(trpIds)
+    return trps, trpsCount
+    
+    
 def savecsv4js(places, trips, tripsSchematic):
     places['city'] = 'Zurich'
     places['state'] = 'Zurich'

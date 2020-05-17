@@ -30,9 +30,9 @@ from trackintel.geogr.distances import haversine_dist
 
 #import noiserm_functions as nrm
 dataNameList = ["1","2","3","4","5","6","7","17","20","25","28"]
-dataName = '2'
+dataName = '1'
 
-mac = False
+mac = True
 
 SELECT_RANGE =      True
 FIND_STAY_POINTS =  True
@@ -40,9 +40,8 @@ FIND_PLACES =       True
 FIND_TRIPS =        True
 FIND_SEMANTIC_INFO =True
 CLUSTER_TRPS =      True
-EXPORT_GPX =        True
-API_CALL =          True
-CHECK_NB_POINTS =   False
+EXPORT_GPX =        False
+API_CALL =          False
 
 exportShp =         True
 loadTh =            False
@@ -60,10 +59,10 @@ HomeWorkStat =      True
 
 # Then read the data after the second time
 # staythred = pd.read_csv('../data/csv'+'/StayDiffStat.csv') 
-staythredrange = pd.read_csv('../data/csv'+'/StayDiffStatRange.csv') 
+staythredrange = pd.read_csv('../data_plcs/csv'+'/StayDiffStatRange.csv') 
 
 # dfStatistics = calstat.accuracyStat(dataName, dataNameList, dateStart, dateEnd)
-dfStatistics = pd.read_csv('../data/statistics.csv',sep=";")
+dfStatistics = pd.read_csv('../data_plcs/statistics.csv',sep=";")
 
 # staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
 # staythredrange[staythredrange['dataName']==int(dataName)]['time_quarter'][dataNameList.index(dataName)],
@@ -75,7 +74,7 @@ thresholds = {
     "minDist" : 0,
     "minPoints" : 0,
     "minDistTh" : 0.2, 
-    "factorTh" : 3,
+    "factorTh" : 2,
     "dateStart": "2020-01-01",
     "dateEnd": "end"
     }
@@ -138,6 +137,8 @@ if FIND_STAY_POINTS:
 minPnts = math.ceil(len(stps)/100)
 if (minPnts >= 5):
     thresholds["minPoints"] = 5
+#elif (minPnts < 2):
+#    thresholds["minPoints"] = 2
 else:
     thresholds["minPoints"] = minPnts
     
@@ -158,7 +159,7 @@ if FIND_PLACES:
 if FIND_SEMANTIC_INFO:
     places = tripsgdf[tripsgdf['Type']=='placeVisit']
     places.drop_duplicates(subset ="placeId", keep = 'first', inplace = True) 
-    
+    places = places[~places.geometry.is_empty]
     
     plcs = hlp.findSemanticInfo(places, plcs)
             
@@ -185,17 +186,17 @@ if FIND_TRIPS:
     print("-> Finding the trips ")
 
     tpls, trps, trpsCount = main.findTrips(pfs, stps, plcs, dataName)
-    
+        
     if exportShp:
         tpls_shp = tpls.copy()
         tpls_shp['started_at'] = tpls_shp['started_at'].astype(str)
         tpls_shp['finished_at'] = tpls_shp['finished_at'].astype(str)
         tpls_shp.to_file('../data/shp/'+dataName +'/Triplegs.shp')
         
-        #trps_shp = trps.copy()
-        #trps_shp['started_at'] = trps_shp['started_at'].astype(str)
-        #trps_shp['finished_at'] = trps_shp['finished_at'].astype(str)
-        #trps_shp.to_file('../data/shp/'+dataName +'/Trips.shp')
+        trps_shp = trps.copy()
+        trps_shp['started_at'] = trps_shp['started_at'].astype(str)
+        trps_shp['finished_at'] = trps_shp['finished_at'].astype(str)
+        trps_shp.to_file('../data/shp/'+dataName +'/Trips.shp')
         
         trpsCount_shp = trpsCount.copy()
         trpsCount_shp['count'] = trpsCount_shp['count'].astype(int)
@@ -207,13 +208,15 @@ if FIND_TRIPS:
 if CLUSTER_TRPS:
     print("-> Cluster the trips")
 
-    trps, trpsAgr = main.clusterTrips(trps, trpsCount, thresholds["minDistTh"], thresholds["factorTh"], dataName)
+    trpsShort, trpsCount = hlp.removeLongTrips(trps, trpsCount)
+    trpsShort, trpsAgr = main.clusterTrips(trpsShort, trpsCount, thresholds["minDistTh"], thresholds["factorTh"], dataName, saveDendogramms=True)
+    #trps, trpsAgr = main.clusterTrips(trps, trpsCount, 0.2, 2, dataName, saveDendogramms=True)
 
     if exportShp:
-        trps_shp = trps.copy()
-        trps_shp['started_at'] = stps_shp['started_at'].astype(str)
-        trps_shp['finished_at'] = stps_shp['finished_at'].astype(str)
-        trps_shp.to_file('../data/shp/'+dataName +'/Trips.shp')
+        #trpsShort_shp = trpsShort.copy()
+        #trpsShort_shp['started_at'] = trpsShort_shp['started_at'].astype(str)
+        #trpsShort_shp['finished_at'] = trpsShort_shp['finished_at'].astype(str)
+        #trpsShort_shp.to_file('../data/shp/'+dataName +'/TripsShort.shp')
         
         trpsAgr_shp = trpsAgr.copy()
         trpsAgr_shp['weight'] = trpsAgr_shp['weight'].astype(int)
