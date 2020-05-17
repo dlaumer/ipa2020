@@ -29,10 +29,10 @@ import api_call as api
 from trackintel.geogr.distances import haversine_dist
 
 #import noiserm_functions as nrm
-dataNameList = ["1","2","3","4","5","6","17","20","25","28"]
-dataName = '1'
+dataNameList = ["1","2","3","4","5","6","7","17","20","25","28"]
+dataName = '2'
 
-mac = True
+mac = False
 
 SELECT_RANGE =      True
 FIND_STAY_POINTS =  True
@@ -52,41 +52,55 @@ TransmodeStat =     True
 HomeWorkStat =      True
 
 #%%
+# For the first time, run the following four lines to save the data
 # dateStart = '2020-01-01'
 # dateEnd = 'end'
 # stythred = thred.stydiffstat(dataNameList, SELECT_RANGE, dateStart, dateEnd)
 # stythred.to_csv('../data/csv'+'/StayDiffStatRange.csv', index=False)
 
+# Then read the data after the second time
 # staythred = pd.read_csv('../data/csv'+'/StayDiffStat.csv') 
-# staythredrange = pd.read_csv('../data/csv'+'/StayDiffStatRange.csv') 
+staythredrange = pd.read_csv('../data/csv'+'/StayDiffStatRange.csv') 
+
+# dfStatistics = calstat.accuracyStat(dataName, dataNameList, dateStart, dateEnd)
+dfStatistics = pd.read_csv('../data/statistics.csv',sep=";")
+
 # staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
 # staythredrange[staythredrange['dataName']==int(dataName)]['time_quarter'][dataNameList.index(dataName)],
 
 thresholds = {
-    "accuracy_threshold" : 30,
-    "dist_threshold" : 50,
+    "accuracy_threshold" : 0,
+    "dist_threshold" : 0,
     "time_threshold" : 5*60, #staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
-    "minDist" : 15,
-    "minPoints" : 2,
+    "minDist" : 0,
+    "minPoints" : 0,
     "minDistTh" : 0.2, 
     "factorTh" : 3,
     "dateStart": "2020-01-01",
     "dateEnd": "end"
     }
 
+#%% Choose thresholds
+dataStat = dfStatistics[dfStatistics['id']==int(dataName)]
+
+if (dataStat['ThreeQuatile'][dataNameList.index(dataName)] < 40):
+    thresholds['accuracy_threshold'] = 40
+else:
+    thresholds['accuracy_threshold'] = dataStat['ThreeQuatile'][dataNameList.index(dataName)]
+
+if (thresholds['accuracy_threshold'] < 50):
+    thresholds['dist_threshold'] = 50
+else:
+    thresholds['dist_threshold'] = thresholds['accuracy_threshold']
+
+thresholds['minDist'] = thresholds['accuracy_threshold']
+
 #with open('../data/thresholds/' + dataName + '.json', 'w') as outfile:
 #    json.dump(thresholds, outfile)
 
-if loadTh:   
-    with open('../data/thresholds/' + dataName + '.json', 'r') as file:
-        thresholds = json.load(file)
-
-
-#dfStatistics = calstat.accuracyStat(dataName, dataNameList, thresholds["dateStart"], thresholds["dateEnd"])
-
-dfStatistics = calstat.accuracyStat(dataName, dataNameList, thresholds["dateStart"], thresholds["dateEnd"])
-# dfStatistics = pd.read_csv('../data/statistics.csv')
-
+# if loadTh:   
+#     with open('../data/thresholds/' + dataName + '.json', 'r') as file:
+#         thresholds = json.load(file)
 
  #%% IMPORT DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 print("-> Loading the data")
@@ -121,6 +135,12 @@ if FIND_STAY_POINTS:
         stps_shp.to_file('../data/shp/'+dataName +'/Staypoints.shp')
         
 #%% FIND PLACES (CLUSTER OF STAY POINTS)
+minPnts = math.ceil(len(stps)/100)
+if (minPnts >= 5):
+    thresholds["minPoints"] = 5
+else:
+    thresholds["minPoints"] = minPnts
+    
 if FIND_PLACES:
     print("-> Finding the places ")
 
@@ -149,14 +169,17 @@ if FIND_SEMANTIC_INFO:
  
 #%%
 if TimelineStat:
-    calstat.plcsStayHour(stps, plcs, dataName)
+    plcs = calstat.plcsStayHour(stps, plcs, dataName)
 
+#%
+if HomeWorkStat:
+    homeworkplcs = calstat.homeworkStay(stps, dataName, thresholds["minDist"], thresholds["minPoints"])
+
+#%
 if TransmodeStat:
     transtat = calstat.pieChartInfoPlus(trips)
     calstat.transModeCsv(transtat, dataName)
 
-if HomeWorkStat:
-    calstat.homeworkStay(pfs, dataName, thresholds["dist_threshold"], thresholds["time_threshold"], thresholds["minDist"], thresholds["minPoints"])
 #%% Find trips from staypoints
 if FIND_TRIPS:
     print("-> Finding the trips ")
