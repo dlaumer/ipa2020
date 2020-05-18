@@ -48,7 +48,7 @@ def readFile(path):
         data = file.read()
     return data
 
-def apiCall(dataname, scenarioNumber):
+def apiCall(dataname, scenarioNumber, homeCoords):
     #%% Set variables: 
     urlCore = 'https://renderingapi.azurewebsites.net/api/'
     userId = "3cfb3bd4-add1-4460-8955-88e7eec7cb3b"
@@ -69,7 +69,13 @@ def apiCall(dataname, scenarioNumber):
         fileContent = readFile('../data/gpx/' + dataname + '/' + gpxFile)
         gpsFileIds.append(putResponse(urlImport, fileContent))
     
-    aeFile = readFile('../data/ETH1.json')
+    aeFile = readFile('../data/Timeline.json')
+    aeFileJson = json.loads(aeFile)
+    aeFileJson["fishEye"]["centerLat"] = homeCoords[1]
+    aeFileJson["fishEye"]["centerLon"] = homeCoords[0]
+    
+    aeFile = json.dumps(aeFileJson)
+    
     aeFileId = putResponse(urlImport, aeFile)
     
     

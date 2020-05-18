@@ -80,6 +80,13 @@ body {
 
 #time {
   text-align:center;
+  width:80%;
+}
+#zoomAll {
+  width:100%;
+  height: 30px;
+  background-color: #1F407A;
+  text-align:center;
 }
 
 .boxes {
@@ -87,7 +94,7 @@ body {
   min-width: 200px; 
   margin:5px;
   padding: 5px 0;
-  text-align: center; 
+  
   -webkit-border-radius: 5px;
   -moz-border-radius: 5px;
   border-radius: 5px;
@@ -95,6 +102,26 @@ body {
   -moz-box-shadow: #666 0px 1px 1px;
   box-shadow: #666 0px 1px 1px;
   background: #1F407A;
+}
+
+.innerBox {
+  width:90%;
+  float:left;
+  text-align: center; 
+}
+
+img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: cover;
+  overflow: hidden;
+}
+
+.zoom {
+  position: relative;
+  width: 10%;
+  height: 100%;
+  float: right;
 }
 
 .boxes:hover {
