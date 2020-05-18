@@ -86,8 +86,8 @@ def extract_staypoints_ipa(positionfixes, method='sliding',
                     if (dist > dist_threshold): # for the last point, 
                     # as long as stay time reaches the time threshold, it is a stay point,
                     # since user can no longer move to the next point based on data
-                        delta_t = pfs[j]['tracked_at'] - pfs[i]['tracked_at']
-                        if delta_t.total_seconds() > time_threshold:
+                        delta_t = (pfs[j]['tracked_at'] - pfs[i]['tracked_at']).total_seconds()
+                        if (delta_t > time_threshold):
                             staypoint = {}
                             staypoint['user_id'] = pfs[i]['user_id']
                             staypoint['geom'] = Point(np.mean([pfs[k]['geom'].x for k in range(i, j)]),
@@ -194,6 +194,28 @@ def extract_staypoints_ipa(positionfixes, method='sliding',
     ret_staypoints = gpd.GeoDataFrame(ret_staypoints, geometry='geom',
                                       crs=positionfixes.crs)
     ret_staypoints['id'] = ret_staypoints['id'].astype('int')
+    
+    hrdelta = []
+    numstps = len(ret_staypoints)
+    for i in range(0,numstps):
+        hri = round((ret_staypoints['finished_at'].iloc[i] - ret_staypoints['started_at'].iloc[i]).total_seconds()/3600,1)
+        hrdelta.append(hri)
+    
+    from datetime import timedelta
+        
+    for i in range(0,numstps):
+        if(hrdelta[i] >= 24):
+            rep = int(hrdelta[i] // 24)
+            for j in range(0,rep):
+                ret_staypoints.loc[j+numstps] = ret_staypoints.iloc[i]
+                ret_staypoints['started_at'].iloc[j+numstps] = ret_staypoints['started_at'].iloc[i] + timedelta(days=j+1)
+                ret_staypoints['finished_at'].iloc[j+numstps] = ret_staypoints['started_at'].iloc[j+numstps] + timedelta(days=1)
+                if (j==rep-1):
+                    ret_staypoints['finished_at'].iloc[j+numstps] = ret_staypoints['finished_at'].iloc[i]
+            ret_staypoints['finished_at'].iloc[i] = ret_staypoints['started_at'].iloc[i] + timedelta(days=1)
+    
+    ret_staypoints['id'] = ret_staypoints.index
+    
     return ret_staypoints
 
 
