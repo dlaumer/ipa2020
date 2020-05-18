@@ -33,7 +33,7 @@ from trackintel.geogr.distances import haversine_dist
 dataNameList = ["1","2","3","4","5","6","7","17","20","25","28"]
 dataName = '1'
 
-mac = False
+mac = True
 
 SELECT_RANGE =      True
 FIND_STAY_POINTS =  True
@@ -43,6 +43,7 @@ FIND_SEMANTIC_INFO =True
 CLUSTER_TRPS =      True
 EXPORT_GPX =        False
 API_CALL =          False
+EXPORT_FOR_DASHBOARD = False
 
 exportShp =         True
 loadTh =            False
@@ -50,6 +51,18 @@ loadTh =            False
 TimelineStat =      True
 TransmodeStat =     True
 HomeWorkStat =      True
+
+#%% LOAD ALL SAVED THRESHOLDS
+import ast
+
+inputFile = open("../data/stat/thresholds.txt", "r")
+lines = inputFile.readlines()
+
+objects = []
+for line in lines:
+    objects.append( ast.literal_eval(line) )
+
+allthresholds = objects[0]
 
 #%%
 # For the first time, run the following four lines to save the data
@@ -68,6 +81,8 @@ dfStatistics = pd.read_csv('../data/statistics.csv',sep=";")
 # staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
 # staythredrange[staythredrange['dataName']==int(dataName)]['time_quarter'][dataNameList.index(dataName)],
 
+#allthresholds = {}
+
 thresholds = {
     "accuracy_threshold" : 0,
     "dist_threshold" : 0,
@@ -80,6 +95,7 @@ thresholds = {
     "dateStart": "2020-01-01",
     "dateEnd": "end"
     }
+
 
 #%% Choose thresholds
 dataStat = dfStatistics[dfStatistics['id']==int(dataName)]
@@ -95,6 +111,9 @@ else:
     thresholds['dist_threshold'] = thresholds['accuracy_threshold']
 
 thresholds['minDist'] = thresholds['accuracy_threshold']
+#thresholds['accuracy_threshold'] = 3000
+
+
 
 #with open('../data/thresholds/' + dataName + '.json', 'w') as outfile:
 #    json.dump(thresholds, outfile)
@@ -136,15 +155,16 @@ if FIND_STAY_POINTS:
         stps_shp.to_file('../data/shp/'+dataName +'/Staypoints.shp')
 
 stps['t_diff'] = stps['finished_at'] - stps['started_at']
+
 #%% FIND PLACES (CLUSTER OF STAY POINTS)
 minPnts = math.ceil(len(stps)/100)
 if (minPnts >= 5):
     thresholds["minPoints"] = 5
-# elif (minPnts < 2):
-#     thresholds["minPoints"] = 2
+elif (minPnts < 2):
+      thresholds["minPoints"] = 2
 else:
     thresholds["minPoints"] = minPnts
-    
+#thresholds["minPoints"] = 1
 
 if FIND_PLACES:
     print("-> Finding the places ")
@@ -209,6 +229,16 @@ if FIND_TRIPS:
         
       
 #%% Cluster the trips
+        
+# thresholds["minDistTh"] = 1
+# thresholds["factorTh"] = 2
+
+# allthresholds[dataName] = thresholds
+# outputFile = open("../data/stat/thresholds.txt", "w")
+# outputFile.write(str(allthresholds))
+# outputFile.flush()
+# outputFile.close()
+
 if CLUSTER_TRPS:
     print("-> Cluster the trips")
 
@@ -228,9 +258,6 @@ if CLUSTER_TRPS:
 
     
  #%% EXPORT GPX %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-EXPORT_GPX =        True
-API_CALL =          True
-
 if EXPORT_GPX:
     print("-> Export to GPX")
     for idx in trpsAgr.index:
@@ -246,8 +273,10 @@ if EXPORT_GPX:
 #%%
 if API_CALL:
     print("-> Calling the API from Hitouch")
-
-    api.apiCall(dataName, 100 + int(dataName))
+    homes = homeworkplcs.loc[homeworkplcs['id']=='home']
+    homeCoords = homes.loc[homes['totalStayHrs'].idxmax()].center.coords[:][0]
+    
+    api.apiCall(dataName, 100 + int(dataName), homeCoords)
     tripsAgrSchematic = api.readApiCall(trpsAgr.copy(), 100+int(dataName))
     
     trpsAgrSchematic_shp = tripsAgrSchematic.copy()
@@ -255,6 +284,7 @@ if API_CALL:
     trpsAgrSchematic_shp.to_file('../data/shp/'+dataName +'/TripsAggregatedSchemtic.shp')
 
 #%%
+if EXPORT_FOR_DASHBOARD:
     drops = []
     for i in plcs.index:
         if plcs.loc[i,'place_id'] not in set(trpsAgr['start_plc']) and plcs.loc[i,'place_id'] not in set(trpsAgr['end_plc']):

@@ -660,10 +660,12 @@ def findSemanticInfo(places, plcs):
                 minDist = dist
                 minIdx = jdx
                 
-        a = plcs.loc[idx,'extent'].bounds
-        extent = haversine_dist(a[0],a[1],a[2],a[3])
-        if minDist < 3*extent:
+        #a = plcs.loc[idx,'extent'].bounds
+        #extent = haversine_dist(a[0],a[1],a[2],a[3])
+        if minDist < 300:
             plcs.loc[idx,'placeName'] = places.loc[minIdx,'placeName']
+        else:
+            plcs.loc[idx,'placeName'] = "Place #" + str(idx)
     return plcs
 
 def removeLongTrips(trps, trpsCount):

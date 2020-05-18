@@ -35,12 +35,17 @@ var map = new mapboxgl.Map({
 
 var legendControl = map.addControl(new mapboxgl.NavigationControl());
 class MyCustomControl {
+  
+  constructor(id,textContent){
+    this.id = id;
+    this.textContent = textContent
+  }
   onAdd(map){
     this.map = map;
     this.container = document.createElement('button');
-    this.container.id = "changeMapButton";
+    this.container.id = this.id;
     this.container.className = 'mapboxgl-ctrl my-custom-control';
-    this.container.textContent = 'Change Map';
+    this.container.textContent = this.textContent;
     this.container.type = "button";
     return this.container;
   }
@@ -50,11 +55,13 @@ class MyCustomControl {
   }
 }
 
-const myCustomControl = new MyCustomControl();
-
+const myCustomControl = new MyCustomControl("changeMapButton","Change Map");
+const myCustomControl2 = new MyCustomControl("zoomAll","Zoom Map");
 map.addControl(myCustomControl, 'top-left');
+map.addControl(myCustomControl2, 'top-left');
 
 document.getElementById("changeMapButton").addEventListener('click', event => { changeData() });
+document.getElementById("zoomAll").addEventListener('click', event => { zoomToAll() });
 
 // re-render our visualization whenever the view changes
 map.on("viewreset", function () {
@@ -217,6 +224,7 @@ var placeIdOfBox;
 var maxCount;
 var mapBlank = true;
 var geomMap = true;
+var extents;
 
 // load the place and trip data together
 let promises = [
@@ -240,6 +248,8 @@ function processData(values) {
   homeworkbal = values[4];
   transportationmode = values[5];
 
+  extents = getExtentofPlaces(places)
+
   HomeWorkData = [];
   HomeWorkSeries = [];
   transportationData = [];
@@ -253,9 +263,11 @@ function processData(values) {
 
   for (let i = 1; i < 11; i++) {
     document.getElementById("box-" + i).addEventListener('click', event => { updateTimeline(placeIdOfBox[i]) });
-    document.getElementById("box-" + i).addEventListener("mouseover", event => { mousoverFunction(placeIdOfBox[i]) });
-    document.getElementById("box-" + i).addEventListener("mouseout", event => { mouseoutFunction(placeIdOfBox[i]) });
+    document.getElementById("zoom-" + i).addEventListener('click', event => { updateZoom(placeIdOfBox[i]) });
+    document.getElementById("box-" + i).parentNode.addEventListener("mouseover", event => { mousoverFunction(placeIdOfBox[i]) });
+    document.getElementById("box-" + i).parentNode.addEventListener("mouseout", event => { mouseoutFunction(placeIdOfBox[i]) });
   }
+
 
   console.log("places: " + places.length);
   console.log(" trips: " + trips.length);
@@ -365,14 +377,13 @@ function processData(values) {
   // console.log(transportationSeries);
   // console.log(HomeWorkSeries);
   drawTransPieChart(transportationSeries);
+
+  zoomToAll();
 }
 
 // FUNCTIONS ////////////////////////////////////////////////////////////////////////////////////
 
 function drawTimeline() {
-
-  // TIMELINE PLOT
-  updateTimeline('1')
 
   // Parse the Data
   // X axis
@@ -415,13 +426,15 @@ function fillPlacesBoxes() {
   while (count < 11) {
     var maxIdx = values.indexOf(Math.max.apply(Math, values))
     var placeId = keys[maxIdx];
-    values.splice(maxIdx, 1);
-    keys.splice(maxIdx, 1);
+    
     placeIdOfBox[count] = placeId;
     document.getElementById("box-" + count).innerHTML = semanticInfo[placeId] + ", Time: " + Math.round(Math.max.apply(Math, values));
     if (count == 1) {
       maxCount = Math.max.apply(Math, values);
+      updateTimeline(placeIdOfBox[count])
     }
+    values.splice(maxIdx, 1);
+    keys.splice(maxIdx, 1);
     count++;
   }
 
@@ -446,10 +459,10 @@ function colorPlacesBoxes(startTime, endTime) {
   var timeData = getPlaceTime(startTime, endTime);
   delete timeData.group;
   var color = d3.scaleLinear()
-    .domain([0, Math.max.apply(Math, Object.values(timeData))])
+    .domain([0, Math.log(Math.max.apply(Math, Object.values(timeData)))])
     .range(["#ffffff ", "#1F407A"]);
   for (let i = 1; i < 11; i++) {
-    document.getElementById("box-" + i).style.backgroundColor = color(timeData[placeIdOfBox[i]]);
+    document.getElementById("box-" + i).parentNode.style.backgroundColor = color(Math.log(timeData[placeIdOfBox[i]]));
     document.getElementById("box-" + i).innerHTML = semanticInfo[placeIdOfBox[i]] + ", Time: " + Math.round(timeData[placeIdOfBox[i]]);
 
   }
@@ -504,10 +517,10 @@ function drawPlaces(places) {
       d.bubble = this;
     })
     .on("mouseover", function (d, i) {
-      mousoverFunction(i);
+      mousoverFunction(d.placeId);
     })
     .on("mouseout", function (d, i) {
-      mouseoutFunction(i)
+      mouseoutFunction(d.placeId)
     })
     .on("click", function (d) {
       updateTimeline(d.placeId);
@@ -775,11 +788,11 @@ function updateTimeline(selectedVar) {
   order = 0;
   for (let i = 1; i < 11; i++) {
     if (placeIdOfBox[i] == selectedVar) {
-      document.getElementById("box-" + i).style.order = order;
+      document.getElementById("box-" + i).parentNode.style.order = order;
       order += 2;
     }
     else {
-      document.getElementById("box-" + i).style.order = order;
+      document.getElementById("box-" + i).parentNode.style.order = order;
     }
   }
 
@@ -819,6 +832,19 @@ function updateTimeline(selectedVar) {
     .attr("height", function (d) { return heightTimeline - yScale(d[selectedVar]); })
     .attr("fill", "#1F407A")
     .attr("class", "bars")
+
+
+  
+}
+
+function updateZoom(selectedVar) {
+  let place =  placeId.get(selectedVar);
+  if (!mapBlank){
+    map.flyTo({ center: [place.longitude,place.latitude] ,zoom: 16})
+  }
+  else{
+    map.flyTo({ center: [place.longitudeSchematic,place.latitudeSchematic] ,zoom: 16})
+  }
 }
 
 function brushend() {
@@ -863,7 +889,7 @@ function mousoverFunction(i) {
 
     // set default tooltip positioning
     tooltip.attr("text-anchor", "middle");
-    tooltip.attr("dy", -scales.places(place.outgoing) - 10);
+    tooltip.attr("dy", -scales.places(place.outgoing));
     tooltip.attr("x", x);
     tooltip.attr("y", y - scales.places(place.outgoing));
 
@@ -942,9 +968,11 @@ function changeData() {
   mapBlank = !mapBlank;
   if (!mapBlank) {
     map.setStyle('mapbox://styles/mapbox/light-v10');
+    extent = extents[0];
   }
   else {
     map.setStyle('mapbox://styles/dlaumer/ck9viuh1c0ysh1irw0jadcwgc');
+    extent = extents[1];
   }
 
   bubbles.remove();
@@ -973,10 +1001,29 @@ function changeData() {
         endall();
       }
     })
+
+  
   function endall() {
     drawTrips(places, trips);
-    drawPlaces(places)
+    drawPlaces(places);
+    zoomToAll();
   }
+}
+
+function zoomToAll(){
+  if (!mapBlank) {
+    extent = extents[0];
+  }
+  else {
+    extent = extents[1];
+  }
+  map.fitBounds(extent,{
+    padding: {
+    top: 50,
+    bottom: 50,
+    left: 50,
+    right: 50
+}});
 }
 
 // Negative stacked bar graph: Home and Work Balance
@@ -1194,4 +1241,21 @@ d3.selectAll(".flex-item")
 });
 
 
+function getExtentofPlaces(places) {
+  var lats = [],
+  lons = [],
+  latsSchem = []
+  lonsSchem = []
+  for (var i = 0;i<places.length;i++) {
+    lats.push(places[i].latitude);
+    lons.push(places[i].longitude);
+    latsSchem.push(places[i].latitudeSchematic);
+    lonsSchem.push(places[i].longitudeSchematic);
+  }
 
+  extentPlaces =  [[Math.min.apply(null, lons), Math.min.apply(null, lats)],
+                  [Math.max.apply(null, lons), Math.max.apply(null, lats)]];
+  extentPlacesSchematic =  [[Math.min.apply(null, lonsSchem), Math.min.apply(null, latsSchem)],
+                            [Math.max.apply(null, lonsSchem), Math.max.apply(null, latsSchem)]];
+  return [extentPlaces, extentPlacesSchematic]
+}
