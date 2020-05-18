@@ -69,7 +69,7 @@ def apiCall(dataname, scenarioNumber, homeCoords):
         fileContent = readFile('../data/gpx/' + dataname + '/' + gpxFile)
         gpsFileIds.append(putResponse(urlImport, fileContent))
     
-    aeFile = readFile('../data/Timeline.json')
+    aeFile = readFile('../data/ETH1.json')
     aeFileJson = json.loads(aeFile)
     aeFileJson["fishEye"]["centerLat"] = homeCoords[1]
     aeFileJson["fishEye"]["centerLon"] = homeCoords[0]

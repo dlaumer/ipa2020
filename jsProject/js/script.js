@@ -58,7 +58,7 @@ class MyCustomControl {
 const myCustomControl = new MyCustomControl("changeMapButton","Change Map");
 const myCustomControl2 = new MyCustomControl("zoomAll","Zoom Map");
 map.addControl(myCustomControl, 'top-left');
-map.addControl(myCustomControl2, 'bottom-left');
+map.addControl(myCustomControl2, 'top-left');
 
 document.getElementById("changeMapButton").addEventListener('click', event => { changeData() });
 document.getElementById("zoomAll").addEventListener('click', event => { zoomToAll() });
@@ -264,8 +264,8 @@ function processData(values) {
   for (let i = 1; i < 11; i++) {
     document.getElementById("box-" + i).addEventListener('click', event => { updateTimeline(placeIdOfBox[i]) });
     document.getElementById("zoom-" + i).addEventListener('click', event => { updateZoom(placeIdOfBox[i]) });
-    document.getElementById("box-" + i).addEventListener("mouseover", event => { mousoverFunction(placeIdOfBox[i]) });
-    document.getElementById("box-" + i).addEventListener("mouseout", event => { mouseoutFunction(placeIdOfBox[i]) });
+    document.getElementById("box-" + i).parentNode.addEventListener("mouseover", event => { mousoverFunction(placeIdOfBox[i]) });
+    document.getElementById("box-" + i).parentNode.addEventListener("mouseout", event => { mouseoutFunction(placeIdOfBox[i]) });
   }
 
 
@@ -385,9 +385,6 @@ function processData(values) {
 
 function drawTimeline() {
 
-  // TIMELINE PLOT
-  updateTimeline('1')
-
   // Parse the Data
   // X axis
   
@@ -429,13 +426,15 @@ function fillPlacesBoxes() {
   while (count < 11) {
     var maxIdx = values.indexOf(Math.max.apply(Math, values))
     var placeId = keys[maxIdx];
-    values.splice(maxIdx, 1);
-    keys.splice(maxIdx, 1);
+    
     placeIdOfBox[count] = placeId;
     document.getElementById("box-" + count).innerHTML = semanticInfo[placeId] + ", Time: " + Math.round(Math.max.apply(Math, values));
     if (count == 1) {
       maxCount = Math.max.apply(Math, values);
+      updateTimeline(placeIdOfBox[count])
     }
+    values.splice(maxIdx, 1);
+    keys.splice(maxIdx, 1);
     count++;
   }
 
@@ -460,11 +459,11 @@ function colorPlacesBoxes(startTime, endTime) {
   var timeData = getPlaceTime(startTime, endTime);
   delete timeData.group;
   var color = d3.scaleLinear()
-    .domain([0, Math.max.apply(Math, Object.values(timeData))])
+    .domain([0, Math.log(Math.max.apply(Math, Object.values(timeData)))])
     .range(["#ffffff ", "#1F407A"]);
   for (let i = 1; i < 11; i++) {
-    document.getElementById("box-" + i).parentNode.style.backgroundColor = color(timeData[placeIdOfBox[i]]);
-    document.getElementById("box-" + i).innerHtml = semanticInfo[placeIdOfBox[i]] + ", Time: " + Math.round(timeData[placeIdOfBox[i]]);
+    document.getElementById("box-" + i).parentNode.style.backgroundColor = color(Math.log(timeData[placeIdOfBox[i]]));
+    document.getElementById("box-" + i).innerHTML = semanticInfo[placeIdOfBox[i]] + ", Time: " + Math.round(timeData[placeIdOfBox[i]]);
 
   }
 
@@ -518,10 +517,10 @@ function drawPlaces(places) {
       d.bubble = this;
     })
     .on("mouseover", function (d, i) {
-      mousoverFunction(i);
+      mousoverFunction(d.placeId);
     })
     .on("mouseout", function (d, i) {
-      mouseoutFunction(i)
+      mouseoutFunction(d.placeId)
     })
     .on("click", function (d) {
       updateTimeline(d.placeId);
@@ -839,11 +838,12 @@ function updateTimeline(selectedVar) {
 }
 
 function updateZoom(selectedVar) {
+  let place =  placeId.get(selectedVar);
   if (!mapBlank){
-    map.flyTo({ center: [places[selectedVar].longitude,places[selectedVar].latitude] ,zoom: 18})
+    map.flyTo({ center: [place.longitude,place.latitude] ,zoom: 16})
   }
   else{
-    map.flyTo({ center: [places[selectedVar].longitudeSchematic,places[selectedVar].latitudeSchematic] ,zoom: 18})
+    map.flyTo({ center: [place.longitudeSchematic,place.latitudeSchematic] ,zoom: 16})
   }
 }
 
@@ -889,7 +889,7 @@ function mousoverFunction(i) {
 
     // set default tooltip positioning
     tooltip.attr("text-anchor", "middle");
-    tooltip.attr("dy", -scales.places(place.outgoing) - 10);
+    tooltip.attr("dy", -scales.places(place.outgoing));
     tooltip.attr("x", x);
     tooltip.attr("y", y - scales.places(place.outgoing));
 
@@ -1019,10 +1019,10 @@ function zoomToAll(){
   }
   map.fitBounds(extent,{
     padding: {
-    top: 20,
-    bottom: 20,
-    left: 20,
-    right: 20
+    top: 50,
+    bottom: 50,
+    left: 50,
+    right: 50
 }});
 }
 
