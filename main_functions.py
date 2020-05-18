@@ -91,7 +91,10 @@ def findTrips(pfs, stps, plcs, dataName):
             
         if (endPlace != -1) and tplTemp:
             endCoord = plcs.loc[endPlace-1,'center'].coords[:]
-            coordsCombined =  coordsCombined[:-1] + coords[:-1] + endCoord
+            if (startPlace != -1):
+                coordsCombined =  coordsCombined[:-1] + endCoord
+            else:
+                coordsCombined =  coordsCombined[:-1] + coords[:-1] + endCoord
             
             tplTemp["finished_at"] = tpls.loc[i,'finished_at']
             tplTemp["geom"] = LineString(coordsCombined)

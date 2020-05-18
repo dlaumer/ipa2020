@@ -48,11 +48,10 @@ def readFile(path):
         data = file.read()
     return data
 
-def apiCall(scenarioNumber):
+def apiCall(dataname, scenarioNumber):
     #%% Set variables: 
     urlCore = 'https://renderingapi.azurewebsites.net/api/'
     userId = "3cfb3bd4-add1-4460-8955-88e7eec7cb3b"
-    dataname = "1"
     for root,dirs,files in os.walk("../data/gpx/" + dataname + "/"):
        gpxFiles = files
        break
@@ -89,21 +88,22 @@ def apiCall(scenarioNumber):
     urlExecute = urlCore + 'import/' + importID + '/execute'
     networkId = putResponse(urlExecute, scFile)
     
-    #webbrowser.open("https://network.zpheres.com/" + networkId)
+    webbrowser.open("https://network.zpheres.com/" + networkId)
     
     urlDownloadGPX = urlCore + 'network/' + networkId + '/gpx'
     gpxData = requests.get(urlDownloadGPX)  # Get the response 
     z = zipfile.ZipFile(io.BytesIO(gpxData.content))
     
-    dataPath = "../data/gpxAPI/"
-    shutil.rmtree(dataPath)
+    dataPath = "../data/gpxAPI/"+str(scenarioNumber) + '/'
+    if os.path.exists(dataPath):
+        shutil.rmtree(dataPath)
     os.makedirs(dataPath)
     z.extractall(dataPath)
 
 
 def readApiCall(trips, scenarioNumber):
     
-    pathRoot = "../data/gpxAPI/IPA_Compilation/IPA_Scenario_" + str(scenarioNumber) + "/"
+    pathRoot = "../data/gpxAPI/" + str(scenarioNumber) + "/IPA_Compilation/IPA_Scenario_" + str(scenarioNumber) + "/"
     for root,dirs,files in os.walk(pathRoot):
        gpxFiles = files
        break

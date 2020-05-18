@@ -11,6 +11,7 @@ import pandas as pd
 import json
 import shutil
 import math
+import os
 
 from statistics import median 
 from shapely.geometry import Point
@@ -30,7 +31,7 @@ from trackintel.geogr.distances import haversine_dist
 
 #import noiserm_functions as nrm
 dataNameList = ["1","2","3","4","5","6","7","17","20","25","28"]
-dataName = '1'
+dataName = '17'
 
 mac = True
 
@@ -137,11 +138,13 @@ if FIND_STAY_POINTS:
 minPnts = math.ceil(len(stps)/100)
 if (minPnts >= 5):
     thresholds["minPoints"] = 5
-#elif (minPnts < 2):
-#    thresholds["minPoints"] = 2
+elif (minPnts < 2):
+    thresholds["minPoints"] = 2
 else:
     thresholds["minPoints"] = minPnts
     
+thresholds["minPoints"] = 5    
+
 if FIND_PLACES:
     print("-> Finding the places ")
 
@@ -224,6 +227,9 @@ if CLUSTER_TRPS:
 
     
  #%% EXPORT GPX %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+EXPORT_GPX =        True
+API_CALL =          True
+
 if EXPORT_GPX:
     print("-> Export to GPX")
     for idx in trpsAgr.index:
@@ -232,15 +238,16 @@ if EXPORT_GPX:
         elif float(trpsAgr.loc[idx,'weight']) < 1:
             trpsAgr = trpsAgr.drop([idx])
     #hlp.savecsv4js(plcs, trpsAgr)
-    shutil.rmtree("../data/gpx/" + dataName)
+    if os.path.exists("../data/gpx/" + dataName):
+        shutil.rmtree("../data/gpx/" + dataName)
     hlp.trip2gpx(trpsAgr,dataName)   
     
 #%%
 if API_CALL:
     print("-> Calling the API from Hitouch")
 
-    api.apiCall(int(dataName))
-    tripsAgrSchematic = api.readApiCall(trpsAgr.copy(), int(dataName))
+    api.apiCall(dataName, 100 + int(dataName))
+    tripsAgrSchematic = api.readApiCall(trpsAgr.copy(), 100+int(dataName))
     
     trpsAgrSchematic_shp = tripsAgrSchematic.copy()
     trpsAgrSchematic_shp['weight'] = trpsAgrSchematic_shp['weight'].astype(int)

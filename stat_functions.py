@@ -98,11 +98,12 @@ def pieChartInfoPlus(trips):
                 if list(event)[0] == 'activitySegment':
                     try:
                         dist = event['activitySegment']['distance']
+                        for label in labels:
+                            if label == event['activitySegment']['activityType']:
+                                data[label] = data.get(label,0) + dist
+
                     except:
                         print('There is no distance!')
-                    for label in labels:
-                        if label == event['activitySegment']['activityType']:
-                            data[label] = data.get(label,0) + dist
     
     
     return list(data), list(data.values())
