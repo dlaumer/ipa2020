@@ -305,7 +305,7 @@ def plcsStayHour(stps, plcs, dataname):
     for col in cols: plcs[col] = plcs[col]/3600 # convert unit from second to hour
     
     tempcols = plcs[cols]
-    plcs['totalStay'] = tempcols.sum(axis=1)
+    plcs['totalStayHrs'] = tempcols.sum(axis=1)
     
     # V1: simple matrix with hour x place_id
     plcstocsv = plcs[cols]
@@ -322,7 +322,7 @@ def plcsStayHour(stps, plcs, dataname):
 
     return plcs    
     
-def homeworkStay(stps, dataname, minDist, minPoints):
+def homeworkStay(stps, dataname, places, minDist, minPoints):
     """
     Calculate stay time statistics of home and work places for all past data
 
@@ -439,8 +439,8 @@ def homeworkStay(stps, dataname, minDist, minPoints):
     for col in cols: homeplcs[col] = homeplcs[col]/3600 # convert unit from second to hour
     
     tempcols = homeplcs[cols]
-    homeplcs['totalStay'] = tempcols.sum(axis=1)/24 # convert unit from hour to day only for this column
-    homeplcs = homeplcs[homeplcs['totalStay']>2]
+    homeplcs['totalStayDays'] = tempcols.sum(axis=1)/24 # convert unit from hour to day only for this column
+    homeplcs = homeplcs[homeplcs['totalStayDays']>2]
     
 
     ## WORKING ADDRESS   
@@ -548,14 +548,19 @@ def homeworkStay(stps, dataname, minDist, minPoints):
     workplcs['totalStayDays'] = workplcs['totalStayDays']/3 # further convert to natural day
 
     workplcs['totalStayHrs'] = workplcs['totalStayDays']*24 # convert to hrs
-    homeplcs['totalStayDays'] = homeplcs['totalStay']
-    homeplcs['totalStayHrs'] = homeplcs['totalStay']*24 # convert to hrs
+    homeplcs['totalStayDays'] = homeplcs['totalStayDays']
+    homeplcs['totalStayHrs'] = homeplcs['totalStayDays']*24 # convert to hrs
     
     homeplcs = poi.reverseGeoCoding(homeplcs)
     homeplcs['id'] = 'home'
     workplcs = poi.reverseGeoCoding(workplcs)
     workplcs['id'] = 'work'
     homeworkplcs = pd.concat([homeplcs, workplcs], axis=0)
+    homeworkplcs = homeworkplcs.reset_index(drop=True)
+    homeworkplcs['place_id'] = homeworkplcs.index
+    
+    # return homeworkplcs   
+    homeworkplcs = hlp.findSemanticInfo(places, homeworkplcs)
     
     if not(os.path.exists('../data/stat/'+ dataname + '/')):
         os.makedirs('../data/stat/'+ dataname + '/')
