@@ -9,21 +9,28 @@
 
 import os
 
+mac = False
+
 # Define which participant should be visualized. If the list is empty, all available participants will be visualized
-dataNames = ['6']
+dataNames = ['25']
 # Define which layers it should contain. You can only choose from the ones in 'allLayers'. If the list is empty, all available layers are taken.
 layers = []
+
 # Folder where the results are stored. They must be a folder per participant and the folder structure must be unchanged 
-dataDirRoot = "/Users/dlaumer/Google Drive/2020 FRUEHLINGSSEMESTER/IPA 2020/3-Testing/data/shp/"
 # Folder where the styled definitions for each layer are stored
-qgisStylesFolder = "/Users/dlaumer/Google Drive/2020 FRUEHLINGSSEMESTER/IPA 2020/3-Testing/visualization/QGIS_Style_Files/"
+if(mac):
+    dataDirRoot = "/Users/dlaumer/Google Drive/2020 FRUEHLINGSSEMESTER/IPA 2020/3-Testing/data/shp/"
+    qgisStylesFolder = "/Users/dlaumer/Google Drive/2020 FRUEHLINGSSEMESTER/IPA 2020/3-Testing/visualization/QGIS_Style_Files/"
+else:
+    dataDirRoot = "E:\\1_IPA\\3_project\\\data\\shp\\"
+    qgisStylesFolder = "E:\\1_IPA\\3_project\\QGIS_Style_Files\\"
 
 # All available layers, the names correspond to the names of the shape files
-allLayers = [	"Loc", 						
-				"Trip",							
+allLayers = [	#"Loc", 						
+				#"Trip",							
 				"Staypoints",	 		
 				#"Places_extent",
-                "Triplegs",
+                #"Triplegs",
                 "Trips",
                 #"TripsCount",
                 "TripsAggregated",
@@ -31,11 +38,11 @@ allLayers = [	"Loc",
                 ]
 
 # Name of the layers on QGIS
-allLayerNames = ["Locations",
-				"Semantic Trip Data",
+allLayerNames = [#"Locations",
+				#"Semantic Trip Data",
 				"Staypoints (trackintel)",
 				#"Extent Places (trackintel)",
-                "Triplegs (trackintel)",
+                #"Triplegs (trackintel)",
                 "Trips (trackintel)",
                 #"Trips Count",
                 "Trips Aggregated",
@@ -57,7 +64,10 @@ root = QgsProject.instance().layerTreeRoot()
 
 # Iterate over all participants
 for dataName in dataNames:
-    dataDir = dataDirRoot + "/" + dataName + "/"
+    if(mac):
+        dataDir = dataDirRoot + "/" + dataName + "/"
+    else:
+        dataDir = dataDirRoot + "\\" + dataName + "\\"
     
     cityGroup = root.addGroup(dataName)
     
