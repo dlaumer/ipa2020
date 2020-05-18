@@ -31,9 +31,9 @@ from trackintel.geogr.distances import haversine_dist
 
 #import noiserm_functions as nrm
 dataNameList = ["1","2","3","4","5","6","7","17","20","25","28"]
-dataName = '17'
+dataName = '1'
 
-mac = True
+mac = False
 
 SELECT_RANGE =      True
 FIND_STAY_POINTS =  True
@@ -60,10 +60,10 @@ HomeWorkStat =      True
 
 # Then read the data after the second time
 # staythred = pd.read_csv('../data/csv'+'/StayDiffStat.csv') 
-staythredrange = pd.read_csv('../data_plcs/csv'+'/StayDiffStatRange.csv') 
+staythredrange = pd.read_csv('../data/csv'+'/StayDiffStatRange.csv') 
 
 # dfStatistics = calstat.accuracyStat(dataName, dataNameList, dateStart, dateEnd)
-dfStatistics = pd.read_csv('../data_plcs/statistics.csv',sep=";")
+dfStatistics = pd.read_csv('../data/statistics.csv',sep=";")
 
 # staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
 # staythredrange[staythredrange['dataName']==int(dataName)]['time_quarter'][dataNameList.index(dataName)],
@@ -72,6 +72,7 @@ thresholds = {
     "accuracy_threshold" : 0,
     "dist_threshold" : 0,
     "time_threshold" : 5*60, #staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
+    "timemax_threshold": 12*3600,
     "minDist" : 0,
     "minPoints" : 0,
     "minDistTh" : 0.2, 
@@ -126,24 +127,24 @@ if exportShp:
 if FIND_STAY_POINTS:
     print("-> Finding stay points ")
     # NOTE: Delete csv file if range is changed!!!!!!
-    pfs,stps = main.findStayPoints(locs, dataName, thresholds["accuracy_threshold"], thresholds["dist_threshold"], thresholds["time_threshold"])
+    pfs,stps = main.findStayPoints(locs, dataName,thresholds["accuracy_threshold"],thresholds["dist_threshold"],thresholds["time_threshold"],thresholds["timemax_threshold"])
   
     if exportShp: 
         stps_shp = stps.copy()
         stps_shp['started_at'] = stps_shp['started_at'].astype(str)
         stps_shp['finished_at'] = stps_shp['finished_at'].astype(str)
         stps_shp.to_file('../data/shp/'+dataName +'/Staypoints.shp')
-        
+
+stps['t_diff'] = stps['finished_at'] - stps['started_at']
 #%% FIND PLACES (CLUSTER OF STAY POINTS)
 minPnts = math.ceil(len(stps)/100)
 if (minPnts >= 5):
     thresholds["minPoints"] = 5
-elif (minPnts < 2):
-    thresholds["minPoints"] = 2
+# elif (minPnts < 2):
+#     thresholds["minPoints"] = 2
 else:
     thresholds["minPoints"] = minPnts
     
-thresholds["minPoints"] = 5    
 
 if FIND_PLACES:
     print("-> Finding the places ")

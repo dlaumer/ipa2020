@@ -29,7 +29,7 @@ import help_functions as hlp
 import trackintel_modified as tim
 import staypoints_modified as stm
 
-def findStayPoints(locs, dataName, accuracy_threshold, dist_threshold, time_threshold):
+def findStayPoints(locs, dataName, accuracy_threshold, dist_threshold, time_threshold, timemax_threshold):
     # Calculate time and distance difference
     #if not(os.path.exists('../data/csv/'+dataName +'/' + dataName + '.csv')):
     if True:    
@@ -46,7 +46,7 @@ def findStayPoints(locs, dataName, accuracy_threshold, dist_threshold, time_thre
     
     # Find staypoints
     #stps = pfs.as_positionfixes.extract_staypoints(method='sliding',dist_threshold=100, time_threshold=5*60)
-    stps = tim.extract_staypoints_ipa(pfs, method='sliding',dist_threshold=dist_threshold, time_threshold=time_threshold)
+    stps = tim.extract_staypoints_ipa(pfs, method='sliding',dist_threshold=dist_threshold,time_threshold=time_threshold,timemax_threshold=timemax_threshold)
     return pfs, stps
 
 def findPlaces(stps, dataName, minDist, minPoints):

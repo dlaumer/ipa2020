@@ -10,8 +10,8 @@ from trackintel.geogr.distances import haversine_dist
 
 
 def extract_staypoints_ipa(positionfixes, method='sliding',
-                       dist_threshold=50, time_threshold=5 * 60, epsilon=100,
-                       dist_func=haversine_dist, eps=None, num_samples=None):
+                       dist_threshold=50, time_threshold=5 * 60, timemax_threshold=12 * 3600,
+                       epsilon=100, dist_func=haversine_dist, eps=None, num_samples=None):
     """Extract staypoints from positionfixes.
     This function modifies the positionfixes and adds staypoint_ids.
     Parameters
@@ -80,32 +80,70 @@ def extract_staypoints_ipa(positionfixes, method='sliding',
                     j = i + 1
                 while j < num_pfs:
                     # TODO: Can we make distance function independent of projection?
+                    
                     dist = haversine_dist(pfs[i]['geom'].x, pfs[i]['geom'].y,
-                                     pfs[j]['geom'].x, pfs[j]['geom'].y)
-
-                    if (dist > dist_threshold): # for the last point, 
+                                      pfs[j]['geom'].x, pfs[j]['geom'].y)
+                    if (dist > dist_threshold):
+                        
+                    # delta_t = (pfs[j]['tracked_at'] - pfs[i]['tracked_at']).total_seconds()
+                    # if (delta_t > time_threshold and delta_t < timemax_threshold):
+                        
+                     # for the last point, 
                     # as long as stay time reaches the time threshold, it is a stay point,
                     # since user can no longer move to the next point based on data
+                    
+                        # dist = haversine_dist(pfs[i]['geom'].x, pfs[i]['geom'].y,
+                        #               pfs[j]['geom'].x, pfs[j]['geom'].y)
+                        # if (dist > dist_threshold):
+                        
                         delta_t = (pfs[j]['tracked_at'] - pfs[i]['tracked_at']).total_seconds()
-                        if (delta_t > time_threshold):
-                            staypoint = {}
-                            staypoint['user_id'] = pfs[i]['user_id']
-                            staypoint['geom'] = Point(np.mean([pfs[k]['geom'].x for k in range(i, j)]),
-                                                      np.mean([pfs[k]['geom'].y for k in range(i, j)]))
-                            if 'elevation' in pfs[i].keys():
-                                staypoint['elevation'] = np.mean([pfs[k]['elevation'] for k in range(i, j)])
-                            if 'velocity' in pfs[i].keys():
-                                staypoint['velocity'] = np.mean([pfs[k]['velocity'] for k in range(i, j)])
-                            staypoint['started_at'] = pfs[i]['tracked_at']
-                            staypoint['finished_at'] = pfs[j]['tracked_at']  # TODO: should this not be j-1? because j is not part of the staypoint. DB: Changed.
-                            staypoint['id'] = staypoint_id_counter
-
-                            # store matching 
-                            posfix_staypoint_matching[staypoint_id_counter] = [pfs[k]['id'] for k in range(i, j)]
-                            staypoint_id_counter += 1
-
-                            # add staypoint
-                            ret_staypoints = ret_staypoints.append(staypoint, ignore_index=True)
+                        
+                        if (delta_t > time_threshold):                                                   
+                            if (delta_t > timemax_threshold):
+                                hrdiff = []
+                                hrsum = 0
+                                for x in range(i,j): 
+                                    hrdiff.append((pfs[x+1]['tracked_at']-pfs[x]['tracked_at']).total_seconds())  
+                                i0 = i
+                                for mid in range(0,j-i0):
+                                    hrsum += hrdiff[mid]                                   
+                                    if(hrsum > timemax_threshold or mid == j-i0-1):
+                                        staypoint = {}
+                                        staypoint['user_id'] = pfs[i]['user_id']
+                                        staypoint['geom'] = Point(np.mean([pfs[k]['geom'].x for k in range(i, i0+mid+1)]),
+                                                                  np.mean([pfs[k]['geom'].y for k in range(i, i0+mid+1)]))
+                                        if 'elevation' in pfs[i].keys():
+                                            staypoint['elevation'] = np.mean([pfs[k]['elevation'] for k in range(i, i0+mid+1)])
+                                        if 'velocity' in pfs[i].keys():
+                                            staypoint['velocity'] = np.mean([pfs[k]['velocity'] for k in range(i, i0+mid+1)])
+                                        staypoint['started_at'] = pfs[i]['tracked_at']
+                                        staypoint['finished_at'] = pfs[i0+mid+1]['tracked_at']  # TODO: should this not be j-1? because j is not part of the staypoint. DB: Changed                   
+                                        staypoint['id'] = staypoint_id_counter
+                                        # store matching 
+                                        posfix_staypoint_matching[staypoint_id_counter] = [pfs[k]['id'] for k in range(i, i0+mid+1)]
+                                        staypoint_id_counter += 1
+                                        # add staypoint
+                                        ret_staypoints = ret_staypoints.append(staypoint, ignore_index=True)
+                                                                               
+                                        i = i0+mid+1
+                                        hrsum = 0
+                            else:                                  
+                                staypoint = {}
+                                staypoint['user_id'] = pfs[i]['user_id']
+                                staypoint['geom'] = Point(np.mean([pfs[k]['geom'].x for k in range(i, j)]),
+                                                          np.mean([pfs[k]['geom'].y for k in range(i, j)]))
+                                if 'elevation' in pfs[i].keys():
+                                    staypoint['elevation'] = np.mean([pfs[k]['elevation'] for k in range(i, j)])
+                                if 'velocity' in pfs[i].keys():
+                                    staypoint['velocity'] = np.mean([pfs[k]['velocity'] for k in range(i, j)])
+                                staypoint['started_at'] = pfs[i]['tracked_at']
+                                staypoint['finished_at'] = pfs[j]['tracked_at']  # TODO: should this not be j-1? because j is not part of the staypoint. DB: Changed                   
+                                staypoint['id'] = staypoint_id_counter
+                                # store matching 
+                                posfix_staypoint_matching[staypoint_id_counter] = [pfs[k]['id'] for k in range(i, j)]
+                                staypoint_id_counter += 1
+                                # add staypoint
+                                ret_staypoints = ret_staypoints.append(staypoint, ignore_index=True)
 
                             # TODO Discussion: Is this last point really a staypoint? As we don't know if the
                             #      person "moves on" afterwards...
@@ -113,35 +151,72 @@ def extract_staypoints_ipa(positionfixes, method='sliding',
                         break
                         
                     if (j == num_pfs - 1):
-                        staypoint = {}
-                        staypoint['user_id'] = pfs[i]['user_id']
-                        staypoint['geom'] = Point(np.mean([pfs[k]['geom'].x for k in range(i, j+1)]),
-                                                  np.mean([pfs[k]['geom'].y for k in range(i, j+1)]))
-                        if 'elevation' in pfs[i].keys():
-                            staypoint['elevation'] = np.mean([pfs[k]['elevation'] for k in range(i, j+1)])
-                        if 'velocity' in pfs[i].keys():
-                            staypoint['velocity'] = np.mean([pfs[k]['velocity'] for k in range(i, j+1)])
-                        staypoint['started_at'] = pfs[i]['tracked_at']
-                        staypoint['finished_at'] = pfs[j]['tracked_at']  # TODO: should this not be j-1? because j is not part of the staypoint. DB: Changed.
-                        staypoint['id'] = staypoint_id_counter
+                        # hrdelta = (pfs[j]['tracked_at']-pfs[i]['tracked_at']).total_seconds()
+                        # if (hrdelta < timemax_threshold):
+                        # j = num_pfs
+
+                        delta_t = (pfs[j]['tracked_at'] - pfs[i]['tracked_at']).total_seconds()
+                        if (delta_t > time_threshold):                                                
+                            if (delta_t > timemax_threshold):
+                                hrdiff = []
+                                hrsum = 0
+                                for x in range(i,j):
+                                    hrdiff.append((pfs[x+1]['tracked_at']-pfs[x]['tracked_at']).total_seconds())
+                                    
+                                i0 = i       
+                                for mid in range(0,j-i0):
+                                    hrsum += hrdiff[mid]
+                                    
+                                    if(hrsum > timemax_threshold or mid == j-i0-1):
+                                        staypoint = {}
+                                        staypoint['user_id'] = pfs[i]['user_id']
+                                        staypoint['geom'] = Point(np.mean([pfs[k]['geom'].x for k in range(i, i0+mid+1)]),
+                                                                  np.mean([pfs[k]['geom'].y for k in range(i, i0+mid+1)]))
+                                        if 'elevation' in pfs[i].keys():
+                                            staypoint['elevation'] = np.mean([pfs[k]['elevation'] for k in range(i, i0+mid+1)])
+                                        if 'velocity' in pfs[i].keys():
+                                            staypoint['velocity'] = np.mean([pfs[k]['velocity'] for k in range(i, i0+mid+1)])
+                                        staypoint['started_at'] = pfs[i]['tracked_at']
+                                        staypoint['finished_at'] = pfs[i0+mid+1]['tracked_at']  # TODO: should this not be j-1? because j is not part of the staypoint. DB: Changed                   
+                                        staypoint['id'] = staypoint_id_counter
+                                        # store matching 
+                                        posfix_staypoint_matching[staypoint_id_counter] = [pfs[k]['id'] for k in range(i, i0+mid+1)]
+                                        staypoint_id_counter += 1
+                                        # add staypoint
+                                        ret_staypoints = ret_staypoints.append(staypoint, ignore_index=True)
+                                                                               
+                                        i = i0+mid+1
+                                        hrsum = 0
+                            else:                       
+                                staypoint = {}
+                                staypoint['user_id'] = pfs[i]['user_id']
+                                staypoint['geom'] = Point(np.mean([pfs[k]['geom'].x for k in range(i, j+1)]),
+                                                          np.mean([pfs[k]['geom'].y for k in range(i, j+1)]))
+                                if 'elevation' in pfs[i].keys():
+                                    staypoint['elevation'] = np.mean([pfs[k]['elevation'] for k in range(i, j+1)])
+                                if 'velocity' in pfs[i].keys():
+                                    staypoint['velocity'] = np.mean([pfs[k]['velocity'] for k in range(i, j+1)])
+                                staypoint['started_at'] = pfs[i]['tracked_at']
+                                staypoint['finished_at'] = pfs[j]['tracked_at']  # TODO: should this not be j-1? because j is not part of the staypoint. DB: Changed.
+                                staypoint['id'] = staypoint_id_counter
+                                    
+                                    # staypoint = {}
+                                    # staypoint['user_id'] = pfs[j]['user_id']
+                                    # staypoint['geom'] = Point(pfs[j]['geom'].x, pfs[j]['geom'].y)
+                                    # if 'velocity' in pfs[j].keys():
+                                    #     staypoint['elevation'] = pfs[j]['elevation']
+                                    # staypoint['started_at'] = pfs[j]['tracked_at']
+                                    # staypoint['finished_at'] = pfs[j]['tracked_at']
+                                    # staypoint['id'] = staypoint_id_counter
+
+                                # store matching
+                                posfix_staypoint_matching[staypoint_id_counter] = [pfs[k]['id'] for k in range(i, j+1)]
+        
+                                    # posfix_staypoint_matching[staypoint_id_counter] = [
+                                    #     j]  # rather [k for k in range(i, j)]?
                             
-                            # staypoint = {}
-                            # staypoint['user_id'] = pfs[j]['user_id']
-                            # staypoint['geom'] = Point(pfs[j]['geom'].x, pfs[j]['geom'].y)
-                            # if 'velocity' in pfs[j].keys():
-                            #     staypoint['elevation'] = pfs[j]['elevation']
-                            # staypoint['started_at'] = pfs[j]['tracked_at']
-                            # staypoint['finished_at'] = pfs[j]['tracked_at']
-                            # staypoint['id'] = staypoint_id_counter
-
-                        # store matching
-                        posfix_staypoint_matching[staypoint_id_counter] = [pfs[k]['id'] for k in range(i, j+1)]
-
-                            # posfix_staypoint_matching[staypoint_id_counter] = [
-                            #     j]  # rather [k for k in range(i, j)]?
-                    
-                        staypoint_id_counter += 1
-                        ret_staypoints = ret_staypoints.append(staypoint, ignore_index=True)
+                                staypoint_id_counter += 1
+                                ret_staypoints = ret_staypoints.append(staypoint, ignore_index=True)
 
                     j = j + 1
 
@@ -195,26 +270,26 @@ def extract_staypoints_ipa(positionfixes, method='sliding',
                                       crs=positionfixes.crs)
     ret_staypoints['id'] = ret_staypoints['id'].astype('int')
     
-    hrdelta = []
-    numstps = len(ret_staypoints)
-    for i in range(0,numstps):
-        hri = round((ret_staypoints['finished_at'].iloc[i] - ret_staypoints['started_at'].iloc[i]).total_seconds()/3600,1)
-        hrdelta.append(hri)
+    # hrdelta = []
+    # numstps = len(ret_staypoints)
+    # for i in range(0,numstps):
+    #     hri = round((ret_staypoints['finished_at'].iloc[i] - ret_staypoints['started_at'].iloc[i]).total_seconds()/3600,1)
+    #     hrdelta.append(hri)
     
-    from datetime import timedelta
+    # from datetime import timedelta
         
-    for i in range(0,numstps):
-        if(hrdelta[i] >= 24):
-            rep = int(hrdelta[i] // 24)
-            for j in range(0,rep):
-                ret_staypoints.loc[j+numstps] = ret_staypoints.iloc[i]
-                ret_staypoints['started_at'].iloc[j+numstps] = ret_staypoints['started_at'].iloc[i] + timedelta(days=j+1)
-                ret_staypoints['finished_at'].iloc[j+numstps] = ret_staypoints['started_at'].iloc[j+numstps] + timedelta(days=1)
-                if (j==rep-1):
-                    ret_staypoints['finished_at'].iloc[j+numstps] = ret_staypoints['finished_at'].iloc[i]
-            ret_staypoints['finished_at'].iloc[i] = ret_staypoints['started_at'].iloc[i] + timedelta(days=1)
+    # for i in range(0,numstps):
+    #     if(hrdelta[i] >= 24):
+    #         rep = int(hrdelta[i] // 24)
+    #         for j in range(0,rep):
+    #             ret_staypoints.loc[j+numstps] = ret_staypoints.iloc[i]
+    #             ret_staypoints['started_at'].iloc[j+numstps] = ret_staypoints['started_at'].iloc[i] + timedelta(days=j+1)
+    #             ret_staypoints['finished_at'].iloc[j+numstps] = ret_staypoints['started_at'].iloc[j+numstps] + timedelta(days=1)
+    #             if (j==rep-1):
+    #                 ret_staypoints['finished_at'].iloc[j+numstps] = ret_staypoints['finished_at'].iloc[i]
+    #         ret_staypoints['finished_at'].iloc[i] = ret_staypoints['started_at'].iloc[i] + timedelta(days=1)
     
-    ret_staypoints['id'] = ret_staypoints.index
+    # ret_staypoints['id'] = ret_staypoints.index
     
     return ret_staypoints
 
