@@ -13,10 +13,10 @@ var urls = {
 
   semanticInfo:
     "./stat/StaybyHourLocinfo.csv",
-  
+
   homeworkbal:
     "./stat/HomeWorkStay.csv",
-  
+
   transportation:
     "./stat/TransportationMode.csv",
 };
@@ -35,28 +35,28 @@ var map = new mapboxgl.Map({
 
 var legendControl = map.addControl(new mapboxgl.NavigationControl());
 class MyCustomControl {
-  
-  constructor(id,textContent){
+
+  constructor(id, textContent) {
     this.id = id;
     this.textContent = textContent
   }
-  onAdd(map){
+  onAdd(map) {
     this.map = map;
     this.container = document.createElement('button');
     this.container.id = this.id;
-    this.container.className = 'mapboxgl-ctrl my-custom-control';
+    this.container.className = 'mapboxgl-ctrl my-custom-control hover-button';
     this.container.textContent = this.textContent;
     this.container.type = "button";
     return this.container;
   }
-  onRemove(){
+  onRemove() {
     this.container.parentNode.removeChild(this.container);
     this.map = undefined;
   }
 }
 
-const myCustomControl = new MyCustomControl("changeMapButton","Change Map");
-const myCustomControl2 = new MyCustomControl("zoomAll","Zoom Map");
+const myCustomControl = new MyCustomControl("changeMapButton", "Change Map");
+const myCustomControl2 = new MyCustomControl("zoomAll", "Zoom Map");
 map.addControl(myCustomControl, 'top-left');
 map.addControl(myCustomControl2, 'top-left');
 
@@ -131,33 +131,41 @@ var heightTimeline = d3
 
 
 var svgTimeline = d3.select("#timeline")
-.append("svg")
-.attr("width", widthTimeline + margin.left + margin.right)
-.attr("height", heightTimeline + margin.top + margin.bottom)
-.append("g")
-.attr("transform",
-  "translate(" + margin.left + "," + margin.top + ")")
+  .append("svg")
+  .attr("width", widthTimeline + margin.left + margin.right)
+  .attr("height", heightTimeline + margin.top + margin.bottom)
+  .append("g")
+  .attr("transform",
+    "translate(" + margin.left + "," + margin.top + ")")
 
+// text label for the y axis
+svgTimeline.append("text")
+  .attr("font-size", "10px")
+  .attr("transform", "rotate(-90)")
+  .attr("y", 0 - margin.left / 2)
+  .attr("x", 0 - (heightTimeline / 2))
+  .style("text-anchor", "middle")
+  .text("Staytime [hrs]");
 
 // Initialize the X axis
 var xScale = d3.scaleBand()
-.range([0, widthTimeline])
-.padding(0.2);
+  .range([0, widthTimeline])
+  .padding(0.2);
 
 xScale.invert = function (x) {
-var domain = this.domain();
-var range = this.range()
-var scale = d3.scaleQuantize().domain(range).range(domain)
-return scale(x)
+  var domain = this.domain();
+  var range = this.range()
+  var scale = d3.scaleQuantize().domain(range).range(domain)
+  return scale(x)
 };
 var xAxis = svgTimeline.append("g")
-.attr("transform", "translate(0," + heightTimeline + ")")
+  .attr("transform", "translate(0," + heightTimeline + ")")
 
 // Initialize the Y axis
 var yScale = d3.scaleLinear()
-.range([heightTimeline, 0]);
+  .range([heightTimeline, 0]);
 var yAxis = svgTimeline.append("g")
-.attr("class", "myYaxis")
+  .attr("class", "myYaxis")
 
 
 // PREPARE TIME  ////////////////////////////////////////////////////////////////////////////////////
@@ -172,11 +180,11 @@ var widthTime = d3
 var heightTime = d3
   .select('#time-container')
   .node()
-  .getBoundingClientRect().height  - marginTime.top - marginTime.bottom;
+  .getBoundingClientRect().height - marginTime.top - marginTime.bottom;
 
 var svgTime = d3.select("#time")
   .append("svg")
-  .attr("width", widthTime  + marginTime.left + marginTime.right)
+  .attr("width", widthTime + marginTime.left + marginTime.right)
   .attr("height", heightTime + marginTime.top + marginTime.bottom)
   .append("g")
   .attr("transform",
@@ -225,6 +233,8 @@ var maxCount;
 var mapBlank = true;
 var geomMap = true;
 var extents;
+var startTime = 0;
+var endTime = 23;
 
 // load the place and trip data together
 let promises = [
@@ -233,7 +243,7 @@ let promises = [
   d3.csv(urls.timeline),
   d3.csv(urls.semanticInfo),
   d3.csv(urls.homeworkbal),
-  d3.csv(urls.transportation)  
+  d3.csv(urls.transportation)
 ];
 
 Promise.all(promises).then(processData);
@@ -249,32 +259,13 @@ function processData(values) {
   transportationmode = values[5];
 
   extents = getExtentofPlaces(places)
-
-  HomeWorkData = [];
-  HomeWorkSeries = [];
-  transportationData = [];
-  transportationSeries = [];
-  yAxisMax = [];
-  var tempabs = [];
-
-  fillPlacesBoxes();
-  colorPlacesBoxes(0, 23);
-  drawTimeline();
-
-  for (let i = 1; i < 11; i++) {
-    document.getElementById("box-" + i).addEventListener('click', event => { updateTimeline(placeIdOfBox[i]) });
-    document.getElementById("zoom-" + i).addEventListener('click', event => { updateZoom(placeIdOfBox[i]) });
-    document.getElementById("box-" + i).parentNode.addEventListener("mouseover", event => { mousoverFunction(placeIdOfBox[i]) });
-    document.getElementById("box-" + i).parentNode.addEventListener("mouseout", event => { mouseoutFunction(placeIdOfBox[i]) });
-  }
-
-
-  console.log("places: " + places.length);
-  console.log(" trips: " + trips.length);
-
   // convert places array (pre filter) into map for fast lookup
   // Basically make a dictionary (like in python) with placeId as key
   placeId = new Map(places.map(node => [node.placeId, node]));
+  console.log("places: " + places.length);
+  console.log(" trips: " + trips.length);
+
+
 
   // calculate incoming and outgoing degree based on trips
   // trips are given by place placeId code (not index)
@@ -314,6 +305,25 @@ function processData(values) {
     return s.charAt(0).toUpperCase() + s.slice(1)
   }
 
+  HomeWorkData = [];
+  HomeWorkSeries = [];
+  transportationData = [];
+  transportationSeries = [];
+  yAxisMax = [];
+  var tempabs = [];
+
+  fillPlacesBoxes();
+  colorPlacesBoxes(startTime, endTime);
+  drawTimeline();
+
+  for (let i = 1; i < 11; i++) {
+    document.getElementById("box-" + i).addEventListener('click', event => { updateTimeline(placeIdOfBox[i]) });
+    document.getElementById("zoom-" + i).addEventListener('click', event => { updateZoom(placeIdOfBox[i]) });
+    document.getElementById("box-" + i).parentNode.addEventListener("mouseover", event => { mousoverFunction(placeIdOfBox[i]) });
+    document.getElementById("box-" + i).parentNode.addEventListener("mouseout", event => { mouseoutFunction(placeIdOfBox[i]) });
+  }
+
+
   // reformat homeworkbalance data
   // Make monochrome colors
   var barColors = (function () {
@@ -325,21 +335,21 @@ function processData(values) {
         // Start out with a darkened base color (negative brighten), and end
         // up with a much brighter color
         colors.push(Highcharts.color(base).brighten((i - 2) / 6).get());
-    }
+   }
     return colors;
   }());
-  for (let i = 0; i < homeworkbal.length; i++){
+  for (let i = 0; i < homeworkbal.length; i++) {
     var homework = homeworkbal[i];
     var homeworkid = homework['id']
-    if (homeworkid=='home') {
-      var homeworkdata = [-homework['Sun'],-homework['Sat'],-homework['Fri'],-homework['Thur'],-homework['Wed'],-homework['Tues'],-homework['Mon']]
+    if (homeworkid == 'home') {
+      var homeworkdata = [-homework['Sun'], -homework['Sat'], -homework['Fri'], -homework['Thur'], -homework['Wed'], -homework['Tues'], -homework['Mon']]
       var data = homeworkdata.map(Number);
     }
     else {
-      var homeworkdata = [homework['Sun'],homework['Sat'],homework['Fri'],homework['Thur'],homework['Wed'],homework['Tues'],homework['Mon']]
-      var data = homeworkdata.map(Number);     
+      var homeworkdata = [homework['Sun'], homework['Sat'], homework['Fri'], homework['Thur'], homework['Wed'], homework['Tues'], homework['Mon']]
+      var data = homeworkdata.map(Number);
     }
-    for (let k = 0; k < data.length; k++){
+    for (let k = 0; k < data.length; k++) {
       var datai = Math.abs(data[k]);
       tempabs.push(datai);
     }
@@ -361,15 +371,15 @@ function processData(values) {
   }
   // console.log('HomeWorkData',HomeWorkData)
   // console.log('HomeWorkSeries',HomeWorkSeries)
-  drawNegativeBar(HomeWorkSeries,yAxisMax);
+  drawNegativeBar(HomeWorkSeries, yAxisMax);
 
   // reformat transportation data
-  for (let i = 0; i < transportationmode.length; i++){
+  for (let i = 0; i < transportationmode.length; i++) {
     var transportationi = transportationmode[i];
     var mode = transportationi['mode']
-    var percentage = transportationi['percentage']*100
-    var val = transportationi['value']/1000
-    var transarray = [mode, percentage, val]    
+    var percentage = transportationi['percentage'] * 100
+    var val = transportationi['value'] / 1000
+    var transarray = [mode, percentage, val]
     transportationData.push(transarray);
   }
   for (i = 0; i < transportationData.length; i++) {
@@ -392,37 +402,38 @@ function drawTimeline() {
 
   // Parse the Data
   // X axis
-  
+
   xScaleTime.domain(timelineData.map(function (d) { return d.group; }))
-  xAxisTime.call(d3.axisBottom(xScale).tickFormat(function(d) {
+  xAxisTime.call(d3.axisBottom(xScale).tickFormat(function (d) {
     var parseDate = d3.timeParse("%H");
-    return d3.timeFormat("%H:%M")(parseDate(d))}
-    ))
-  .selectAll("text")
-  .style("text-anchor", "end")
-  .attr("dx", "-.8em")
-  .attr("dy", ".15em")
-  .attr("transform", "rotate(-65)")
+    return d3.timeFormat("%H:%M")(parseDate(d))
+  }
+  ))
+    .selectAll("text")
+    .style("text-anchor", "end")
+    .attr("dx", "-.8em")
+    .attr("dy", ".15em")
+    .attr("transform", "rotate(-65)")
 
   //add brush
   var brush = d3.brushX()
-    .extent([[0,1], [widthTime, heightTime]])//(x0,y0)  (x1,y1)
+    .extent([[0, 1], [widthTime, heightTime]])//(x0,y0)  (x1,y1)
     .on("brush", brushend)//when mouse up, move the selection to the exact tick //start(mouse down), brush(mouse move), end(mouse up)
-  
-    svgTime.append("g")
+
+  svgTime.append("g")
     .attr("class", "brush")
     .call(brush)
     .call(brush.move, xScale.range());;
 
-    svgTime.select(".brush")
-    .on("click", function(d) {
-    svgTime.select(".brush")
-    .call(brush.move, xScale.range());
-  });
+  svgTime.select(".brush")
+    .on("click", function (d) {
+      svgTime.select(".brush")
+        .call(brush.move, xScale.range());
+    });
 }
 
 function fillPlacesBoxes() {
-  var timeData = getPlaceTime(0, 23);
+  var timeData = getPlaceTime(startTime, endTime);
   delete timeData.group;
   var values = Object.values(timeData);
   var keys = Object.keys(timeData);
@@ -431,7 +442,7 @@ function fillPlacesBoxes() {
   while (count < 11) {
     var maxIdx = values.indexOf(Math.max.apply(Math, values))
     var placeId = keys[maxIdx];
-    
+
     placeIdOfBox[count] = placeId;
     document.getElementById("box-" + count).innerHTML = semanticInfo[placeId] + ", Time: " + Math.round(Math.max.apply(Math, values));
     if (count == 1) {
@@ -463,13 +474,27 @@ function getPlaceTime(startTime, endTime) {
 function colorPlacesBoxes(startTime, endTime) {
   var timeData = getPlaceTime(startTime, endTime);
   delete timeData.group;
+  var maxValue = Math.log(Math.max.apply(Math, Object.values(timeData)));
   var color = d3.scaleLinear()
-    .domain([0, Math.log(Math.max.apply(Math, Object.values(timeData)))])
+    .domain([0, maxValue])
     .range(["#ffffff ", "#1F407A"]);
   for (let i = 1; i < 11; i++) {
     document.getElementById("box-" + i).parentNode.style.backgroundColor = color(Math.log(timeData[placeIdOfBox[i]]));
-    document.getElementById("box-" + i).innerHTML = semanticInfo[placeIdOfBox[i]] + ", Time: " + Math.round(timeData[placeIdOfBox[i]]);
+    document.getElementById("box-" + i).innerHTML = "<span style='font-size:15px;'>" + semanticInfo[placeIdOfBox[i]] + "</span>" + "<span style='font-size:10px;'>" + ", Staytime: " + Math.round(timeData[placeIdOfBox[i]]) + " hrs" + "</span>";
+    if (Math.log(timeData[placeIdOfBox[i]]) > 0.6 * maxValue) {
+      document.getElementById("box-" + i).style.color = "white";
+    }
+    else {
+      document.getElementById("box-" + i).style.color = "black";
+    }
+    try {
+      placeId.get(placeIdOfBox[i]).bubble.style.fill = color(Math.log(timeData[placeIdOfBox[i]])) 
 
+    }
+    catch {
+
+    }
+    
   }
 
 }
@@ -634,7 +659,7 @@ function drawTrips(places, trips) {
     .attr("d", pathTrips)
     .attr("class", "trip")
     .attr("id", function (d) { return "id_" + d.properties.id })
-    //.style("stroke-width", d => d.properties.count*2)
+    .style("stroke-width", d => d.properties.count)
     .each(function (d) {
       // adds the path object to our source place
       // makes it fast to select outgoing paths
@@ -772,18 +797,21 @@ function distance(source, target) {
 
 function highlight(selection) {
   selection
-    .style("opacity", 1)
+    .style("opacity", 0.8)
     .style("stroke", "1F407A")
     .style("stroke-opacity", 0.8);
 }
 
 function notHighlight(selection, type) {
   selection
-    .style("opacity", 0.5)
     .style("stroke", "#252525")
   if (type == 'trip') {
     selection
-      .style("stroke-opacity", 0.5);
+      .style("stroke-opacity", 1);
+  }
+  else {
+    selection
+      .style("opacity", 1)
   }
 }
 
@@ -804,21 +832,22 @@ function updateTimeline(selectedVar) {
   // Parse the Data
   // X axis
   xScale.domain(timelineData.map(function (d) { return d.group; }))
-  xAxis.transition().duration(1000).call(d3.axisBottom(xScale).tickFormat(function(d) {
+  xAxis.transition().duration(1000).call(d3.axisBottom(xScale).tickFormat(function (d) {
     var parseDate = d3.timeParse("%H");
-    return d3.timeFormat("%H:%M")(parseDate(d))}
-    ))
-  .selectAll("text")
-  .style("text-anchor", "end")
-  .attr("dx", "-.8em")
-  .attr("dy", ".15em")
-  .attr("transform", "rotate(-65)")
+    return d3.timeFormat("%H:%M")(parseDate(d))
+  }
+  ))
+    .selectAll("text")
+    .style("text-anchor", "end")
+    .attr("dx", "-.8em")
+    .attr("dy", ".15em")
+    .attr("transform", "rotate(-65)")
 
 
 
   // Add Y axis
   yScale.domain([0, d3.max(timelineData, function (d) { return +d[selectedVar] })]);
-  yAxis.transition().duration(1000).call(d3.axisLeft(yScale));
+  yAxis.transition().duration(1000).call(d3.axisLeft(yScale).ticks(5));
 
   // variable u: map data to existing bars
   var u = svgTimeline.selectAll("rect")
@@ -839,16 +868,16 @@ function updateTimeline(selectedVar) {
     .attr("class", "bars")
 
 
-  
+
 }
 
 function updateZoom(selectedVar) {
-  let place =  placeId.get(selectedVar);
-  if (!mapBlank){
-    map.flyTo({ center: [place.longitude,place.latitude] ,zoom: 16})
+  let place = placeId.get(selectedVar);
+  if (!mapBlank) {
+    map.flyTo({ center: [place.longitude, place.latitude], zoom: 16 })
   }
-  else{
-    map.flyTo({ center: [place.longitudeSchematic,place.latitudeSchematic] ,zoom: 16})
+  else {
+    map.flyTo({ center: [place.longitudeSchematic, place.latitudeSchematic], zoom: 16 })
   }
 }
 
@@ -875,7 +904,7 @@ function arcTween(a) {
 
 function mousoverFunction(i) {
   if (parseInt(i) < places.length) {
-    let place =  placeId.get(i);
+    let place = placeId.get(i);
 
     d3.select(place.bubble)
       .call(highlight);
@@ -1007,32 +1036,34 @@ function changeData() {
       }
     })
 
-  
+
   function endall() {
     drawTrips(places, trips);
     drawPlaces(places);
+    colorPlacesBoxes(startTime, endTime);
     zoomToAll();
   }
 }
 
-function zoomToAll(){
+function zoomToAll() {
   if (!mapBlank) {
     extent = extents[0];
   }
   else {
     extent = extents[1];
   }
-  map.fitBounds(extent,{
+  map.fitBounds(extent, {
     padding: {
-    top: 50,
-    bottom: 50,
-    left: 50,
-    right: 50
-}});
+      top: 50,
+      bottom: 50,
+      left: 50,
+      right: 50
+    }
+  });
 }
 
 // Negative stacked bar graph: Home and Work Balance
-function drawNegativeBar(HomeWorkSeries,yAxisMax) {
+function drawNegativeBar(HomeWorkSeries, yAxisMax) {
   // Weekday categories
   var categories = [
     'Sunday', 'Saturday', 'Friday', 'Thursday', 'Wednesday', 'Tuesday', 'Monday'
@@ -1119,17 +1150,17 @@ function drawNegativeBar(HomeWorkSeries,yAxisMax) {
   });
 }
 
-function drawTransPieChart (transportationSeries) {
+function drawTransPieChart(transportationSeries) {
   // Make monochrome colors
   var pieColors = (function () {
     var colors = [],
-        base = Highcharts.getOptions().colors[0],
-        i;
+      base = Highcharts.getOptions().colors[0],
+      i;
 
     for (i = 0; i < 10; i += 1) {
-        // Start out with a darkened base color (negative brighten), and end
-        // up with a much brighter color
-        colors.push(Highcharts.color(base).brighten((i - 3) / 7).get());
+      // Start out with a darkened base color (negative brighten), and end
+      // up with a much brighter color
+      colors.push(Highcharts.color(base).brighten((i - 3) / 7).get());
     }
     return colors;
   }());
@@ -1146,8 +1177,8 @@ function drawTransPieChart (transportationSeries) {
     },
     subtitle:{
       text: 'Your total CO2 emission is xxx: xx km by Bus x xx/km + xx km by Car x xx/km + xx km by Train x xx/km + xx km by Tram x xx/km + xx km on Foot x xx/km + xx km by Bike x xx/km +',
-      // align: "left"
-     },
+     // align: "left"
+    },
     tooltip: {
       headerFormat: '<span style="font-size:11px">{series.name}</span><br>',
       pointFormat: '{point.name}</span>: <b>{point.y:.1f}%</b> of total<br/>Corresponding to <b>{point.val:.1f} km</b>'
@@ -1180,11 +1211,11 @@ function drawTransPieChart (transportationSeries) {
           format: '<b>{point.name}</b><br>{point.percentage:.1f} %',
           distance: -30,
           filter: {
-              property: 'percentage',
-              operator: '>',
-              value: 4
+            property: 'percentage',
+            operator: '>',
+            value: 4
           }
-      }
+        }
       }
     },
     series: [{
@@ -1192,75 +1223,73 @@ function drawTransPieChart (transportationSeries) {
       colorByPoint: true,
       data: transportationSeries,
     }]
-  });  
+  });
 }
 
-document.getElementById("collapeButton2").addEventListener("click", function(){
+document.getElementById("collapeButton2").addEventListener("click", function () {
   let toggle = d3.select("#homeWorkBalance-container").classed("collapse");
   d3.select("#homeWorkBalance-container")
-  .classed("collapse", !toggle);
-  
+    .classed("collapse", !toggle);
+
 });
 
-document.getElementById("collapeButton1").addEventListener("click", function(){
+document.getElementById("collapeButton1").addEventListener("click", function () {
   let toggle = d3.select("#places-container").classed("collapse");
   d3.select("#places-container")
-  .classed("collapse", !toggle);
-  
+    .classed("collapse", !toggle);
+
 });
 
-document.getElementById("buttonChangeHighcart").addEventListener("click", function(){
+document.getElementById("buttonChangeHighcart").addEventListener("click", function () {
   d1 = document.getElementById("balance-div");
-   d2 = document.getElementById("piechart-div");
-   if( d2.style.display == "none" )
-   {
-      d1.style.display = "none";
-      d2.style.display = "block";
-   }
-   else
-   {
-      d1.style.display = "block";
-      d2.style.display = "none";
-   }
-  
+  d2 = document.getElementById("piechart-div");
+  if (d2.style.display == "none") {
+    d1.style.display = "none";
+    d2.style.display = "block";
+  }
+  else {
+    d1.style.display = "block";
+    d2.style.display = "none";
+  }
+
 });
 
 
 d3.selectAll(".flex-item")
-.on("transitionend", function(){
-  map.resize();
+  .on("transitionend", function () {
+    map.resize();
 
-  var widthMap = d3
-  .select('#map-container')
-  .node()
-  .getBoundingClientRect().width
-  // Set dimensions
-  var heightMap = d3
-    .select('#map-container')
-    .node()
-    .getBoundingClientRect().height
+    var widthMap = d3
+      .select('#map-container')
+      .node()
+      .getBoundingClientRect().width
+    // Set dimensions
+    var heightMap = d3
+      .select('#map-container')
+      .node()
+      .getBoundingClientRect().height
 
-  svg
-    .attr('width', widthMap)
-    .attr('height', heightMap)
-});
+    svg
+      .attr('width', widthMap)
+      .attr('height', heightMap)
+  });
 
 
 function getExtentofPlaces(places) {
   var lats = [],
-  lons = [],
-  latsSchem = []
+    lons = [],
+    latsSchem = []
   lonsSchem = []
-  for (var i = 0;i<places.length;i++) {
+  for (var i = 0; i < places.length; i++) {
     lats.push(places[i].latitude);
     lons.push(places[i].longitude);
     latsSchem.push(places[i].latitudeSchematic);
     lonsSchem.push(places[i].longitudeSchematic);
   }
 
-  extentPlaces =  [[Math.min.apply(null, lons), Math.min.apply(null, lats)],
-                  [Math.max.apply(null, lons), Math.max.apply(null, lats)]];
-  extentPlacesSchematic =  [[Math.min.apply(null, lonsSchem), Math.min.apply(null, latsSchem)],
-                            [Math.max.apply(null, lonsSchem), Math.max.apply(null, latsSchem)]];
+  extentPlaces = [[Math.min.apply(null, lons), Math.min.apply(null, lats)],
+  [Math.max.apply(null, lons), Math.max.apply(null, lats)]];
+  extentPlacesSchematic = [[Math.min.apply(null, lonsSchem), Math.min.apply(null, latsSchem)],
+  [Math.max.apply(null, lonsSchem), Math.max.apply(null, latsSchem)]];
   return [extentPlaces, extentPlacesSchematic]
 }
