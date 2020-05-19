@@ -653,6 +653,7 @@ def combineTrajectory(cluster1, cluster2):
 def findSemanticInfo(places, plcs, threeQua):
     count = 0
     plcs['nameId'] = ""
+
     for idx in plcs.index:
         minDist = math.inf
         minIdx = None
@@ -680,7 +681,7 @@ def findSemanticInfo(places, plcs, threeQua):
                 plcs.loc[idx,'placeName'] = a + ' ' + b
         
     print(str(count)+" plcs out of "+str(len(plcs))+" are macthed!")
-    
+
     return plcs
 
 def removeLongTrips(trps, trpsCount):
@@ -688,7 +689,7 @@ def removeLongTrips(trps, trpsCount):
         trpIds = []
         for jdx in trpsCount.loc[idx,'trpIds']:
             # Check if the trip is too long:
-            if trps.loc[jdx,"geom"].length < 4*trpsCount.loc[idx,'geom'].length:
+            if trps.loc[jdx,"geom"].length < 3*trpsCount.loc[idx,'geom'].length:
                 trpIds.append(jdx)
             else:
                 trps = trps.drop(jdx)   
@@ -700,7 +701,7 @@ def removeLongTrips(trps, trpsCount):
     return trps, trpsCount
     
     
-def savecsv4js(places, trips, tripsSchematic):
+def savecsv4js(dataName, places, trips, tripsSchematic):
     places['city'] = 'Zurich'
     places['state'] = 'Zurich'
     places['country'] = 'Switzerland'
@@ -712,7 +713,7 @@ def savecsv4js(places, trips, tripsSchematic):
     places['latitudeSchematic'] = places.geometry.y
     places['longitudeSchematic'] = places.geometry.x
     places = places.drop(columns = ['user_id', 'extent', 'center', 'centerSchematic'])
-    places.to_csv('jsProject/stat/places.csv',  index = False, sep = ";")
+    places.to_csv('../../5-Final Product/stat' + dataName+'/places.csv',  index = False, sep = ";")
  
     
     trips = trips.rename(columns = {'start_plc':'origin', 'end_plc':'destination', 'weight':'count'})
@@ -727,7 +728,7 @@ def savecsv4js(places, trips, tripsSchematic):
     trips = trips.rename(columns = {'weight':'count'})
     trips = trips[['origin', 'destination','count','waypointsLong','waypointsLat','waypointsLatSchematic','waypointsLongSchematic']]
     #trips.to_csv('../jsProject/stat/trips.csv',  index = False, sep = ";")
-    trips.to_csv('jsProject/stat/tripsAgr.csv',  index = False, sep = ";")
+    trips.to_csv('../../5-Final Product/stat' + dataName+'/tripsAgr.csv',  index = False, sep = ";")
 
     
 

@@ -48,7 +48,7 @@ def readFile(path):
         data = file.read()
     return data
 
-def apiCall(dataname, scenarioNumber, homeCoords):
+def apiCall(dataname, scenarioNumber, homeCoords,DP_tolerance, fisheye_factor,curver_min, curver_max, curver_r):
     #%% Set variables: 
     urlCore = 'https://renderingapi.azurewebsites.net/api/'
     userId = "3cfb3bd4-add1-4460-8955-88e7eec7cb3b"
@@ -71,9 +71,25 @@ def apiCall(dataname, scenarioNumber, homeCoords):
     
     aeFile = readFile('../data/ETH1.json')
     aeFileJson = json.loads(aeFile)
+
+    aeFileJson["douglasPeucker1"]["tolerance"]["from"] = DP_tolerance
+    aeFileJson["douglasPeucker1"]["tolerance"]["to"] = DP_tolerance
+    
+    aeFileJson["fishEye"]["factor"]["from"] = fisheye_factor
+    aeFileJson["fishEye"]["factor"]["to"] = fisheye_factor
+
     aeFileJson["fishEye"]["centerLat"] = homeCoords[1]
     aeFileJson["fishEye"]["centerLon"] = homeCoords[0]
     
+    aeFileJson["curver"]["maxAngle"] = curver_max
+    aeFileJson["curver"]["minAngle"] = curver_min
+    aeFileJson["curver"]["radius"] = curver_r
+    aeFileJson["curver"]["radius2"] = curver_r
+    
+
+    with open('../data/APISettings/' + dataname + '.json','w') as f:
+        json.dump(aeFileJson, f)
+
     aeFile = json.dumps(aeFileJson)
     
     aeFileId = putResponse(urlImport, aeFile)
@@ -134,6 +150,7 @@ def readApiCall(trips, scenarioNumber):
                 for point in segment.points:
                     coords.append((point.longitude, point.latitude))
         geom = LineString(coords)
+        print(gpxFile)
         idx = trips.index[np.where(trips['id']==pathId)[0][0]]
         
         trips.loc[int(idx),'geom'] = geom
