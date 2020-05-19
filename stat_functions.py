@@ -134,7 +134,10 @@ def transModeCsv(transtat, dataname):
     
     transtatdf.sort_values("percentage", axis = 0, ascending = False, 
                      inplace = True, na_position ='last') 
-        
+    
+    modes = ['by Car','by Train','by Plane','Walking','by Bus','by Bike','by Ferry','by Tram','Running']
+    transtatdf['name'] = modes
+    
     if not(os.path.exists('../data/stat/'+ dataname + '/')):
         os.makedirs('../data/stat/'+ dataname + '/')
     transtatdf.to_csv('../data/stat/'+dataname+'/TransportationMode.csv', index = True)
