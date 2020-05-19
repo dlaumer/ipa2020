@@ -309,17 +309,22 @@ function processData(values) {
   // done filtering trips can draw
   drawTrips(places, trips);
 
+  const capitalize = (s) => {
+    if (typeof s !== 'string') return ''
+    return s.charAt(0).toUpperCase() + s.slice(1)
+  }
+
   // reformat homeworkbalance data
   // Make monochrome colors
   var barColors = (function () {
     var colors = [],
-        base = Highcharts.getOptions().colors[4],
+        base = Highcharts.getOptions().colors[0],
         i;
 
     for (i = 0; i < homeworkbal.length; i += 1) {
         // Start out with a darkened base color (negative brighten), and end
         // up with a much brighter color
-        colors.push(Highcharts.color(base).brighten((i - 1) / 5).get());
+        colors.push(Highcharts.color(base).brighten((i - 2) / 6).get());
     }
     return colors;
   }());
@@ -339,7 +344,7 @@ function processData(values) {
       tempabs.push(datai);
     }
     // console.log(data);
-    var homeworkname = homework['location']
+    var homeworkname = capitalize(homeworkid).concat(': ', homework['placeName'])
     var homeworkarray = [homeworkname, data, barColors[i]]    
     HomeWorkData.push(homeworkarray);
   }
@@ -1140,7 +1145,7 @@ function drawTransPieChart (transportationSeries) {
       text: 'Commuting Preferences'
     },
     subtitle:{
-      text: 'Your total CO2 submission is xxx: xx km by Bus x xx/km + xx km by Car x xx/km + xx km by Train x xx/km + xx km by Tram x xx/km + xx km on Foot x xx/km + xx km by Bike x xx/km +',
+      text: 'Your total CO2 emission is xxx: xx km by Bus x xx/km + xx km by Car x xx/km + xx km by Train x xx/km + xx km by Tram x xx/km + xx km on Foot x xx/km + xx km by Bike x xx/km +',
       // align: "left"
      },
     tooltip: {
@@ -1173,7 +1178,7 @@ function drawTransPieChart (transportationSeries) {
         dataLabels: {
           enabled: true,
           format: '<b>{point.name}</b><br>{point.percentage:.1f} %',
-          distance: -40,
+          distance: -30,
           filter: {
               property: 'percentage',
               operator: '>',
