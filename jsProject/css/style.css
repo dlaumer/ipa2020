@@ -99,7 +99,7 @@ body {
 
 .boxes {
   flex-grow: 1;
-  min-width: 0px; 
+  min-width: 200px; 
   margin:5px;
  
   
@@ -168,7 +168,7 @@ img {
 }
 #homeWorkBalance-container {
   flex-basis:25%; 
-  min-width: 200px; 
+  min-width: 200px;
   height: 100%; 
 }
 

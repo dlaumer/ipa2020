@@ -1244,13 +1244,18 @@ function drawTransPieChart(transportationSeries) {
 
 document.getElementById("collapeButton2").addEventListener("click", function () {
   let toggle = d3.select("#homeWorkBalance-container").classed("collapse");
+  d3.select('#homeWorkBalance-container')
+  .style("visibility", toggle ?"visible": "hidden");
   d3.select("#homeWorkBalance-container")
     .classed("collapse", !toggle);
 
 });
 
 document.getElementById("collapeButton1").addEventListener("click", function () {
+
   let toggle = d3.select("#places-container").classed("collapse");
+  d3.select('#places-boxes')
+  .style("visibility", toggle ?"visible": "hidden");
   d3.select("#places-container")
     .classed("collapse", !toggle);
 
@@ -1288,6 +1293,7 @@ d3.selectAll(".flex-item")
     svg
       .attr('width', widthMap)
       .attr('height', heightMap)
+
   });
 
 
@@ -1309,3 +1315,9 @@ function getExtentofPlaces(places) {
   [Math.max.apply(null, lonsSchem), Math.max.apply(null, latsSchem)]];
   return [extentPlaces, extentPlacesSchematic]
 }
+
+d3.select("#homeWorkBalance-container")
+.style("max-width",document.getElementById('homeWorkBalance-container').getBoundingClientRect().width)
+
+d3.select("#places-container")
+.style("max-width",document.getElementById('places-container').getBoundingClientRect().width )
