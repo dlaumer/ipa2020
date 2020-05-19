@@ -650,7 +650,9 @@ def combineTrajectory(cluster1, cluster2):
         newGeom.append(np.average(np.asarray([cluster1['geom'][i], cluster2['geom'][j]]), axis= 0, weights=[cluster1['weight'],cluster2['weight']]).tolist())
     return newGeom
 
-def findSemanticInfo(places, plcs):
+def findSemanticInfo(places, plcs, threeQua):
+    count = 0
+    plcs['nameId'] = ""
     for idx in plcs.index:
         minDist = math.inf
         minIdx = None
@@ -662,10 +664,23 @@ def findSemanticInfo(places, plcs):
                 
         #a = plcs.loc[idx,'extent'].bounds
         #extent = haversine_dist(a[0],a[1],a[2],a[3])
-        if minDist < 300:
+        if minDist < threeQua:
+            plcs.loc[idx,'nameId'] = "Google"
             plcs.loc[idx,'placeName'] = places.loc[minIdx,'placeName']
+            count += 1
         else:
-            plcs.loc[idx,'placeName'] = "Place #" + str(idx)
+            plcs.loc[idx,'nameId'] = "OSMAPI"
+            a = plcs.loc[idx,'location'][0].split(",")[0].strip()
+            b = plcs.loc[idx,'location'][0].split(",")[1].strip()
+            if (a.isdigit()):
+                plcs.loc[idx,'placeName'] = b + ' ' + a
+            elif(b.isdigit()):
+                plcs.loc[idx,'placeName'] = a + ' ' + b
+            else:
+                plcs.loc[idx,'placeName'] = a + ' ' + b
+        
+    print(str(count)+" plcs out of "+str(len(plcs))+" are macthed!")
+    
     return plcs
 
 def removeLongTrips(trps, trpsCount):

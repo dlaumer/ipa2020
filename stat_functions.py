@@ -134,9 +134,13 @@ def transModeCsv(transtat, dataname):
     
     transtatdf.sort_values("percentage", axis = 0, ascending = False, 
                      inplace = True, na_position ='last') 
-    
-    modes = ['by Car','by Train','by Plane','Walking','by Bus','by Bike','by Ferry','by Tram','Running']
-    transtatdf['name'] = modes
+
+    # labels = ["IN_PASSENGER_VEHICLE","STILL","WALKING","IN_BUS","CYCLING","FLYING","RUNNING","IN_FERRY","IN_TRAIN","SKIING","SAILING","IN_SUBWAY","IN_TRAM","IN_VEHICLE"]
+    # modes = ['by Car','by Train','by Plane','Walking','by Bus','by Bike','by Ferry','by Tram','Running']
+    labels2modes = {"IN_PASSENGER_VEHICLE":'by Car',"STILL":'Still',"WALKING": 'Walking',"IN_BUS": 'by Bus',"CYCLING":'by Bike',"FLYING":'by Plane',"RUNNING":'Running',"IN_FERRY":'by Ferry',"IN_TRAIN": 'by Train',"SKIING": 'Skiing',"SAILING": 'Sailing',"IN_SUBWAY": 'by Subway',"IN_TRAM": 'by Tram',"IN_VEHICLE":'in Vehicle'} 
+
+    transtatdf['name'] = transtatdf['mode']
+    transtatdf=transtatdf.replace({"name": labels2modes})
     
     if not(os.path.exists('../data/stat/'+ dataname + '/')):
         os.makedirs('../data/stat/'+ dataname + '/')
@@ -325,12 +329,12 @@ def plcsStayHour(stps, plcs, dataname):
     plcsInfoT.columns = plcs['place_id']
     plcsInfoT.to_csv('../data/stat/'+ dataname + '/PlcsInfo.csv', index = True)
 
-    column_names = ["user_id","place_id","center","extent","location","placeName","id","0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23"]
+    column_names = ["user_id","place_id","center","extent","location","placeName","nameId",'totalStayHrs',"0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23"]
     plcs = plcs.reindex(columns=column_names)
     
     return plcs    
     
-def homeworkStay(stps, dataname, places, minDist, minPoints):
+def homeworkStay(stps, dataname, places, threeQua, minDist, minPoints):
     """
     Calculate stay time statistics of home and work places for all past data
 
@@ -352,7 +356,7 @@ def homeworkStay(stps, dataname, places, minDist, minPoints):
     for i in range(0,len(stps)): stps['t_diff'].iloc[i] = (stps['finished_at'].iloc[i] - stps['started_at'].iloc[i]).total_seconds()/3600
     
     ## HOME ADDRESS   
-    homestps = stps[(stps['tracked_at_hour']<=7) | (stps['tracked_at_hour']>=22) | (stps['t_diff']>=36)]
+    homestps = stps[(stps['tracked_at_hour']<=5) | (stps['tracked_at_hour']>=22) | (stps['t_diff']>=18)]
     homeplcs = main.findPlaces(homestps, dataname, minDist, minPoints) 
     homeplcs = poi.reverseGeoCoding(homeplcs)
     
@@ -567,7 +571,7 @@ def homeworkStay(stps, dataname, places, minDist, minPoints):
     homeworkplcs = homeworkplcs.reset_index(drop=True)
     homeworkplcs['place_id'] = homeworkplcs.index
 
-    homeworkplcs = hlp.findSemanticInfo(places, homeworkplcs)
+    homeworkplcs = hlp.findSemanticInfo(places, homeworkplcs, threeQua)
 
     column_names = ["user_id","place_id","center","extent","location","placeName","id","totalStayDays","totalStayHrs","0","1","2","3","4","5","6"]
     homeworkplcs = homeworkplcs.reindex(columns=column_names)

@@ -26,14 +26,18 @@ import poi_classification as poi
 import thresholds_function as thred
 import stat_functions as calstat
 import api_call as api
+import numpy as np
 
 from trackintel.geogr.distances import haversine_dist
 
 #import noiserm_functions as nrm
 dataNameList = ["1","2","3","4","5","6","7","17","20","25","28"]
-dataName = '1'
+dataName = '17'
 
 mac = False
+
+IMPORT_THRES =      True
+CHOOSE_THRES =      False
 
 SELECT_RANGE =      True
 FIND_STAY_POINTS =  True
@@ -53,74 +57,75 @@ TransmodeStat =     True
 HomeWorkStat =      True
 
 #%% LOAD ALL SAVED THRESHOLDS
-import ast
+if IMPORT_THRES:
+    import ast
+    
+    inputFile = open("../data/stat/thresholds.txt", "r")
+    lines = inputFile.readlines()
+    
+    objects = []
+    for line in lines:
+        objects.append( ast.literal_eval(line) )
+    
+    allthresholds = objects[0]
+    
+    thresholds = allthresholds[dataName]
 
-inputFile = open("../data/stat/thresholds.txt", "r")
-lines = inputFile.readlines()
+# thresholds['accuracy_threshold'] = 200
+#%% CHOOSE THRESHOLDS - PART 1
+if CHOOSE_THRES:
+    # For the first time, run the following four lines to save the data
+    # dateStart = '2020-01-01'
+    # dateEnd = 'end'
+    # stythred = thred.stydiffstat(dataNameList, SELECT_RANGE, dateStart, dateEnd)
+    # stythred.to_csv('../data/csv'+'/StayDiffStatRange.csv', index=False)
+    
+    # Then read the data after the second time
+    # staythred = pd.read_csv('../data/csv'+'/StayDiffStat.csv') 
+    staythredrange = pd.read_csv('../data/csv'+'/StayDiffStatRange.csv') 
+    
+    # dfStatistics = calstat.accuracyStat(dataName, dataNameList, dateStart, dateEnd)
+    dfStatistics = pd.read_csv('../data/statistics.csv',sep=";")
+    
+    # staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
+    # staythredrange[staythredrange['dataName']==int(dataName)]['time_quarter'][dataNameList.index(dataName)],
+    
+    #allthresholds = {}
+    
+    # allthresholds.get('3')
+    
+    thresholds = {
+        "accuracy_threshold" : 0,
+        "dist_threshold" : 0,
+        "time_threshold" : 5*60, #staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
+        "timemax_threshold": 12*3600,
+        "minDist" : 0,
+        "minPoints" : 0,
+        "minDistTh" : 0.2, 
+        "factorTh" : 2,
+        "dateStart": "2020-01-01",
+        "dateEnd": "end"
+        }
+    
+    
+    #% Choose thresholds
+    dataStat = dfStatistics[dfStatistics['id']==int(dataName)]
+    
+    if (dataStat['ThreeQuatile'][dataNameList.index(dataName)] < 40):
+        thresholds['accuracy_threshold'] = 40
+    else:
+        thresholds['accuracy_threshold'] = dataStat['ThreeQuatile'][dataNameList.index(dataName)]
+    
+    if (thresholds['accuracy_threshold'] < 50):
+        thresholds['dist_threshold'] = 50
+    else:
+        thresholds['dist_threshold'] = thresholds['accuracy_threshold']
+    
+    thresholds['minDist'] = thresholds['accuracy_threshold']
 
-objects = []
-for line in lines:
-    objects.append( ast.literal_eval(line) )
+    # thresholds['accuracy_threshold'] = 200   
 
-allthresholds = objects[0]
-
-#%%
-# For the first time, run the following four lines to save the data
-# dateStart = '2020-01-01'
-# dateEnd = 'end'
-# stythred = thred.stydiffstat(dataNameList, SELECT_RANGE, dateStart, dateEnd)
-# stythred.to_csv('../data/csv'+'/StayDiffStatRange.csv', index=False)
-
-# Then read the data after the second time
-# staythred = pd.read_csv('../data/csv'+'/StayDiffStat.csv') 
-staythredrange = pd.read_csv('../data/csv'+'/StayDiffStatRange.csv') 
-
-# dfStatistics = calstat.accuracyStat(dataName, dataNameList, dateStart, dateEnd)
-dfStatistics = pd.read_csv('../data/statistics.csv',sep=";")
-
-# staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
-# staythredrange[staythredrange['dataName']==int(dataName)]['time_quarter'][dataNameList.index(dataName)],
-
-#allthresholds = {}
-
-thresholds = {
-    "accuracy_threshold" : 0,
-    "dist_threshold" : 0,
-    "time_threshold" : 5*60, #staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
-    "timemax_threshold": 12*3600,
-    "minDist" : 0,
-    "minPoints" : 0,
-    "minDistTh" : 0.2, 
-    "factorTh" : 2,
-    "dateStart": "2020-01-01",
-    "dateEnd": "end"
-    }
-
-
-#%% Choose thresholds
-dataStat = dfStatistics[dfStatistics['id']==int(dataName)]
-
-if (dataStat['ThreeQuatile'][dataNameList.index(dataName)] < 40):
-    thresholds['accuracy_threshold'] = 40
-else:
-    thresholds['accuracy_threshold'] = dataStat['ThreeQuatile'][dataNameList.index(dataName)]
-
-if (thresholds['accuracy_threshold'] < 50):
-    thresholds['dist_threshold'] = 50
-else:
-    thresholds['dist_threshold'] = thresholds['accuracy_threshold']
-
-thresholds['minDist'] = thresholds['accuracy_threshold']
-#thresholds['accuracy_threshold'] = 3000
-
-#with open('../data/thresholds/' + dataName + '.json', 'w') as outfile:
-#    json.dump(thresholds, outfile)
-
-# if loadTh:   
-#     with open('../data/thresholds/' + dataName + '.json', 'r') as file:
-#         thresholds = json.load(file)
-
- #%% IMPORT DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#%% IMPORT DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 print("-> Loading the data")
 dataPathLocs,dataPathTrips = hlp.getDataPaths(dataName)
 
@@ -134,6 +139,9 @@ trips, tripdf, tripsgdf = hlp.parseTrips(dataPathTrips)
 
 # add location data to the trips file
 # tripsgdf = hlp.parseTripsWithLocs(dataPathTrips, locsgdf)
+
+# locs['d_diff'] = np.append(haversine_dist(locs.longitudeE7[1:], locs.latitudeE7[1:], locs.longitudeE7[:-1], locs.latitudeE7[:-1]),0)
+# thresholds['accuracy_threshold'] = np.quantile(locs['d_diff'], .95)
 
 # export to shapefile
 if exportShp:
@@ -151,19 +159,28 @@ if FIND_STAY_POINTS:
         stps_shp['started_at'] = stps_shp['started_at'].astype(str)
         stps_shp['finished_at'] = stps_shp['finished_at'].astype(str)
         stps_shp.to_file('../data/shp/'+dataName +'/Staypoints.shp')
+        
+# stps['t_diff'] = stps['finished_at'] - stps['started_at']
+#%% #%% CHOOSE THRESHOLDS - PART 2
+if CHOOSE_THRES:
+    minPnts = math.ceil(len(stps)/100)
+    if (minPnts >= 5):
+        thresholds["minPoints"] = 5
+    elif (minPnts < 2):
+        thresholds["minPoints"] = 2
+    else:
+        thresholds["minPoints"] = minPnts
+    #thresholds["minPoints"] = 1
 
-stps['t_diff'] = stps['finished_at'] - stps['started_at']
+# Write threshodls
+#with open('../data/thresholds/' + dataName + '.json', 'w') as outfile:
+#    json.dump(thresholds, outfile)
+
+# if loadTh:   
+#     with open('../data/thresholds/' + dataName + '.json', 'r') as file:
+#         thresholds = json.load(file)
 
 #%% FIND PLACES (CLUSTER OF STAY POINTS)
-minPnts = math.ceil(len(stps)/100)
-if (minPnts >= 5):
-    thresholds["minPoints"] = 5
-elif (minPnts < 2):
-      thresholds["minPoints"] = 2
-else:
-    thresholds["minPoints"] = minPnts
-#thresholds["minPoints"] = 1
-
 if FIND_PLACES:
     print("-> Finding the places ")
 
@@ -177,13 +194,21 @@ if FIND_PLACES:
     
     plcs = poi.reverseGeoCoding(plcs)
 
+
+#%% HOME AND WORK ADDRESS DETECTION
+# homeidx = plcs.loc[plcs['Value'].idxmax()
+                  
+
 #%% MATCH GOOGLE PLACES %%%%%%%
 if FIND_SEMANTIC_INFO:
     places = tripsgdf[tripsgdf['Type']=='placeVisit']
     places.drop_duplicates(subset ="placeId", keep = 'first', inplace = True) 
     places = places[~places.geometry.is_empty]
     
-    plcs = hlp.findSemanticInfo(places, plcs)
+    dfStatistics = pd.read_csv('../data/statistics.csv',sep=";")
+    dataStat = dfStatistics[dfStatistics['id']==int(dataName)]    
+    threeQua = dataStat['ThreeQuatile'][dataNameList.index(dataName)]
+    plcs = hlp.findSemanticInfo(places, plcs, threeQua)
             
     # if exportShp:
     #     places['startTime'] = places['startTime'].astype(str)
@@ -196,9 +221,15 @@ if TimelineStat:
 
 #%
 if HomeWorkStat:
-    homeworkplcs = calstat.homeworkStay(stps, dataName, places, thresholds["minDist"], thresholds["minPoints"])
-    # homeworlplcs = hlp.findSemanticInfo(places, homeworlplcs)
+    homeworkplcs = calstat.homeworkStay(stps, dataName, places, threeQua, thresholds["minDist"], thresholds["minPoints"])
     
+    # homeworlplcs = hlp.findSemanticInfo(places, homeworlplcs)
+    if exportShp: 
+        HomeWork_shp = homeworkplcs.copy()
+        # stps_shp['started_at'] = HomeWork_shp['started_at'].astype(str)
+        HomeWork_shp['location'] = HomeWork_shp['location'].astype(str)
+        HomeWork_shp.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/HomeWork.shp')
+        # HomeWork_shp.to_file('../data/shp/'+dataName +'/HomeWork.shp')
 #%
 if TransmodeStat:
     transtat = calstat.pieChartInfoPlus(trips)
@@ -281,7 +312,7 @@ if API_CALL:
     trpsAgrSchematic_shp = tripsAgrSchematic.copy()
     trpsAgrSchematic_shp['weight'] = trpsAgrSchematic_shp['weight'].astype(int)
     trpsAgrSchematic_shp.to_file('../data/shp/'+dataName +'/TripsAggregatedSchemtic.shp')
-
+ 
 #%%
 if EXPORT_FOR_DASHBOARD:
     drops = []
