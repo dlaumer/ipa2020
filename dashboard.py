@@ -31,7 +31,7 @@ from trackintel.geogr.distances import haversine_dist
 
 #import noiserm_functions as nrm
 dataNameList = ["1","2","3","4","5","6","7","17","20","25","28"]
-dataName = '2'
+dataName = '1'
 
 mac = False
 

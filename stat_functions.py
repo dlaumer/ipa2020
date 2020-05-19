@@ -322,7 +322,7 @@ def plcsStayHour(stps, plcs, dataname):
     plcsInfoT.columns = plcs['place_id']
     plcsInfoT.to_csv('../data/stat/'+ dataname + '/PlcsInfo.csv', index = True)
 
-    column_names = ["user_id","place_id","center","extent","location","placeName","totalStayHrs","id","0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23"]
+    column_names = ["user_id","place_id","center","extent","location","placeName","id","0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23"]
     plcs = plcs.reindex(columns=column_names)
     
     return plcs    
@@ -568,6 +568,7 @@ def homeworkStay(stps, dataname, places, minDist, minPoints):
 
     column_names = ["user_id","place_id","center","extent","location","placeName","id","totalStayDays","totalStayHrs","0","1","2","3","4","5","6"]
     homeworkplcs = homeworkplcs.reindex(columns=column_names)
+    homeworkplcs = homeworkplcs.rename(columns={'0':'Mon','1':"Tues","2":"Wed","3":"Thur","4":"Fri","5":"Sat","6":"Sun"})  
     
     if not(os.path.exists('../data/stat/'+ dataname + '/')):
         os.makedirs('../data/stat/'+ dataname + '/')
