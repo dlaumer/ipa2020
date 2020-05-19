@@ -31,16 +31,16 @@ from trackintel.geogr.distances import haversine_dist
 
 #import noiserm_functions as nrm
 dataNameList = ["1","2","3","4","5","6","7","17","20","25","28"]
-dataName = '1'
+dataName = '2'
 
-mac = True
+mac = False
 
 SELECT_RANGE =      True
 FIND_STAY_POINTS =  True
 FIND_PLACES =       True
 FIND_TRIPS =        True
 FIND_SEMANTIC_INFO =True
-CLUSTER_TRPS =      True
+CLUSTER_TRPS =      False
 EXPORT_GPX =        False
 API_CALL =          False
 EXPORT_FOR_DASHBOARD = False
@@ -113,8 +113,6 @@ else:
 thresholds['minDist'] = thresholds['accuracy_threshold']
 #thresholds['accuracy_threshold'] = 3000
 
-
-
 #with open('../data/thresholds/' + dataName + '.json', 'w') as outfile:
 #    json.dump(thresholds, outfile)
 
@@ -179,7 +177,7 @@ if FIND_PLACES:
     
     plcs = poi.reverseGeoCoding(plcs)
 
-#%%    
+#%% MATCH GOOGLE PLACES %%%%%%%
 if FIND_SEMANTIC_INFO:
     places = tripsgdf[tripsgdf['Type']=='placeVisit']
     places.drop_duplicates(subset ="placeId", keep = 'first', inplace = True) 
@@ -187,19 +185,20 @@ if FIND_SEMANTIC_INFO:
     
     plcs = hlp.findSemanticInfo(places, plcs)
             
-    if exportShp:
-        places['startTime'] = places['startTime'].astype(str)
-        places['endTime'] = places['endTime'].astype(str)
-        places.to_file('../data/shp/'+dataName +'/Places_google.shp')
+    # if exportShp:
+    #     places['startTime'] = places['startTime'].astype(str)
+    #     places['endTime'] = places['endTime'].astype(str)
+    #     places.to_file('../data/shp/'+dataName +'/Places_google.shp')
  
-#%%
+#%% OUTPUT STATISTICS %%%%%%%%%%
 if TimelineStat:
     plcs = calstat.plcsStayHour(stps, plcs, dataName)
 
 #%
 if HomeWorkStat:
-    homeworkplcs = calstat.homeworkStay(stps, dataName, thresholds["minDist"], thresholds["minPoints"])
-
+    homeworkplcs = calstat.homeworkStay(stps, dataName, places, thresholds["minDist"], thresholds["minPoints"])
+    # homeworlplcs = hlp.findSemanticInfo(places, homeworlplcs)
+    
 #%
 if TransmodeStat:
     transtat = calstat.pieChartInfoPlus(trips)
