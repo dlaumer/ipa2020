@@ -376,7 +376,7 @@ function processData(values) {
   // reformat transportation data
   for (let i = 0; i < transportationmode.length; i++) {
     var transportationi = transportationmode[i];
-    var mode = transportationi['mode']
+    var mode = transportationi['name']
     var percentage = transportationi['percentage'] * 100
     var val = transportationi['value'] / 1000
     var transarray = [mode, percentage, val]
@@ -1074,7 +1074,12 @@ function drawNegativeBar(HomeWorkSeries, yAxisMax) {
       type: 'bar'
     },
     title: {
-      text: 'Home and Work Balance'
+      text: 'Home and Work Balance',
+      style: {
+        fontSize: '20px',
+        fontWeight: 'bold',
+        font: 'Arial',
+     }  
     },
     // subtitle: {
     //   text: ''
@@ -1173,7 +1178,12 @@ function drawTransPieChart(transportationSeries) {
       type: 'pie'
     },
     title: {
-      text: 'Commuting Preferences'
+      text: 'Commuting Preferences',
+      style: {
+        fontSize: '20px',
+        fontWeight: 'bold',
+        font: 'Arial',
+     }  
     },
     subtitle:{
       text: 'Your total CO2 emission is xxx: xx km by Bus x xx/km + xx km by Car x xx/km + xx km by Train x xx/km + xx km by Tram x xx/km + xx km on Foot x xx/km + xx km by Bike x xx/km +',
@@ -1214,7 +1224,13 @@ function drawTransPieChart(transportationSeries) {
             property: 'percentage',
             operator: '>',
             value: 4
-          }
+          },
+          style: {
+            fontSize: '10px',
+            // fontWeight: 'bold',
+            font: 'Arial',
+            textOutline: '0px contrast'
+         }  
         }
       }
     },
