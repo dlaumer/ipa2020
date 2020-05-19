@@ -60,10 +60,10 @@ def findTrips(pfs, stps, plcs, dataName):
     tpls = tim.extract_triplegs_ipa(pfs, stps)
     
     trps = pd.DataFrame(columns=['id', 'started_at', 'finished_at','start_plc', 'end_plc', 'geom'])
-    trpsAgr = pd.DataFrame(columns=['id','count', 'start_plc', 'end_plc', 'geom'])
+    trpsCount = pd.DataFrame(columns=['id','count', 'start_plc', 'end_plc', 'geom'])
 
     generated_trips = []        
-    generated_trips_aggr = {}
+    generated_trips_count = {}
 
     count = 0;
     #countMatrix = np.zeros([len(plcs),len(plcs)])
@@ -74,7 +74,6 @@ def findTrips(pfs, stps, plcs, dataName):
         startPlace = stps.loc[tpls.loc[i,'start_stp'],'place_id']
         endPlace = stps.loc[tpls.loc[i,'end_stp'],'place_id']
         coords = tpls.loc[i,'geom'].coords[:]
-
         if (startPlace == -1) and (endPlace == -1):
             coordsCombined = coordsCombined[:-1] + coords
         if (startPlace != -1):
@@ -103,12 +102,12 @@ def findTrips(pfs, stps, plcs, dataName):
             
             ide = str(min(tplTemp["start_plc"], tplTemp["end_plc"])) + '_' + str(max(tplTemp["start_plc"], tplTemp["end_plc"]))
             #ide = str(startPlace) + '_' + str(endPlace)
-            coords = [(coordsCombined[1]), (coordsCombined[-1])]
+            coords = [(coordsCombined[0]), (coordsCombined[-1])]
 
             generated_trips.append(tplTemp)
             
-            if ide not in list(generated_trips_aggr):
-                generated_trips_aggr[ide] = {
+            if ide not in list(generated_trips_count):
+                generated_trips_count[ide] = {
                         'id': ide,
                         'count' : 1,
                         'trpIds' : [count],
@@ -117,8 +116,8 @@ def findTrips(pfs, stps, plcs, dataName):
                         'geom': LineString(coords),
                     }
             else:
-                generated_trips_aggr[ide]['count'] = generated_trips_aggr[ide]['count']+ 1
-                generated_trips_aggr[ide]['trpIds'].append(count)
+                generated_trips_count[ide]['count'] = generated_trips_count[ide]['count']+ 1
+                generated_trips_count[ide]['trpIds'].append(count)
             #countMatrix[startPlace-1,endPlace-1] = countMatrix[startPlace-1,endPlace-1] + 1
             #countMatrix[endPlace-1,startPlace-1] = countMatrix[endPlace-1,startPlace-1] + 1
             count = count + 1
@@ -129,10 +128,10 @@ def findTrips(pfs, stps, plcs, dataName):
     trps = trps.append(generated_trips)
     trps = gpd.GeoDataFrame(trps, geometry='geom')
     
-    trpsAgr = trpsAgr.append(list(generated_trips_aggr.values()))
-    trpsAgr = gpd.GeoDataFrame(trpsAgr, geometry='geom')
+    trpsCount = trpsCount.append(list(generated_trips_count.values()))
+    trpsCount = gpd.GeoDataFrame(trpsCount, geometry='geom')
     
-    return tpls, trps, trpsAgr
+    return tpls, trps, trpsCount
 
 
 def findDirectTrips(pfs, stps, plcs, dataName):
@@ -150,7 +149,6 @@ def findDirectTrips(pfs, stps, plcs, dataName):
     for i in range(len(tpls)):
         startPlace = stps.loc[tpls.loc[i,'start_stp'],'place_id']
         endPlace = stps.loc[tpls.loc[i,'end_stp'],'place_id']
-
         if (startPlace != -1) and (endPlace!= -1):
             coords = tpls.loc[i,'geom'].coords[1:-1]
             startCoord = plcs.loc[startPlace-1,'center'].coords[:]
@@ -255,6 +253,8 @@ def clusterTrips(trps, trpsCount, minDistTh, factorTh, dataName, saveDendogramms
         
         for idx in sorted(outlierIdx, reverse=True):
             del trpsTemp[idx]
+        
+        print(str(len(outlierIdx)) + " outliers were detected and removed")
         
         distMatrix = hlp.makeDistMatrix(trpsTemp)   
         linkMatrix = linkage(distMatrix, method='complete')

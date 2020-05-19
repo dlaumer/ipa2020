@@ -1,24 +1,25 @@
 // Data files to import
+var dataName = "1";
 var urls = {
   map: "swiss.json",
 
   places:
-    "./stat/places.csv",
+    "./stat"+dataName+"/places.csv",
 
   trips:
-    "./stat/tripsAgr.csv",
+    "./stat"+dataName+"/tripsAgr.csv",
 
   timeline:
-    "./stat/StaybyHour.csv",
+    "./stat"+dataName+"/PlcsStayHour.csv",
 
   semanticInfo:
-    "./stat/StaybyHourLocinfo.csv",
+    "./stat"+dataName+"/PlcsInfo.csv",
 
   homeworkbal:
-    "./stat/HomeWorkStay.csv",
+    "./stat"+dataName+"/HomeWorkStay.csv",
 
   transportation:
-    "./stat/TransportationMode.csv",
+    "./stat"+dataName+"/TransportationMode.csv",
 };
 
 // PERPARE MAP  ////////////////////////////////////////////////////////////////////////////////////

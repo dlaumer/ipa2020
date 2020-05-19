@@ -650,7 +650,9 @@ def combineTrajectory(cluster1, cluster2):
         newGeom.append(np.average(np.asarray([cluster1['geom'][i], cluster2['geom'][j]]), axis= 0, weights=[cluster1['weight'],cluster2['weight']]).tolist())
     return newGeom
 
-def findSemanticInfo(places, plcs):
+def findSemanticInfo(places, plcs, threeQua):
+    count = 0
+    plcs['nameId'] = ''
     for idx in plcs.index:
         minDist = math.inf
         minIdx = None
@@ -662,10 +664,22 @@ def findSemanticInfo(places, plcs):
                 
         #a = plcs.loc[idx,'extent'].bounds
         #extent = haversine_dist(a[0],a[1],a[2],a[3])
-        if minDist < 300:
+        if minDist < threeQua:
+            plcs.loc[idx,'nameId'] = "Google"
             plcs.loc[idx,'placeName'] = places.loc[minIdx,'placeName']
+            count += 1
         else:
-            plcs.loc[idx,'placeName'] = "Place #" + str(idx)
+            plcs.loc[idx,'nameId'] = "OSMAPI"
+            a = plcs.loc[idx,'location'][0].split(",")[0].strip()
+            b = plcs.loc[idx,'location'][0].split(",")[1].strip()
+            if (a.isdigit()):
+                plcs.loc[idx,'placeName'] = b + ' ' + a
+            elif(b.isdigit()):
+                plcs.loc[idx,'placeName'] = a + ' ' + b
+            else:
+                plcs.loc[idx,'placeName'] = a + ' ' + b
+        
+    print(str(count)+" plcs out of "+str(len(plcs))+" are macthed!")
     return plcs
 
 def removeLongTrips(trps, trpsCount):
@@ -673,7 +687,7 @@ def removeLongTrips(trps, trpsCount):
         trpIds = []
         for jdx in trpsCount.loc[idx,'trpIds']:
             # Check if the trip is too long:
-            if trps.loc[jdx,"geom"].length < 4*trpsCount.loc[idx,'geom'].length:
+            if trps.loc[jdx,"geom"].length < 3*trpsCount.loc[idx,'geom'].length:
                 trpIds.append(jdx)
             else:
                 trps = trps.drop(jdx)   
@@ -685,7 +699,7 @@ def removeLongTrips(trps, trpsCount):
     return trps, trpsCount
     
     
-def savecsv4js(places, trips, tripsSchematic):
+def savecsv4js(dataName, places, trips, tripsSchematic):
     places['city'] = 'Zurich'
     places['state'] = 'Zurich'
     places['country'] = 'Switzerland'
@@ -697,7 +711,7 @@ def savecsv4js(places, trips, tripsSchematic):
     places['latitudeSchematic'] = places.geometry.y
     places['longitudeSchematic'] = places.geometry.x
     places = places.drop(columns = ['user_id', 'extent', 'center', 'centerSchematic'])
-    places.to_csv('jsProject/stat/places.csv',  index = False, sep = ";")
+    places.to_csv('../../5-Final Product/stat' + dataName+'/places.csv',  index = False, sep = ";")
  
     
     trips = trips.rename(columns = {'start_plc':'origin', 'end_plc':'destination', 'weight':'count'})
@@ -712,7 +726,7 @@ def savecsv4js(places, trips, tripsSchematic):
     trips = trips.rename(columns = {'weight':'count'})
     trips = trips[['origin', 'destination','count','waypointsLong','waypointsLat','waypointsLatSchematic','waypointsLongSchematic']]
     #trips.to_csv('../jsProject/stat/trips.csv',  index = False, sep = ";")
-    trips.to_csv('jsProject/stat/tripsAgr.csv',  index = False, sep = ";")
+    trips.to_csv('../../5-Final Product/stat' + dataName+'/tripsAgr.csv',  index = False, sep = ";")
 
     
 

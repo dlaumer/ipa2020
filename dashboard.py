@@ -12,6 +12,7 @@ import json
 import shutil
 import math
 import os
+import numpy as np
 
 from statistics import median 
 from shapely.geometry import Point
@@ -27,22 +28,24 @@ import thresholds_function as thred
 import stat_functions as calstat
 import api_call as api
 
+from shapely.geometry import Point, LineString, Polygon
+
 from trackintel.geogr.distances import haversine_dist
 
 #import noiserm_functions as nrm
 dataNameList = ["1","2","3","4","5","6","7","17","20","25","28"]
-dataName = '1'
+dataName = '28'
 
-mac = False
+mac = True
 
 SELECT_RANGE =      True
 FIND_STAY_POINTS =  True
 FIND_PLACES =       True
 FIND_TRIPS =        True
 FIND_SEMANTIC_INFO =True
-CLUSTER_TRPS =      False
-EXPORT_GPX =        False
-API_CALL =          False
+CLUSTER_TRPS =      True
+EXPORT_GPX =        True
+API_CALL =          True
 EXPORT_FOR_DASHBOARD = False
 
 exportShp =         True
@@ -50,7 +53,7 @@ loadTh =            False
 
 TimelineStat =      True
 TransmodeStat =     True
-HomeWorkStat =      True
+HomeWorkStat =      False
 
 #%% LOAD ALL SAVED THRESHOLDS
 import ast
@@ -83,42 +86,37 @@ dfStatistics = pd.read_csv('../data/statistics.csv',sep=";")
 
 #allthresholds = {}
 
-thresholds = {
-    "accuracy_threshold" : 0,
-    "dist_threshold" : 0,
-    "time_threshold" : 5*60, #staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
-    "timemax_threshold": 12*3600,
-    "minDist" : 0,
-    "minPoints" : 0,
-    "minDistTh" : 0.2, 
-    "factorTh" : 2,
-    "dateStart": "2020-01-01",
-    "dateEnd": "end"
-    }
+thresholds = allthresholds[dataName]
+# thresholds = {
+#     "accuracy_threshold" : 0,
+#     "dist_threshold" : 0,
+#     "time_threshold" : 5*60, #staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
+#     "timemax_threshold": 12*3600,
+#     "minDist" : 0,
+#     "minPoints" : 0,
+#     "minDistTh" : 0.2, 
+#     "factorTh" : 2,
+#     "dateStart": "2020-01-01",
+#     "dateEnd": "end"
+#     }
 
 
 #%% Choose thresholds
-dataStat = dfStatistics[dfStatistics['id']==int(dataName)]
+# dataStat = dfStatistics[dfStatistics['id']==int(dataName)]
 
-if (dataStat['ThreeQuatile'][dataNameList.index(dataName)] < 40):
-    thresholds['accuracy_threshold'] = 40
-else:
-    thresholds['accuracy_threshold'] = dataStat['ThreeQuatile'][dataNameList.index(dataName)]
+# if (dataStat['ThreeQuatile'][dataNameList.index(dataName)] < 40):
+#     thresholds['accuracy_threshold'] = 40
+# else:
+#     thresholds['accuracy_threshold'] = dataStat['ThreeQuatile'][dataNameList.index(dataName)]
 
-if (thresholds['accuracy_threshold'] < 50):
-    thresholds['dist_threshold'] = 50
-else:
-    thresholds['dist_threshold'] = thresholds['accuracy_threshold']
+# if (thresholds['accuracy_threshold'] < 50):
+#     thresholds['dist_threshold'] = 50
+# else:
+#     thresholds['dist_threshold'] = thresholds['accuracy_threshold']
 
-thresholds['minDist'] = thresholds['accuracy_threshold']
-#thresholds['accuracy_threshold'] = 3000
+# thresholds['minDist'] = thresholds['accuracy_threshold']
+#thresholds['accuracy_threshold'] = 200
 
-#with open('../data/thresholds/' + dataName + '.json', 'w') as outfile:
-#    json.dump(thresholds, outfile)
-
-# if loadTh:   
-#     with open('../data/thresholds/' + dataName + '.json', 'r') as file:
-#         thresholds = json.load(file)
 
  #%% IMPORT DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 print("-> Loading the data")
@@ -140,6 +138,12 @@ if exportShp:
     hlp.loc2shp(locsgdf, dataName)
     hlp.trip2shp(tripsgdf, dataName)
 
+
+
+locs['d_diff'] = np.append(haversine_dist(locs.longitudeE7[1:], locs.latitudeE7[1:], locs.longitudeE7[:-1], locs.latitudeE7[:-1]),0)
+thresholds['accuracy_threshold'] = np.quantile(locs['d_diff'], .95)
+
+
 #%% FIND STAY POINTS
 if FIND_STAY_POINTS:
     print("-> Finding stay points ")
@@ -155,14 +159,14 @@ if FIND_STAY_POINTS:
 stps['t_diff'] = stps['finished_at'] - stps['started_at']
 
 #%% FIND PLACES (CLUSTER OF STAY POINTS)
-minPnts = math.ceil(len(stps)/100)
-if (minPnts >= 5):
-    thresholds["minPoints"] = 5
-elif (minPnts < 2):
-      thresholds["minPoints"] = 2
-else:
-    thresholds["minPoints"] = minPnts
-#thresholds["minPoints"] = 1
+# minPnts = math.ceil(len(stps)/100)
+# if (minPnts >= 5):
+#     thresholds["minPoints"] = 5
+# elif (minPnts < 2):
+#       thresholds["minPoints"] = 2
+# else:
+#     thresholds["minPoints"] = minPnts
+# #thresholds["minPoints"] = 1
 
 if FIND_PLACES:
     print("-> Finding the places ")
@@ -172,18 +176,31 @@ if FIND_PLACES:
     if exportShp:
         plcs_shp = plcs.copy()
         plcs_shp.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/Places.shp')
-        #plcs_shp.geometry = plcs_shp['extent']
-        #plcs_shp.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/Places_extent.shp')
-    
+        
+                
+        # plcs_shp = plcs.copy()
+        # plcs_shp.geometry = plcs_shp['extent']
+        # plcs_shp_polygon = plcs_shp[plcs_shp['extent'].apply(lambda x: isinstance(x, Polygon))]
+        # plcs_shp_polygon.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/Places_extent_polygon.shp')
+        
+        # plcs_shp = plcs.copy()
+        # plcs_shp.geometry = plcs_shp['extent']               
+        # plcs_shp_polyline = plcs_shp[plcs_shp['extent'].apply(lambda x: isinstance(x, LineString))]
+        # plcs_shp_polyline.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/Places_extent_polyline.shp')
+
     plcs = poi.reverseGeoCoding(plcs)
 
 #%% MATCH GOOGLE PLACES %%%%%%%
 if FIND_SEMANTIC_INFO:
+    dfStatistics = pd.read_csv('../data/statistics.csv',sep=";")
+    dataStat = dfStatistics[dfStatistics['id']==int(dataName)]    
+    threeQua = dataStat['ThreeQuatile'][dataNameList.index(dataName)]
+    
     places = tripsgdf[tripsgdf['Type']=='placeVisit']
     places.drop_duplicates(subset ="placeId", keep = 'first', inplace = True) 
     places = places[~places.geometry.is_empty]
     
-    plcs = hlp.findSemanticInfo(places, plcs)
+    plcs = hlp.findSemanticInfo(places, plcs, threeQua)
             
     # if exportShp:
     #     places['startTime'] = places['startTime'].astype(str)
@@ -232,16 +249,12 @@ if FIND_TRIPS:
 # thresholds["minDistTh"] = 1
 # thresholds["factorTh"] = 2
 
-# allthresholds[dataName] = thresholds
-# outputFile = open("../data/stat/thresholds.txt", "w")
-# outputFile.write(str(allthresholds))
-# outputFile.flush()
-# outputFile.close()
-
 if CLUSTER_TRPS:
     print("-> Cluster the trips")
+    print("Number of trips before removing long trips " + str(len(trps)))
+    trpsShort, trpsCount = hlp.removeLongTrips(trps.copy(), trpsCount.copy())
+    print("Number of trips after removing long trips " + str(len(trpsShort)))
 
-    trpsShort, trpsCount = hlp.removeLongTrips(trps, trpsCount)
     trpsShort, trpsAgr = main.clusterTrips(trpsShort, trpsCount, thresholds["minDistTh"], thresholds["factorTh"], dataName, saveDendogramms=True)
     #trps, trpsAgr = main.clusterTrips(trps, trpsCount, 0.2, 2, dataName, saveDendogramms=True)
 
@@ -272,11 +285,21 @@ if EXPORT_GPX:
 #%%
 if API_CALL:
     print("-> Calling the API from Hitouch")
-    homes = homeworkplcs.loc[homeworkplcs['id']=='home']
-    homeCoords = homes.loc[homes['totalStayHrs'].idxmax()].center.coords[:][0]
+    version = 5
+    thresholds["DP_tolerance"] = 0.08
+    thresholds["fisheye_factor"] = 1
+    thresholds["curver_max"] = 360
+    thresholds["curver_min"] = 0
+    thresholds["curver_r"] = 20000
     
-    api.apiCall(dataName, 100 + int(dataName), homeCoords)
-    tripsAgrSchematic = api.readApiCall(trpsAgr.copy(), 100+int(dataName))
+    # homes = homeworkplcs.loc[homeworkplcs['id']=='work']
+    # homeCoords = homes.loc[homes['totalStayHrs'].idxmax()].center.coords[:][0]
+    
+    # For participant 17, change index to 13
+    homeCoords = plcs[plcs['totalStayHrs']==plcs['totalStayHrs'].max()]['center'][9].coords[:][0]    
+    
+    api.apiCall(dataName, 1000 * int(dataName) + version, homeCoords, thresholds["DP_tolerance"], thresholds["fisheye_factor"],thresholds["curver_min"], thresholds["curver_max"], thresholds["curver_r"])
+    tripsAgrSchematic = api.readApiCall(trpsAgr.copy(), 1000*int(dataName)+version )
     
     trpsAgrSchematic_shp = tripsAgrSchematic.copy()
     trpsAgrSchematic_shp['weight'] = trpsAgrSchematic_shp['weight'].astype(int)
@@ -284,11 +307,11 @@ if API_CALL:
 
 #%%
 if EXPORT_FOR_DASHBOARD:
-    drops = []
-    for i in plcs.index:
-        if plcs.loc[i,'place_id'] not in set(trpsAgr['start_plc']) and plcs.loc[i,'place_id'] not in set(trpsAgr['end_plc']):
-            drops.append(i)
-    plcs = plcs.drop(drops)  
+    # drops = []
+    # for i in plcs.index:
+    #     if plcs.loc[i,'place_id'] not in set(trpsAgr['start_plc']) and plcs.loc[i,'place_id'] not in set(trpsAgr['end_plc']):
+    #         drops.append(i)
+    # plcs = plcs.drop(drops)  
     
     plcs['centerSchematic'] = None
     for i in range(len(tripsAgrSchematic)):
@@ -296,9 +319,13 @@ if EXPORT_FOR_DASHBOARD:
         plcs.loc[tripsAgrSchematic.loc[i,'end_plc']-1, 'centerSchematic'] = Point(tripsAgrSchematic.loc[i,'geom'].coords[-1])
 
     # Read the gpx response and convert to csv
-    hlp.savecsv4js(plcs, trpsAgr, tripsAgrSchematic)    
+    hlp.savecsv4js(dataName, plcs, trpsAgr, tripsAgrSchematic)    
 
-
+    allthresholds[dataName] = thresholds
+    outputFile = open("../data/stat/thresholds.txt", "w")
+    outputFile.write(str(allthresholds))
+    outputFile.flush()
+    outputFile.close()
 
 
 
