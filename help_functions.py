@@ -475,7 +475,7 @@ def prepareGPXforAPI(path, routeId, pathId):
 
 def selectLastMonth(dataPathLoc,dataPathTrip):
     oneMonth = 2592000000 # in ms
-    dataPathLocs,dataPathTrips = selectRange(dataPathLoc,dataPathTrip, timerange = oneMonth)
+    dataPathLocs,dataPathTrips = selectRange(dataPathLoc,dataPathTrip, mac, timerange = oneMonth)
     return dataPathLocs,dataPathTrips
 
 def selectRange(dataPathLoc,dataPathTrip, mac, dateStart = 'beginning', dateEnd = 'end', timerange = None):

@@ -35,13 +35,10 @@ from trackintel.geogr.distances import haversine_dist
 
 #import noiserm_functions as nrm
 dataNameList = ["1","2","3","4","5","6","7","17","20","25","28"]
-<<<<<<< HEAD
-dataName = '17'
-=======
-dataName = '28'
->>>>>>> 184b7b3350fd6fafac0feececada1f138b34a516
 
-mac = True
+dataName = '28'
+
+mac = False
 
 IMPORT_THRES =      True
 CHOOSE_THRES =      False
@@ -51,17 +48,17 @@ FIND_STAY_POINTS =  True
 FIND_PLACES =       True
 FIND_TRIPS =        True
 FIND_SEMANTIC_INFO =True
-CLUSTER_TRPS =      True
-EXPORT_GPX =        True
-API_CALL =          True
+CLUSTER_TRPS =      False
+EXPORT_GPX =        False
+API_CALL =          False
 EXPORT_FOR_DASHBOARD = False
 
 exportShp =         True
 loadTh =            False
 
-TimelineStat =      True
+TimelineStat =      False
 TransmodeStat =     True
-HomeWorkStat =      False
+HomeWorkStat =      True
 
 #%% LOAD ALL SAVED THRESHOLDS
 if IMPORT_THRES:
@@ -91,8 +88,8 @@ if CHOOSE_THRES:
     # staythred = pd.read_csv('../data/csv'+'/StayDiffStat.csv') 
     staythredrange = pd.read_csv('../data/csv'+'/StayDiffStatRange.csv') 
     
-    # dfStatistics = calstat.accuracyStat(dataName, dataNameList, dateStart, dateEnd)
-    dfStatistics = pd.read_csv('../data/statistics.csv',sep=";")
+    # dfStatistics = calstat.accuracyStat(dataName, dataNameList, mac, dateStart, dateEnd)
+    dfStatistics = pd.read_csv('../data/statistics.csv',sep=",")
     
     # staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
     # staythredrange[staythredrange['dataName']==int(dataName)]['time_quarter'][dataNameList.index(dataName)],
@@ -155,10 +152,8 @@ if exportShp:
     hlp.loc2shp(locsgdf, dataName)
     hlp.trip2shp(tripsgdf, dataName)
 
-
-
-locs['d_diff'] = np.append(haversine_dist(locs.longitudeE7[1:], locs.latitudeE7[1:], locs.longitudeE7[:-1], locs.latitudeE7[:-1]),0)
-thresholds['accuracy_threshold'] = np.quantile(locs['d_diff'], .95)
+# locs['d_diff'] = np.append(haversine_dist(locs.longitudeE7[1:], locs.latitudeE7[1:], locs.longitudeE7[:-1], locs.latitudeE7[:-1]),0)
+# thresholds['accuracy_threshold'] = np.quantile(locs['d_diff'], .95)
 
 
 #%% FIND STAY POINTS
@@ -225,16 +220,11 @@ if FIND_PLACES:
         # plcs_shp_polyline = plcs_shp[plcs_shp['extent'].apply(lambda x: isinstance(x, LineString))]
         # plcs_shp_polyline.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/Places_extent_polyline.shp')
 
-    plcs = poi.reverseGeoCoding(plcs)
-
-
-#%% HOME AND WORK ADDRESS DETECTION
-# homeidx = plcs.loc[plcs['Value'].idxmax()
-                  
+    plcs = poi.reverseGeoCoding(plcs)                  
 
 #%% MATCH GOOGLE PLACES %%%%%%%
 if FIND_SEMANTIC_INFO:
-    dfStatistics = pd.read_csv('../data/statistics.csv',sep=";")
+    dfStatistics = pd.read_csv('../data/statistics.csv',sep=",")
     dataStat = dfStatistics[dfStatistics['id']==int(dataName)]    
     threeQua = dataStat['ThreeQuatile'][dataNameList.index(dataName)]
     
@@ -242,7 +232,7 @@ if FIND_SEMANTIC_INFO:
     places.drop_duplicates(subset ="placeId", keep = 'first', inplace = True) 
     places = places[~places.geometry.is_empty]
     
-    dfStatistics = pd.read_csv('../data/statistics.csv',sep=";")
+    dfStatistics = pd.read_csv('../data/statistics.csv',sep=",")
     dataStat = dfStatistics[dfStatistics['id']==int(dataName)]    
     threeQua = dataStat['ThreeQuatile'][dataNameList.index(dataName)]
 
@@ -259,16 +249,77 @@ if TimelineStat:
 
 #%
 if HomeWorkStat:
-    homeworkplcs = calstat.homeworkStay(stps, dataName, places, threeQua, thresholds["minDist"], thresholds["minPoints"])
+    # homeworkplcs = calstat.homeworkStay(stps, dataName, places, threeQua, thresholds["minDist"], thresholds["minPoints"])
+    homeplcs, homestps, workplcs, workstps = calstat.homeworkStay(stps, dataName, places, threeQua, thresholds["minDist"], thresholds["minPoints"])
+        
+    homeplcs = hlp.findSemanticInfo(places, homeplcs, threeQua)
+    workplcs = hlp.findSemanticInfo(places, workplcs, threeQua)
+
+    # homeworlplcs = hlp.findSemanticInfo(places, homeworlplcs)   
+     
+#% HOME WORK DETECTION
+HOMEWORK = True
+if HOMEWORK:
+
+    homeworkplcs = pd.concat([homeplcs, workplcs], axis=0)
+    homeworkplcs = homeworkplcs.reset_index(drop=True)
+    homeworkplcs['place_id'] = homeworkplcs.index
+
+    homeworkplcs = hlp.findSemanticInfo(places, homeworkplcs, threeQua=100)
+
+    column_names = ["user_id","place_id","center","extent","location","placeName","id","totalStayDays","totalStayHrs","0","1","2","3","4","5","6"]
+    homeworkplcs = homeworkplcs.reindex(columns=column_names)
+    homeworkplcs = homeworkplcs.rename(columns={'0':'Mon','1':"Tues","2":"Wed","3":"Thur","4":"Fri","5":"Sat","6":"Sun"})  
     
-    # homeworlplcs = hlp.findSemanticInfo(places, homeworlplcs)
+    if not(os.path.exists('../data/stat/'+ dataName + '/')):
+        os.makedirs('../data/stat/'+ dataname + '/')
+    homeworkplcs.to_csv('../data/stat/'+ dataName + '/' + 'HomeWorkStay.csv', index = True)
+
     if exportShp: 
         HomeWork_shp = homeworkplcs.copy()
         # stps_shp['started_at'] = HomeWork_shp['started_at'].astype(str)
         HomeWork_shp['location'] = HomeWork_shp['location'].astype(str)
         HomeWork_shp.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/HomeWork.shp')
         # HomeWork_shp.to_file('../data/shp/'+dataName +'/HomeWork.shp')
-#%
+
+#%% CALCULATE HOME WORK HOURS
+HOMEWORKHRS = False
+if HOMEWORKHRS:
+    
+    # For dataName = '7'
+    # homeHrs = pd.DataFrame(homestps[cols].sum(axis=0))/3600
+    # workHrs = pd.DataFrame(workstps[cols].sum(axis=0))/3600
+    # totalStay = homeHrs+workHrs
+    
+    # For dataName = '17'
+    # homestps = homestps[homestps['place_id']==1]
+    # homeHrs = pd.DataFrame(homestps[cols].sum(axis=0))/3600
+    # workstps1 = workstps[workstps['place_id']==4]    
+    # workHrs1 = pd.DataFrame(workstps1[cols].sum(axis=0))/3600
+    # totalStay = homeHrs+workHrs
+    # workstps2 = workstps[workstps['place_id']==1]   
+    # workHrs2 = pd.DataFrame(workstps2[cols].sum(axis=0))/3600
+    # workstps3 = workstps[workstps['place_id']==2]    
+    # workHrs3 = pd.DataFrame(workstps3[cols].sum(axis=0))/3600   
+    homeworkplcs2 = homeworkplcs.loc[[2,4,5],:]
+    homeworkplcs2.to_csv('../data/stat/'+ dataName + '/' + 'HomeWorkStay.csv', index = True)
+    
+    homeHrs = calstat.plcsStayHour(homestps, homeplcs, dataName)
+    workHrs = calstat.plcsStayHour(workstps, workplcs, dataName)
+    homeWorkHrs = pd.concat([homeHrs, workHrs], axis=0)
+
+    homestps2 = homestps[homestps['place_id']==3]
+    homeHrs2 = pd.DataFrame(homestps2[cols].sum(axis=0))/3600
+    
+    homeWorkHrsRep = homeWorkHrs.iloc[[0,1],]
+    cols = [str(i) for i in range(0,24)]
+    totalStay = pd.DataFrame(homeWorkHrsRep[cols].sum(axis=0))
+    totalStay.to_csv('../data/stat/'+ dataName + '/' + 'totalStayrep.csv', index = True)
+    
+    homeWorkHrsNotrep = homeWorkHrs.iloc[[3,4],]
+    totalStayNotrep = pd.DataFrame(homeWorkHrsNotrep[cols]).transpose()
+    totalStayNotrep.to_csv('../data/stat/'+ dataName + '/' + 'totalStayNotrep.csv', index = True)
+#%%
 if TransmodeStat:
     transtat = calstat.pieChartInfoPlus(trips)
     calstat.transModeCsv(transtat, dataName)

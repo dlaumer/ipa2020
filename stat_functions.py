@@ -571,21 +571,24 @@ def homeworkStay(stps, dataname, places, threeQua, minDist, minPoints):
     homeplcs['id'] = 'home'
     workplcs = poi.reverseGeoCoding(workplcs)
     workplcs['id'] = 'work'
-    homeworkplcs = pd.concat([homeplcs, workplcs], axis=0)
-    homeworkplcs = homeworkplcs.reset_index(drop=True)
-    homeworkplcs['place_id'] = homeworkplcs.index
-
-    homeworkplcs = hlp.findSemanticInfo(places, homeworkplcs, threeQua)
-
-    column_names = ["user_id","place_id","center","extent","location","placeName","id","totalStayDays","totalStayHrs","0","1","2","3","4","5","6"]
-    homeworkplcs = homeworkplcs.reindex(columns=column_names)
-    homeworkplcs = homeworkplcs.rename(columns={'0':'Mon','1':"Tues","2":"Wed","3":"Thur","4":"Fri","5":"Sat","6":"Sun"})  
     
-    if not(os.path.exists('../data/stat/'+ dataname + '/')):
-        os.makedirs('../data/stat/'+ dataname + '/')
-    homeworkplcs.to_csv('../data/stat/'+ dataname + '/' + 'HomeWorkStay.csv', index = True)
+    # homeworkplcs = pd.concat([homeplcs, workplcs], axis=0)
+    # homeworkplcs = homeworkplcs.reset_index(drop=True)
+    # homeworkplcs['place_id'] = homeworkplcs.index
 
-    return homeworkplcs
+    # homeworkplcs = hlp.findSemanticInfo(places, homeworkplcs, threeQua)
+
+    # column_names = ["user_id","place_id","center","extent","location","placeName","id","totalStayDays","totalStayHrs","0","1","2","3","4","5","6"]
+    # homeworkplcs = homeworkplcs.reindex(columns=column_names)
+    # homeworkplcs = homeworkplcs.rename(columns={'0':'Mon','1':"Tues","2":"Wed","3":"Thur","4":"Fri","5":"Sat","6":"Sun"})  
+    
+    # if not(os.path.exists('../data/stat/'+ dataname + '/')):
+    #     os.makedirs('../data/stat/'+ dataname + '/')
+    # homeworkplcs.to_csv('../data/stat/'+ dataname + '/' + 'HomeWorkStay.csv', index = True)
+
+    # return homeworkplcs
+
+    return homeplcs, homestps, workplcs, workstps
 
 def homeworkStayMonth(pfs, dataname, dist_threshold, time_threshold, minDist, minPoints):
     """
@@ -708,7 +711,7 @@ def homeworkStayMonth(pfs, dataname, dist_threshold, time_threshold, minDist, mi
         homeworkplcs.to_csv('../data/stat/'+ dataname + '/' + str(month) + 'HomeWorkStaybyMonth.csv', index = True)
     
     
-def accuracyStat(dataName, dataNames, timestart, timeend):
+def accuracyStat(dataName, dataNames, mac, timestart, timeend):
     # Trip files
     if len(dataNames) == 0:
         for root,dirs,files in os.walk("../../4-Collection/DataParticipants/"):
@@ -731,7 +734,7 @@ def accuracyStat(dataName, dataNames, timestart, timeend):
         tempStat['id'] = dataName
         
         dataPathLocs,dataPathTrips = hlp.getDataPaths(dataName)
-        dataPathLocs,dataPathTrips = hlp.selectRange(dataPathLocs, dataPathTrips, dateStart = timestart, dateEnd = timeend)
+        dataPathLocs,dataPathTrips = hlp.selectRange(dataPathLocs, dataPathTrips, mac, dateStart = timestart, dateEnd = timeend)
         
         locs, locsgdf = hlp.parseLocs(dataPathLocs)
         #trips, tripdf, tripsgdf = hlp.parseTrips(dataPathTrips)
@@ -761,5 +764,5 @@ def accuracyStat(dataName, dataNames, timestart, timeend):
         generated_dfStatistics.append(tempStat)
         dfStatistics = dfStatistics.append(generated_dfStatistics)
         
-        dfStatistics.to_csv('../data/statistics.csv', index=False, sep=';')
+        dfStatistics.to_csv('../data/statistics.csv', index=False)
     return dfStatistics
