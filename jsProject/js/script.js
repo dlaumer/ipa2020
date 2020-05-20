@@ -22,15 +22,10 @@ var urls = {
     "./stat" + dataName + "/HomeWorkStay.csv",
 
   transportation:
-<<<<<<< HEAD
-    "./stat" + dataName + "/TransportationModeCo2.csv",
 
-  basicStatistics:
-=======
     "./stat" + dataName + "/TransportationModeCo2Perc.csv",
   
     basicStatistics:
->>>>>>> 194ba128917154b6c8eff6f9467d3e1e36a15428
     "./stat" + dataName + "/BasicStatistics.csv",
 };
 
@@ -1583,13 +1578,8 @@ function setBasicStatistics(basicStatistics) {
   mycel = rowPhone.getElementsByTagName("td")[1].textContent = basicStats['phoneModel'];
 
   rowPoints = mytablebody.getElementsByTagName("tr")[2];
-<<<<<<< HEAD
   mycel = rowPoints.getElementsByTagName("td")[1].textContent = basicStats['NumPoints'] + " GPS Points";
 
-=======
-  mycel = rowPoints.getElementsByTagName("td")[1].textContent = basicStats['NumPoints'] + " Locations" ;
-  
->>>>>>> 194ba128917154b6c8eff6f9467d3e1e36a15428
   rowDistAvg = mytablebody.getElementsByTagName("tr")[3];
   mycel = rowDistAvg.getElementsByTagName("td")[1].textContent = parseFloat(basicStats['AvgDist']).toFixed(1) + " km/day";
 
