@@ -64,36 +64,27 @@ class MyCustomControl {
   }
 }
 
-const myCustomControl = new MyCustomControl("showGeometric", "Geometric Map");
-const myCustomControl5 = new MyCustomControl("showSchematic", "Schematic Map");
+const myCustomControl = new MyCustomControl("changeMapButton", "Geometric Map");
 const myCustomControl2 = new MyCustomControl("zoomAll", "");
-const myCustomControl3 = new MyCustomControl("removeLabelsButton", "");
-const myCustomControl4 = new MyCustomControl("showOriginalTrips", "Original Map");
+const myCustomControl3 = new MyCustomControl("removeLabelsButton", "Labels");
+const myCustomControl4 = new MyCustomControl("showOriginalTrips", "Show Original");
 
 map.addControl(myCustomControl, 'top-left');
-map.addControl(myCustomControl5, 'top-left');
+map.addControl(myCustomControl3, 'bottom-left');
 map.addControl(myCustomControl2, 'top-right');
-map.addControl(myCustomControl3, 'top-right');
 map.addControl(myCustomControl4, 'top-left');
 
 var elem = document.createElement("img");
 elem.setAttribute("src", "imgs/zoom_out_map-white-48dp.svg");
 document.getElementById("zoomAll").appendChild(elem);
 
-var elem = document.createElement("img");
-elem.setAttribute("src", "imgs/local_offer-white-36dp.svg");
-document.getElementById("removeLabelsButton").appendChild(elem);
-
-document.getElementById("showGeometric").addEventListener('click', event => {if (mapBlank) { d3.select("#showOriginalTrips").style("pointer-events","all").style("background-color","#1F407A"); changeData("geometric")} });
-document.getElementById("showSchematic").addEventListener('click', event => {if (!mapBlank) {d3.select("#showOriginalTrips").style("pointer-events","none").style("background-color","rgb(172, 172, 172)"); changeData("schematic") }});
-
+document.getElementById("changeMapButton").addEventListener('click', event => {document.getElementById("changeMapButton").innerHTML = mapBlank ? "Schematic Map":"Geometric Map"; changeData() });
 document.getElementById("removeLabelsButton").addEventListener('click', event => { removeLabels() });
 document.getElementById("zoomAll").addEventListener('click', event => { zoomToAll() });
 document.getElementById("showOriginalTrips").addEventListener('click', event => {geomMap = !geomMap;
   drawTrips(places, trips, geomMap) });
   d3.select('#showOriginalTrips')
-  .style("pointer-events","none")
-  .style("background-color","rgb(172, 172, 172)")
+  .style("visibility","hidden")
 
 // re-render our visualization whenever the view changes
 map.on("viewreset", function () {
@@ -446,10 +437,12 @@ xAxisTime = svgTime.append("g")
     var mode = transportationi['name']
     var co2Perc = transportationi['co2Perc'] * 100
     var dist = transportationi['dist']
-    var co2 = transportationi['co2km']
+    var co2km = transportationi['co2km']
+    var co2Emission = dist*co2km
     var distPerc = transportationi['distPerc']
-    var co2Emission = val*co2
-    var transarray = [mode, percentage, val, co2, co2Emission]
+    // co2Emission = co2Emission.toFixed(2)
+    // console.log(co2Emission)
+    var transarray = [mode, co2Perc, dist, co2km, co2Emission, distPerc]
     totalCo2 = totalCo2 + co2Emission
     transportationData.push(transarray);
   }
@@ -458,9 +451,10 @@ xAxisTime = svgTime.append("g")
     transportationSeries.push({
       name: transportationData[i][0],
       y: transportationData[i][1],
-      val: transportationData[i][2],
-      co2: transportationData[i][3],
-      co2Emission: transportationData[i][4],
+      distVal: transportationData[i][2],
+      co2kmVal: transportationData[i][3],
+      co2EmissionVal: transportationData[i][4],
+      distPercVal: transportationData[i][5],
     })
   }
   // console.log(transportationSeries);
@@ -1151,14 +1145,12 @@ function render() {
 }
 
 
-function changeData(mapMode) {
+function changeData() {
   drawTrips(places, trips, false);
-  if (mapMode == 'schematic'){
-    mapBlank = true;
-  }
-  if (mapMode == 'geometric') {
-    mapBlank = false;
-  }
+
+  mapBlank = !mapBlank;
+  d3.select('#showOriginalTrips')
+    .style("visibility",mapBlank ? "hidden":"visible")
 
   if (!mapBlank) {
     map.setStyle('mapbox://styles/mapbox/light-v10');
@@ -1339,7 +1331,7 @@ function drawTransPieChart(transportationSeries,totalCo2) {
       type: 'pie'
     },
     title: {
-      text: 'Commuting Preferences',
+      text: 'Commuting Habits',
       style: {
         fontSize: '18px',
         fontWeight: 'bold',
@@ -1352,7 +1344,7 @@ function drawTransPieChart(transportationSeries,totalCo2) {
     },
     tooltip: {
       headerFormat: '<span style="font-size:11px">{series.name}</span><br>',
-      pointFormat: '{point.name}</span>: <b>{point.y:.1f}%</b> of total<br/> {point.val:.1f} km</b>'
+      pointFormat: '<b>{point.name}</b></span>: <b>{point.y:.1f}%</b> of total CO2 emission<br/> {point.distVal:.1f} km x {point.co2kmVal} kg/km = <b>{point.co2EmissionVal:.2f}</b> kg'
     },
     accessibility: {
       point: {
@@ -1375,7 +1367,7 @@ function drawTransPieChart(transportationSeries,totalCo2) {
         allowPointSelect: true,
         cursor: 'pointer',
         colors: pieColors,
-        center: ["50%", "50%"],
+        center: ["50%", "30%"],
         size: "75%",
         dataLabels: {
           enabled: true,
