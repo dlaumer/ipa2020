@@ -9,7 +9,7 @@
   <script src="https://unpkg.com/d3-delaunay@4"></script>
   <script src="https://unpkg.com/d3-geo-voronoi@1"></script>
   <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
-  <script src="d3-path-morphing.js"></script>
+  <script src="js/d3-path-morphing.min.js"></script>
 
   <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
   <script src="https://code.highcharts.com/highcharts.js"></script>
@@ -33,21 +33,53 @@
 <body>
 
 
-  <div id="title-container"><h1 style="margin-left:10;">Location Diary</h1></div>
+  <div id="title-container">
+    <h1 style="margin-left:10;">Location Diary</h1>
+  </div>
   <div id="map-and-places-container" class="flex-container">
 
     <div id="places-container" class="flex-item">
       <div id="places-boxes">
-        <div class="boxes"><div id="box-1" class="innerBox" ></div> <div id='zoom-1' class="zoom"><img src="zoomIcon.png"/></div></div>
-        <div class="boxes"><div id="box-2" class="innerBox" ></div> <div id='zoom-2' class="zoom"><img src="zoomIcon.png"/></div></div>
-        <div class="boxes"><div id="box-3" class="innerBox" ></div> <div id='zoom-3' class="zoom"><img src="zoomIcon.png"/></div></div>
-        <div class="boxes"><div id="box-4" class="innerBox" ></div> <div id='zoom-4' class="zoom"><img src="zoomIcon.png"/></div></div>
-        <div class="boxes"><div id="box-5" class="innerBox" ></div> <div id='zoom-5' class="zoom"><img src="zoomIcon.png"/></div></div>
-        <div class="boxes"><div id="box-6" class="innerBox" ></div> <div id='zoom-6' class="zoom"><img src="zoomIcon.png"/></div></div>
-        <div class="boxes"><div id="box-7" class="innerBox" ></div> <div id='zoom-7' class="zoom"><img src="zoomIcon.png"/></div></div>
-        <div class="boxes"><div id="box-8" class="innerBox" ></div> <div id='zoom-8' class="zoom"><img src="zoomIcon.png"/></div></div>
-        <div class="boxes"><div id="box-9" class="innerBox" ></div> <div id='zoom-9' class="zoom"><img src="zoomIcon.png"/></div></div>
-        <div class="boxes"><div id="box-10" class="innerBox" ></div> <div id='zoom-10' class="zoom"><img src="zoomIcon.png"/></div></div>
+        <div class="boxes">
+          <div id="box-1" class="innerBox"></div>
+          <div id='zoom-1' class="zoom"><img src="imgs/zoom_in-24px.svg" /></div>
+        </div>
+        <div class="boxes">
+          <div id="box-2" class="innerBox"></div>
+          <div id='zoom-2' class="zoom"><img src="imgs/zoom_in-24px.svg" /></div>
+        </div>
+        <div class="boxes">
+          <div id="box-3" class="innerBox"></div>
+          <div id='zoom-3' class="zoom"><img src="imgs/zoom_in-24px.svg" /></div>
+        </div>
+        <div class="boxes">
+          <div id="box-4" class="innerBox"></div>
+          <div id='zoom-4' class="zoom"><img src="imgs/zoom_in-24px.svg" /></div>
+        </div>
+        <div class="boxes">
+          <div id="box-5" class="innerBox"></div>
+          <div id='zoom-5' class="zoom"><img src="imgs/zoom_in-24px.svg" /></div>
+        </div>
+        <div class="boxes">
+          <div id="box-6" class="innerBox"></div>
+          <div id='zoom-6' class="zoom"><img src="imgs/zoom_in-24px.svg" /></div>
+        </div>
+        <div class="boxes">
+          <div id="box-7" class="innerBox"></div>
+          <div id='zoom-7' class="zoom"><img src="imgs/zoom_in-24px.svg" /></div>
+        </div>
+        <div class="boxes">
+          <div id="box-8" class="innerBox"></div>
+          <div id='zoom-8' class="zoom"><img src="imgs/zoom_in-24px.svg" /></div>
+        </div>
+        <div class="boxes">
+          <div id="box-9" class="innerBox"></div>
+          <div id='zoom-9' class="zoom"><img src="imgs/zoom_in-24px.svg" /></div>
+        </div>
+        <div class="boxes">
+          <div id="box-10" class="innerBox"></div>
+          <div id='zoom-10' class="zoom"><img src="imgs/zoom_in-24px.svg" /></div>
+        </div>
         <div id=chart-container>
           <div id="timeline"></div>
         </div>
@@ -83,17 +115,40 @@
             <p class="highcharts-description"></p>
           </figure>
         </div>
-      
-      <!-- Home and work balance negative stacked bar -->
-      <div id="piechart-div" style="display:none;">
-        <figure class="highcharts-figure">
-          <div id="piechart-container"></div>
-          <p class="highcharts-description"></p>
-        </figure>
+
+        <!-- Home and work balance negative stacked bar -->
+        <div id="piechart-div" style="display:none;">
+          <figure class="highcharts-figure">
+            <div id="piechart-container"></div>
+            <p class="highcharts-description"></p>
+          </figure>
+        </div>
+      </div>
+      <div id="buttonChangeHighcart" class="my-custom-control hover-button">Change Diagram</div>
+      <div id="basicStatistics-container">
+        <table>
+          <tbody>
+            <tr>
+              <td><img src="imgs/today-black-36dp.svg"/></td>
+              <td>1. Jan 2020 - 20. Mai 2020</td>
+            </tr>
+            <tr>
+              <td><img src="imgs/phone_iphone-black-36dp.svg"/></td>
+              <td>Maria Garcia</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td>David Rodriguez</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td>Eyon Shih</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
-    <div id="buttonChangeHighcart" class="my-custom-control hover-button">Change Diagram</div>
-  </div>
+
   </div>
 
 

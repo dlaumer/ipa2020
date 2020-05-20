@@ -6,6 +6,11 @@ body {
 
 }
 
+#zoomAll {
+  height: 50px;
+  width: 50px;
+}
+
 .my-custom-control {
   color: white; 
   margin: 10px;
@@ -223,10 +228,12 @@ input[type="number"] {
 #highcharts-container{
   height: 70%;
 }
+#basicStatistics-container{
+}
 
 #buttonChangeHighcart {
   width:60%;
-  height: 30px;
+  height: 5%;
   background-color: #1F407A;
   text-align:center;
   margin:5px;
