@@ -22,14 +22,10 @@ var urls = {
     "./stat" + dataName + "/HomeWorkStay.csv",
 
   transportation:
-<<<<<<< HEAD
-    "./stat"+dataName+"/TransportationModeCo2.csv",
-=======
     "./stat" + dataName + "/TransportationMode.csv",
 
   basicStatistics:
     "./stat" + dataName + "/BasicStatistics.csv",
->>>>>>> 13bbd13212f325467d575dcc951a237ae34ac29b
 };
 
 // PERPARE MAP  ////////////////////////////////////////////////////////////////////////////////////
@@ -68,27 +64,21 @@ class MyCustomControl {
   }
 }
 
-const myCustomControl = new MyCustomControl("changeMapButton", "Geometric Map");
+const myCustomControl = new MyCustomControl("changeMapButton", "Change Map");
 const myCustomControl2 = new MyCustomControl("zoomAll", "");
 const myCustomControl3 = new MyCustomControl("removeLabelsButton", "Labels");
-const myCustomControl4 = new MyCustomControl("showOriginalTrips", "Show Original");
 
 map.addControl(myCustomControl, 'top-left');
-map.addControl(myCustomControl3, 'bottom-left');
-map.addControl(myCustomControl2, 'top-right');
-map.addControl(myCustomControl4, 'top-left');
+map.addControl(myCustomControl3, 'top-left');
+map.addControl(myCustomControl2, 'top-left');
 
 var elem = document.createElement("img");
 elem.setAttribute("src", "imgs/zoom_out_map-white-48dp.svg");
 document.getElementById("zoomAll").appendChild(elem);
 
-document.getElementById("changeMapButton").addEventListener('click', event => {document.getElementById("changeMapButton").innerHTML = mapBlank ? "Schematic Map":"Geometric Map"; changeData() });
+document.getElementById("changeMapButton").addEventListener('click', event => { changeData() });
 document.getElementById("removeLabelsButton").addEventListener('click', event => { removeLabels() });
 document.getElementById("zoomAll").addEventListener('click', event => { zoomToAll() });
-document.getElementById("showOriginalTrips").addEventListener('click', event => {geomMap = !geomMap;
-  drawTrips(places, trips, geomMap) });
-  d3.select('#showOriginalTrips')
-  .style("visibility","hidden")
 
 // re-render our visualization whenever the view changes
 map.on("viewreset", function () {
@@ -163,7 +153,6 @@ var yAxisMax;
 var transportationmode;
 var transportationData;
 var transportationSeries;
-var totalCo2;
 var bubbles;
 var labels;
 var pathBaseMap;
@@ -173,7 +162,7 @@ var geojsons;
 var placeIdOfBox;
 var maxCount;
 var mapBlank = true;
-var geomMap = false;
+var geomMap = true;
 var extents;
 var startTime = 0;
 var endTime = 23;
@@ -204,10 +193,7 @@ let promises = [
   d3.csv(urls.semanticInfo),
   d3.csv(urls.homeworkbal),
   d3.csv(urls.transportation),
-<<<<<<< HEAD
-=======
   d3.csv(urls.basicStatistics)
->>>>>>> 13bbd13212f325467d575dcc951a237ae34ac29b
 ];
 
 Promise.all(promises).then(processData);
@@ -348,8 +334,8 @@ xAxisTime = svgTime.append("g")
     link.source = placeId.get(link.origin);
     link.target = placeId.get(link.destination);
 
-    //link.source.outgoing += link.count;
-    //link.target.incoming += link.count;
+    link.source.outgoing += link.count;
+    link.target.incoming += link.count;
   });
 
   // sort places by outgoing degree
@@ -359,9 +345,7 @@ xAxisTime = svgTime.append("g")
   drawPlaces(places);
   //drawPolygons(places);
   // done filtering trips can draw
-  geojsons = addWaypoints(trips);
-  geojsonOriginal = addWaypointsOriginal(tripsOriginal);
-  drawTrips(places, trips, false);
+  drawTrips(places, trips);
 
   const capitalize = (s) => {
     if (typeof s !== 'string') return ''
@@ -373,7 +357,6 @@ xAxisTime = svgTime.append("g")
   transportationData = [];
   transportationSeries = [];
   yAxisMax = [];
-  totalCo2 = 0;
   var tempabs = [];
   
   fillPlacesBoxes();
@@ -425,7 +408,7 @@ xAxisTime = svgTime.append("g")
   }
   // console.log(tempabs);
   yAxisMax = Math.max(...tempabs)
-  yAxisMax = Math.ceil(yAxisMax / 10) * 10;
+  yAxisMax = Math.ceil(yAxisMax / 50) * 50;
   // console.log(yAxisMax)
   for (i = 0; i < HomeWorkData.length; i++) {
     HomeWorkSeries.push({
@@ -444,25 +427,19 @@ xAxisTime = svgTime.append("g")
     var mode = transportationi['name']
     var percentage = transportationi['percentage'] * 100
     var val = transportationi['value'] / 1000
-    var co2 = transportationi['co2']
-    var co2Emission = val*co2
-    var transarray = [mode, percentage, val, co2, co2Emission]
-    totalCo2 = totalCo2 + co2Emission
+    var transarray = [mode, percentage, val]
     transportationData.push(transarray);
   }
-
   for (i = 0; i < transportationData.length; i++) {
     transportationSeries.push({
       name: transportationData[i][0],
       y: transportationData[i][1],
-      val: transportationData[i][2],
-      co2: transportationData[i][3],
-      co2Emission: transportationData[i][4],
+      val: transportationData[i][2]
     })
   }
   // console.log(transportationSeries);
   // console.log(HomeWorkSeries);
-  drawTransPieChart(transportationSeries,totalCo2);
+  drawTransPieChart(transportationSeries);
 
   zoomToAll();
 }
@@ -727,16 +704,15 @@ function drawPolygons(places) {
     });
 }
 
-function drawTrips(places, trips, orig) {
+function drawTrips(places, trips) {
   // break each trip between places into multiple segments
+  geojsons = addWaypoints(trips);
+  geojsonOriginal = addWaypointsOriginal(tripsOriginal);
   if (!mapBlank) {
     geojson = geojsons[0];
   }
   else {
     geojson = geojsons[1];
-  }
-  if (orig) {
-    geojson = geojsonOriginal;
   }
 
   pathTrips = d3.geoPath(projection);
@@ -1149,12 +1125,7 @@ function render() {
 
 
 function changeData() {
-  drawTrips(places, trips, false);
-
   mapBlank = !mapBlank;
-  d3.select('#showOriginalTrips')
-    .style("visibility",mapBlank ? "hidden":"visible")
-
   if (!mapBlank) {
     map.setStyle('mapbox://styles/mapbox/light-v10');
     extent = extents[0];
@@ -1194,7 +1165,7 @@ function changeData() {
 
 
   function endall() {
-    drawTrips(places, trips, false);
+    drawTrips(places, trips);
     drawPlaces(places);
     colorPlacesBoxes(startTime, endTime);
     zoomToAll();
@@ -1232,10 +1203,10 @@ function drawNegativeBar(HomeWorkSeries, yAxisMax) {
     title: {
       text: 'Home and Work Balance',
       style: {
-        fontSize: '18px',
+        fontSize: '20px',
         fontWeight: 'bold',
-        fontFamily: 'Arial'
-     }  
+        font: 'Arial',
+      }
     },
     // subtitle: {
     //   text: ''
@@ -1311,7 +1282,7 @@ function drawNegativeBar(HomeWorkSeries, yAxisMax) {
   });
 }
 
-function drawTransPieChart(transportationSeries,totalCo2) {
+function drawTransPieChart(transportationSeries) {
   // Make monochrome colors
   var pieColors = (function () {
     var colors = [],
@@ -1336,27 +1307,18 @@ function drawTransPieChart(transportationSeries,totalCo2) {
     title: {
       text: 'Commuting Preferences',
       style: {
-        fontSize: '18px',
+        fontSize: '20px',
         fontWeight: 'bold',
-<<<<<<< HEAD
-        fontFamily: 'Arial'
-     }  
-    },
-    subtitle:{
-      text: 'Your total CO2 emission is: ' + totalCo2.toFixed(2) + ' kg',
-     // align: "left"
-=======
         font: 'Arial',
       }
     },
     subtitle: {
       text: 'Your total CO2 emission is xxx: xx km by Bus x xx/km + xx km by Car x xx/km + xx km by Train x xx/km + xx km by Tram x xx/km + xx km on Foot x xx/km + xx km by Bike x xx/km +',
       // align: "left"
->>>>>>> 13bbd13212f325467d575dcc951a237ae34ac29b
     },
     tooltip: {
       headerFormat: '<span style="font-size:11px">{series.name}</span><br>',
-      pointFormat: '{point.name}</span>: <b>{point.y:.1f}%</b> of total<br/> {point.val:.1f} km</b>'
+      pointFormat: '{point.name}</span>: <b>{point.y:.1f}%</b> of total<br/>Corresponding to <b>{point.val:.1f} km</b>'
     },
     accessibility: {
       point: {
@@ -1393,7 +1355,7 @@ function drawTransPieChart(transportationSeries,totalCo2) {
           style: {
             fontSize: '10px',
             // fontWeight: 'bold',
-            fontFamily: 'Arial',
+            font: 'Arial',
             textOutline: '0px contrast'
           }
         }
