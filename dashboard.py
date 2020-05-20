@@ -36,7 +36,7 @@ from trackintel.geogr.distances import haversine_dist
 #import noiserm_functions as nrm
 dataNameList = ["1","2","3","4","5","6","7","17","20","25","28"]
 
-dataName = '17'
+dataName = '1'
 
 mac = False
 
@@ -57,8 +57,8 @@ exportShp =         False
 loadTh =            False
 
 TimelineStat =      True
-TransmodeStat =     False
 HomeWorkStat =      True
+TransmodeStat =     False
 
 #%% LOAD ALL SAVED THRESHOLDS
 if IMPORT_THRES:
