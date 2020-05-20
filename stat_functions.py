@@ -321,18 +321,17 @@ def plcsStayHour(stps, plcs, dataname):
     plcstocsv = plcs[cols]
     plcstocsv_transpose = plcstocsv.T
     plcstocsv_transpose.columns = plcs['place_id']
-    if not(os.path.exists('../data/stat/'+ dataname + '/')):
-        os.makedirs('../data/stat/'+ dataname + '/')
-    #plcstocsv_transpose.to_csv('../data/stat/'+ dataname + '/PlcsStayHour.csv', index = True)
-    plcstocsv_transpose.to_csv('../../5-Final Product/stat'+ dataname + '/PlcsStayHour.csv', index = True)
+    # if not(os.path.exists('../data/stat/'+ dataname + '/')):
+        # os.makedirs('../data/stat/'+ dataname + '/')
+    # plcstocsv_transpose.to_csv('../data/stat/'+ dataname + '/PlcsStayHour.csv', index = True)
+    # plcstocsv_transpose.to_csv('../../5-Final Product/stat'+ dataname + '/PlcsStayHour.csv', index = True)
 
     # V2: with more information
     plcs = poi.reverseGeoCoding(plcs)
     plcsInfo = plcs[['place_id','location','placeName']]
     plcsInfoT = plcsInfo.T
     plcsInfoT.columns = plcs['place_id']
-    plcsInfoT.to_csv('../../5-Final Product/stat'+ dataname + '/PlcsInfo.csv', index = True)
-
+    # plcsInfoT.to_csv('../../5-Final Product/stat'+ dataname + '/PlcsInfo.csv', index = True)
 
     # column_names = ["user_id","place_id","center","extent","location","placeName","nameId",'totalStayHrs',"0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23"]
     column_names = ["user_id","place_id","center","extent","location","placeName","nameId","totalStayHrs","0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23"]

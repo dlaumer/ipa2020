@@ -22,7 +22,7 @@ var urls = {
     "./stat" + dataName + "/HomeWorkStay.csv",
 
   transportation:
-    "./stat" + dataName + "/TransportationModeCo2.csv",
+    "./stat" + dataName + "/TransportationModeCo2Perc.csv",
   
     basicStatistics:
     "./stat" + dataName + "/BasicStatistics.csv",
@@ -435,9 +435,10 @@ xAxisTime = svgTime.append("g")
   for (let i = 0; i < transportationmode.length; i++) {
     var transportationi = transportationmode[i];
     var mode = transportationi['name']
-    var percentage = transportationi['percentage'] * 100
-    var val = transportationi['value'] / 1000
-    var co2 = transportationi['co2']
+    var co2Perc = transportationi['co2Perc'] * 100
+    var dist = transportationi['dist']
+    var co2 = transportationi['co2km']
+    var distPerc = transportationi['distPerc']
     var co2Emission = val*co2
     var transarray = [mode, percentage, val, co2, co2Emission]
     totalCo2 = totalCo2 + co2Emission
@@ -1367,7 +1368,7 @@ function drawTransPieChart(transportationSeries,totalCo2) {
         size: "75%",
         dataLabels: {
           enabled: true,
-          format: '<b>{point.name}</b><br>{point.percentage:.1f} %',
+          format: '<b>{point.name}</b><br>{point.y:.1f} %',
           distance: -30,
           filter: {
             property: 'percentage',
@@ -1508,7 +1509,7 @@ function setBasicStatistics(basicStatistics){
   mycel = rowPhone.getElementsByTagName("td")[1].textContent = basicStats['phoneModel'] ;
 
   rowPoints = mytablebody.getElementsByTagName("tr")[2];
-  mycel = rowPoints.getElementsByTagName("td")[1].textContent = basicStats['NumPoints'] + " GPS Points" ;
+  mycel = rowPoints.getElementsByTagName("td")[1].textContent = basicStats['NumPoints'] + " Locations" ;
   
   rowDistAvg = mytablebody.getElementsByTagName("tr")[3];
   mycel = rowDistAvg.getElementsByTagName("td")[1].textContent = parseFloat(basicStats['AvgDist']).toFixed(1) + " km/day";
