@@ -36,9 +36,9 @@ from trackintel.geogr.distances import haversine_dist
 #import noiserm_functions as nrm
 dataNameList = ["1","2","3","4","5","6","7","17","20","25","28"]
 
-dataName = '17'
+dataName = '6'
 
-mac = False
+mac = True
 
 IMPORT_THRES =      True
 CHOOSE_THRES =      False
@@ -46,8 +46,8 @@ CHOOSE_THRES =      False
 SELECT_RANGE =      True
 FIND_STAY_POINTS =  True
 FIND_PLACES =       True
-FIND_TRIPS =        False
-FIND_SEMANTIC_INFO =True
+FIND_TRIPS =        True
+FIND_SEMANTIC_INFO =False
 CLUSTER_TRPS =      False
 EXPORT_GPX =        False
 API_CALL =          False
@@ -56,15 +56,15 @@ EXPORT_FOR_DASHBOARD = False
 exportShp =         False
 loadTh =            False
 
-TimelineStat =      True
+TimelineStat =      False
 TransmodeStat =     False
-HomeWorkStat =      True
+HomeWorkStat =      False
 
 #%% LOAD ALL SAVED THRESHOLDS
 if IMPORT_THRES:
     import ast
     
-    inputFile = open("../data/stat/thresholds1905.txt", "r")
+    inputFile = open("../data/stat/thresholds.txt", "r")
     lines = inputFile.readlines()
     
     objects = []
@@ -330,7 +330,8 @@ if FIND_TRIPS:
     print("-> Finding the trips ")
 
     tpls, trps, trpsCount = main.findTrips(pfs, stps, plcs, dataName)
-        
+    hlp.savecsv4jsTrps(dataName, trps)
+    
     if exportShp:
         tpls_shp = tpls.copy()
         tpls_shp['started_at'] = tpls_shp['started_at'].astype(str)

@@ -730,5 +730,17 @@ def savecsv4js(dataName, places, trips, tripsSchematic):
     #trips.to_csv('../jsProject/stat/trips.csv',  index = False, sep = ";")
     trips.to_csv('../../5-Final Product/stat' + dataName+'/tripsAgr.csv',  index = False, sep = ";")
 
+def savecsv4jsTrps(dataName, trips):    
+    trips = trips.rename(columns = {'start_plc':'origin', 'end_plc':'destination'})
+    trips["waypointsLat"] = ""
+    trips["waypointsLong"] = ""
+    for i in trips.index:
+        trips.loc[i, "waypointsLong"] = ' '.join([str(j[0]) for j in trips.loc[i,'geom'].coords])
+        trips.loc[i, "waypointsLat"] = ' '.join([str(j[1]) for j in trips.loc[i,'geom'].coords])
+
+    trips = trips[['origin', 'destination','waypointsLong','waypointsLat']]
+    #trips.to_csv('../jsProject/stat/trips.csv',  index = False, sep = ";")
+    trips.to_csv('../../5-Final Product/FINALDATA/stat' + dataName+'/trips.csv',  index = False, sep = ";")
+
     
 
