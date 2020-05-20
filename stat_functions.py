@@ -496,7 +496,7 @@ def homeworkStay(plcs, stps, dataname, places, threeQua):
     workcols = [str(i) for i in range(9,12)] + [str(i) for i in range(14,17)]
     workHrs = list(plcs[workcols].sum(axis=1))
     
-    if(max(workHrs)>20): 
+    if(max(workHrs)>15): 
         workidx = workHrs.index(max(workHrs))
         workid = plcs['place_id'].iloc[workidx]
         
