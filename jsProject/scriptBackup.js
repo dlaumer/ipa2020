@@ -64,27 +64,21 @@ class MyCustomControl {
   }
 }
 
-const myCustomControl = new MyCustomControl("changeMapButton", "Geometric Map");
+const myCustomControl = new MyCustomControl("changeMapButton", "Change Map");
 const myCustomControl2 = new MyCustomControl("zoomAll", "");
 const myCustomControl3 = new MyCustomControl("removeLabelsButton", "Labels");
-const myCustomControl4 = new MyCustomControl("showOriginalTrips", "Show Original");
 
 map.addControl(myCustomControl, 'top-left');
-map.addControl(myCustomControl3, 'bottom-left');
-map.addControl(myCustomControl2, 'top-right');
-map.addControl(myCustomControl4, 'top-left');
+map.addControl(myCustomControl3, 'top-left');
+map.addControl(myCustomControl2, 'top-left');
 
 var elem = document.createElement("img");
 elem.setAttribute("src", "imgs/zoom_out_map-white-48dp.svg");
 document.getElementById("zoomAll").appendChild(elem);
 
-document.getElementById("changeMapButton").addEventListener('click', event => {document.getElementById("changeMapButton").innerHTML = mapBlank ? "Schematic Map":"Geometric Map"; changeData() });
+document.getElementById("changeMapButton").addEventListener('click', event => { changeData() });
 document.getElementById("removeLabelsButton").addEventListener('click', event => { removeLabels() });
 document.getElementById("zoomAll").addEventListener('click', event => { zoomToAll() });
-document.getElementById("showOriginalTrips").addEventListener('click', event => {geomMap = !geomMap;
-  drawTrips(places, trips, geomMap) });
-  d3.select('#showOriginalTrips')
-  .style("visibility","hidden")
 
 // re-render our visualization whenever the view changes
 map.on("viewreset", function () {
@@ -168,7 +162,7 @@ var geojsons;
 var placeIdOfBox;
 var maxCount;
 var mapBlank = true;
-var geomMap = false;
+var geomMap = true;
 var extents;
 var startTime = 0;
 var endTime = 23;
@@ -340,8 +334,8 @@ xAxisTime = svgTime.append("g")
     link.source = placeId.get(link.origin);
     link.target = placeId.get(link.destination);
 
-    //link.source.outgoing += link.count;
-    //link.target.incoming += link.count;
+    link.source.outgoing += link.count;
+    link.target.incoming += link.count;
   });
 
   // sort places by outgoing degree
@@ -351,9 +345,7 @@ xAxisTime = svgTime.append("g")
   drawPlaces(places);
   //drawPolygons(places);
   // done filtering trips can draw
-  geojsons = addWaypoints(trips);
-  geojsonOriginal = addWaypointsOriginal(tripsOriginal);
-  drawTrips(places, trips, false);
+  drawTrips(places, trips);
 
   const capitalize = (s) => {
     if (typeof s !== 'string') return ''
@@ -712,16 +704,15 @@ function drawPolygons(places) {
     });
 }
 
-function drawTrips(places, trips, orig) {
+function drawTrips(places, trips) {
   // break each trip between places into multiple segments
+  geojsons = addWaypoints(trips);
+  geojsonOriginal = addWaypointsOriginal(tripsOriginal);
   if (!mapBlank) {
     geojson = geojsons[0];
   }
   else {
     geojson = geojsons[1];
-  }
-  if (orig) {
-    geojson = geojsonOriginal;
   }
 
   pathTrips = d3.geoPath(projection);
@@ -1134,12 +1125,7 @@ function render() {
 
 
 function changeData() {
-  drawTrips(places, trips, false);
-
   mapBlank = !mapBlank;
-  d3.select('#showOriginalTrips')
-    .style("visibility",mapBlank ? "hidden":"visible")
-
   if (!mapBlank) {
     map.setStyle('mapbox://styles/mapbox/light-v10');
     extent = extents[0];
@@ -1179,7 +1165,7 @@ function changeData() {
 
 
   function endall() {
-    drawTrips(places, trips, false);
+    drawTrips(places, trips);
     drawPlaces(places);
     colorPlacesBoxes(startTime, endTime);
     zoomToAll();
