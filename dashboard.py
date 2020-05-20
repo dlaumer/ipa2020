@@ -36,7 +36,7 @@ from trackintel.geogr.distances import haversine_dist
 #import noiserm_functions as nrm
 dataNameList = ["1","2","3","4","5","6","7","17","20","25","28"]
 
-dataName = '28'
+dataName = '17'
 
 mac = False
 
@@ -46,25 +46,25 @@ CHOOSE_THRES =      False
 SELECT_RANGE =      True
 FIND_STAY_POINTS =  True
 FIND_PLACES =       True
-FIND_TRIPS =        True
+FIND_TRIPS =        False
 FIND_SEMANTIC_INFO =True
 CLUSTER_TRPS =      False
 EXPORT_GPX =        False
 API_CALL =          False
 EXPORT_FOR_DASHBOARD = False
 
-exportShp =         True
+exportShp =         False
 loadTh =            False
 
-TimelineStat =      False
-TransmodeStat =     True
+TimelineStat =      True
+TransmodeStat =     False
 HomeWorkStat =      True
 
 #%% LOAD ALL SAVED THRESHOLDS
 if IMPORT_THRES:
     import ast
     
-    inputFile = open("../data/stat/thresholds.txt", "r")
+    inputFile = open("../data/stat/thresholds1905.txt", "r")
     lines = inputFile.readlines()
     
     objects = []
@@ -79,8 +79,8 @@ if IMPORT_THRES:
 #%% CHOOSE THRESHOLDS - PART 1
 if CHOOSE_THRES:
     # For the first time, run the following four lines to save the data
-    # dateStart = '2020-01-01'
-    # dateEnd = 'end'
+    dateStart = '2020-01-01'
+    dateEnd = 'end'
     # stythred = thred.stydiffstat(dataNameList, SELECT_RANGE, dateStart, dateEnd)
     # stythred.to_csv('../data/csv'+'/StayDiffStatRange.csv', index=False)
     
@@ -247,18 +247,19 @@ if FIND_SEMANTIC_INFO:
 if TimelineStat:
     plcs = calstat.plcsStayHour(stps, plcs, dataName)
 
+# HomeWorkStat = False
 #%
 if HomeWorkStat:
-    # homeworkplcs = calstat.homeworkStay(stps, dataName, places, threeQua, thresholds["minDist"], thresholds["minPoints"])
-    homeplcs, homestps, workplcs, workstps = calstat.homeworkStay(stps, dataName, places, threeQua, thresholds["minDist"], thresholds["minPoints"])
+    homeworkplcs = calstat.homeworkStay(plcs, stps, dataName, places, threeQua)
+    
+    # homeplcs, homestps, workplcs, workstps = calstat.homeworkStay(stps, dataName, places, threeQua, thresholds["minDist"], thresholds["minPoints"])
         
-    homeplcs = hlp.findSemanticInfo(places, homeplcs, threeQua)
-    workplcs = hlp.findSemanticInfo(places, workplcs, threeQua)
+    # homeplcs = hlp.findSemanticInfo(places, homeplcs, threeQua)
+    # workplcs = hlp.findSemanticInfo(places, workplcs, threeQua) 
 
-    # homeworlplcs = hlp.findSemanticInfo(places, homeworlplcs)   
-     
+#%%
 #% HOME WORK DETECTION
-HOMEWORK = True
+HOMEWORK = False
 if HOMEWORK:
 
     homeworkplcs = pd.concat([homeplcs, workplcs], axis=0)
