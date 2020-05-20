@@ -740,7 +740,7 @@ def savecsv4jsTrps(dataName, trips):
 
     trips = trips[['origin', 'destination','waypointsLong','waypointsLat']]
     #trips.to_csv('../jsProject/stat/trips.csv',  index = False, sep = ";")
-    trips.to_csv('../../5-Final Product/FINALDATA/stat' + dataName+'/trips.csv',  index = False, sep = ";")
+    trips.to_csv('../../5-Final Product/stat' + dataName+'/trips.csv',  index = False, sep = ";")
 
     
 

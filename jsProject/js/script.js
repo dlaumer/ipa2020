@@ -64,27 +64,36 @@ class MyCustomControl {
   }
 }
 
-const myCustomControl = new MyCustomControl("changeMapButton", "Geometric Map");
+const myCustomControl = new MyCustomControl("showGeometric", "Geometric Map");
+const myCustomControl5 = new MyCustomControl("showSchematic", "Schematic Map");
 const myCustomControl2 = new MyCustomControl("zoomAll", "");
-const myCustomControl3 = new MyCustomControl("removeLabelsButton", "Labels");
-const myCustomControl4 = new MyCustomControl("showOriginalTrips", "Show Original");
+const myCustomControl3 = new MyCustomControl("removeLabelsButton", "");
+const myCustomControl4 = new MyCustomControl("showOriginalTrips", "Original Map");
 
 map.addControl(myCustomControl, 'top-left');
-map.addControl(myCustomControl3, 'bottom-left');
+map.addControl(myCustomControl5, 'top-left');
 map.addControl(myCustomControl2, 'top-right');
+map.addControl(myCustomControl3, 'top-right');
 map.addControl(myCustomControl4, 'top-left');
 
 var elem = document.createElement("img");
 elem.setAttribute("src", "imgs/zoom_out_map-white-48dp.svg");
 document.getElementById("zoomAll").appendChild(elem);
 
-document.getElementById("changeMapButton").addEventListener('click', event => {document.getElementById("changeMapButton").innerHTML = mapBlank ? "Schematic Map":"Geometric Map"; changeData() });
+var elem = document.createElement("img");
+elem.setAttribute("src", "imgs/local_offer-white-36dp.svg");
+document.getElementById("removeLabelsButton").appendChild(elem);
+
+document.getElementById("showGeometric").addEventListener('click', event => {if (mapBlank) { d3.select("#showOriginalTrips").style("pointer-events","all").style("background-color","#1F407A"); changeData("geometric")} });
+document.getElementById("showSchematic").addEventListener('click', event => {if (!mapBlank) {d3.select("#showOriginalTrips").style("pointer-events","none").style("background-color","rgb(172, 172, 172)"); changeData("schematic") }});
+
 document.getElementById("removeLabelsButton").addEventListener('click', event => { removeLabels() });
 document.getElementById("zoomAll").addEventListener('click', event => { zoomToAll() });
 document.getElementById("showOriginalTrips").addEventListener('click', event => {geomMap = !geomMap;
   drawTrips(places, trips, geomMap) });
   d3.select('#showOriginalTrips')
-  .style("visibility","hidden")
+  .style("pointer-events","none")
+  .style("background-color","rgb(172, 172, 172)")
 
 // re-render our visualization whenever the view changes
 map.on("viewreset", function () {
@@ -1141,12 +1150,14 @@ function render() {
 }
 
 
-function changeData() {
+function changeData(mapMode) {
   drawTrips(places, trips, false);
-
-  mapBlank = !mapBlank;
-  d3.select('#showOriginalTrips')
-    .style("visibility",mapBlank ? "hidden":"visible")
+  if (mapMode == 'schematic'){
+    mapBlank = true;
+  }
+  if (mapMode == 'geometric') {
+    mapBlank = false;
+  }
 
   if (!mapBlank) {
     map.setStyle('mapbox://styles/mapbox/light-v10');

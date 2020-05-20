@@ -12,6 +12,11 @@ body {
   width: 40px;
 }
 
+#removeLabelsButton {
+  height: 40px;
+  width: 40px;
+}
+
 .my-custom-control {
   color: white; 
   margin: 10px;
@@ -224,7 +229,7 @@ img {
   text-align: center;
 }
 .highcharts-figure, .highcharts-data-table table {
-  min-width: 320px; 
+  min-width: 120px; 
   max-width: 800px;
   margin: 1em auto;
 }
@@ -277,6 +282,13 @@ input[type="number"] {
   margin-bottom: 10%;
   height: 60%;
 }
+
+#container{
+  height:100%;
+  width: 100%;
+}
+
+
 #basicStatistics-container{
   margin: 10px;
 }

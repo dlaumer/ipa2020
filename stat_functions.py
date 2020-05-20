@@ -321,17 +321,17 @@ def plcsStayHour(stps, plcs, dataname):
     plcstocsv = plcs[cols]
     plcstocsv_transpose = plcstocsv.T
     plcstocsv_transpose.columns = plcs['place_id']
-    if not(os.path.exists('../data/stat/'+ dataname + '/')):
-        os.makedirs('../data/stat/'+ dataname + '/')
+    if not(os.path.exists('../../5-Final Product/stat'+ dataname + '/')):
+        os.makedirs('../../5-Final Product/stat'+ dataname + '/')
     #plcstocsv_transpose.to_csv('../data/stat/'+ dataname + '/PlcsStayHour.csv', index = True)
     plcstocsv_transpose.to_csv('../../5-Final Product/stat'+ dataname + '/PlcsStayHour.csv', index = True)
 
     # V2: with more information
     plcs = poi.reverseGeoCoding(plcs)
-    plcsInfo = plcs[['place_id','location','placeName']]
+    plcsInfo = plcs[['placeName']]
     plcsInfoT = plcsInfo.T
     plcsInfoT.columns = plcs['place_id']
-    plcsInfoT.to_csv('../../5-Final Product/stat'+ dataname + '/PlcsInfo.csv', index = True)
+    plcsInfoT.to_csv('../../5-Final Product/stat'+ dataname + '/PlcsInfo.csv', index = False)
 
 
     # column_names = ["user_id","place_id","center","extent","location","placeName","nameId",'totalStayHrs',"0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23"]
@@ -637,9 +637,9 @@ def homeworkStay(plcs, stps, dataname, places, threeQua):
         homeworkplcs = homeworkplcs.reindex(columns=column_names)
         homeworkplcs = homeworkplcs.rename(columns={'0':'Mon','1':"Tues","2":"Wed","3":"Thur","4":"Fri","5":"Sat","6":"Sun"})  
         
-        if not(os.path.exists('../data/stat/'+ dataname + '/')):
-            os.makedirs('../data/stat/'+ dataname + '/')
-        homeworkplcs.to_csv('../data/stat/'+ dataname + '/' + 'HomeWorkStay.csv', index = True)
+        if not(os.path.exists('../../5-Final Product/stat'+ dataname + '/')):
+            os.makedirs('../../5-Final Product/stat'+ dataname + '/')
+        homeworkplcs.to_csv('../../5-Final Product/stat'+ dataname + '/' + 'HomeWorkStay.csv', index = True)
         
     else:        
         # workplcs['totalStayHrs'] = workplcs['totalStayDays']*24 # convert to hrs
@@ -661,9 +661,9 @@ def homeworkStay(plcs, stps, dataname, places, threeQua):
         homeplcs = homeplcs.reindex(columns=column_names)
         homeplcs = homeplcs.rename(columns={'0':'Mon','1':"Tues","2":"Wed","3":"Thur","4":"Fri","5":"Sat","6":"Sun"})  
         homeworkplcs = homeplcs
-        if not(os.path.exists('../data/stat/'+ dataname + '/')):
-            os.makedirs('../data/stat/'+ dataname + '/')
-        homeworkplcs.to_csv('../data/stat/'+ dataname + '/' + 'HomeWorkStay.csv', index = True)
+        if not(os.path.exists('../../5-Final Product/stat'+ dataname + '/')):
+            os.makedirs('../../5-Final Product/stat'+ dataname + '/')
+        homeworkplcs.to_csv('../../5-Final Product/stat'+ dataname + '/' + 'HomeWorkStay.csv', index = True)
         
     return homeworkplcs
 
