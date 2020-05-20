@@ -47,7 +47,7 @@ SELECT_RANGE =      True
 FIND_STAY_POINTS =  True
 FIND_PLACES =       True
 FIND_TRIPS =        True
-FIND_SEMANTIC_INFO =False
+FIND_SEMANTIC_INFO =True
 CLUSTER_TRPS =      False
 EXPORT_GPX =        False
 API_CALL =          False
@@ -56,15 +56,10 @@ EXPORT_FOR_DASHBOARD = False
 exportShp =         False
 loadTh =            False
 
-<<<<<<< HEAD
 TimelineStat =      True
+TransmodeStat =     False
 HomeWorkStat =      True
-TransmodeStat =     False
-=======
-TimelineStat =      False
-TransmodeStat =     False
-HomeWorkStat =      False
->>>>>>> 13bbd13212f325467d575dcc951a237ae34ac29b
+
 
 #%% LOAD ALL SAVED THRESHOLDS
 if IMPORT_THRES:

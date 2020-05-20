@@ -1508,7 +1508,7 @@ function setBasicStatistics(basicStatistics){
   mycel = rowPhone.getElementsByTagName("td")[1].textContent = basicStats['phoneModel'] ;
 
   rowPoints = mytablebody.getElementsByTagName("tr")[2];
-  mycel = rowPoints.getElementsByTagName("td")[1].textContent = basicStats['NumPoints'] + " Locations" ;
+  mycel = rowPoints.getElementsByTagName("td")[1].textContent = basicStats['NumPoints'] + " GPS Points" ;
   
   rowDistAvg = mytablebody.getElementsByTagName("tr")[3];
   mycel = rowDistAvg.getElementsByTagName("td")[1].textContent = parseFloat(basicStats['AvgDist']).toFixed(1) + " km/day";
