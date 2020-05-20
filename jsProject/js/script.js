@@ -19,7 +19,7 @@ var urls = {
     "./stat"+dataName+"/HomeWorkStay.csv",
 
   transportation:
-    "./stat"+dataName+"/TransportationMode.csv",
+    "./stat"+dataName+"/TransportationModeCo2.csv",
 };
 
 // PERPARE MAP  ////////////////////////////////////////////////////////////////////////////////////
@@ -229,6 +229,7 @@ var yAxisMax;
 var transportationmode;
 var transportationData;
 var transportationSeries;
+var totalCo2;
 var bubbles;
 var pathBaseMap;
 var pathTrips;
@@ -249,7 +250,7 @@ let promises = [
   d3.csv(urls.timeline),
   d3.csv(urls.semanticInfo),
   d3.csv(urls.homeworkbal),
-  d3.csv(urls.transportation)
+  d3.csv(urls.transportation),
 ];
 
 Promise.all(promises).then(processData);
@@ -316,6 +317,7 @@ function processData(values) {
   transportationData = [];
   transportationSeries = [];
   yAxisMax = [];
+  totalCo2 = 0;
   var tempabs = [];
 
   fillPlacesBoxes();
@@ -366,7 +368,7 @@ function processData(values) {
   }
   // console.log(tempabs);
   yAxisMax = Math.max(...tempabs)
-  yAxisMax = Math.ceil(yAxisMax / 50) * 50;
+  yAxisMax = Math.ceil(yAxisMax / 10) * 10;
   // console.log(yAxisMax)
   for (i = 0; i < HomeWorkData.length; i++) {
     HomeWorkSeries.push({
@@ -385,19 +387,25 @@ function processData(values) {
     var mode = transportationi['name']
     var percentage = transportationi['percentage'] * 100
     var val = transportationi['value'] / 1000
-    var transarray = [mode, percentage, val]
+    var co2 = transportationi['co2']
+    var co2Emission = val*co2
+    var transarray = [mode, percentage, val, co2, co2Emission]
+    totalCo2 = totalCo2 + co2Emission
     transportationData.push(transarray);
   }
+
   for (i = 0; i < transportationData.length; i++) {
     transportationSeries.push({
       name: transportationData[i][0],
       y: transportationData[i][1],
-      val: transportationData[i][2]
+      val: transportationData[i][2],
+      co2: transportationData[i][3],
+      co2Emission: transportationData[i][4],
     })
   }
   // console.log(transportationSeries);
   // console.log(HomeWorkSeries);
-  drawTransPieChart(transportationSeries);
+  drawTransPieChart(transportationSeries,totalCo2);
 
   zoomToAll();
 }
@@ -1082,9 +1090,9 @@ function drawNegativeBar(HomeWorkSeries, yAxisMax) {
     title: {
       text: 'Home and Work Balance',
       style: {
-        fontSize: '20px',
+        fontSize: '18px',
         fontWeight: 'bold',
-        font: 'Arial',
+        fontFamily: 'Arial'
      }  
     },
     // subtitle: {
@@ -1161,7 +1169,7 @@ function drawNegativeBar(HomeWorkSeries, yAxisMax) {
   });
 }
 
-function drawTransPieChart(transportationSeries) {
+function drawTransPieChart(transportationSeries,totalCo2) {
   // Make monochrome colors
   var pieColors = (function () {
     var colors = [],
@@ -1186,18 +1194,18 @@ function drawTransPieChart(transportationSeries) {
     title: {
       text: 'Commuting Preferences',
       style: {
-        fontSize: '20px',
+        fontSize: '18px',
         fontWeight: 'bold',
-        font: 'Arial',
+        fontFamily: 'Arial'
      }  
     },
     subtitle:{
-      text: 'Your total CO2 emission is xxx: xx km by Bus x xx/km + xx km by Car x xx/km + xx km by Train x xx/km + xx km by Tram x xx/km + xx km on Foot x xx/km + xx km by Bike x xx/km +',
+      text: 'Your total CO2 emission is: ' + totalCo2.toFixed(2) + ' kg',
      // align: "left"
     },
     tooltip: {
       headerFormat: '<span style="font-size:11px">{series.name}</span><br>',
-      pointFormat: '{point.name}</span>: <b>{point.y:.1f}%</b> of total<br/>Corresponding to <b>{point.val:.1f} km</b>'
+      pointFormat: '{point.name}</span>: <b>{point.y:.1f}%</b> of total<br/> {point.val:.1f} km</b>'
     },
     accessibility: {
       point: {
@@ -1234,7 +1242,7 @@ function drawTransPieChart(transportationSeries) {
           style: {
             fontSize: '10px',
             // fontWeight: 'bold',
-            font: 'Arial',
+            fontFamily: 'Arial',
             textOutline: '0px contrast'
          }  
         }
