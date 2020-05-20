@@ -1,25 +1,28 @@
 // Data files to import
-var dataName = "1";
+var dataName = "6";
 var urls = {
   map: "swiss.json",
 
   places:
-    "./stat"+dataName+"/places.csv",
+    "./stat" + dataName + "/places.csv",
 
   trips:
-    "./stat"+dataName+"/tripsAgr.csv",
+    "./stat" + dataName + "/tripsAgr.csv",
 
   timeline:
-    "./stat"+dataName+"/PlcsStayHour.csv",
+    "./stat" + dataName + "/PlcsStayHour.csv",
 
   semanticInfo:
-    "./stat"+dataName+"/PlcsInfo.csv",
+    "./stat" + dataName + "/PlcsInfo.csv",
 
   homeworkbal:
-    "./stat"+dataName+"/HomeWorkStay.csv",
+    "./stat" + dataName + "/HomeWorkStay.csv",
 
   transportation:
-    "./stat"+dataName+"/TransportationMode.csv",
+    "./stat" + dataName + "/TransportationMode.csv",
+
+  basicStatistics:
+    "./stat" + dataName + "/BasicStatistics.csv",
 };
 
 // PERPARE MAP  ////////////////////////////////////////////////////////////////////////////////////
@@ -33,6 +36,7 @@ var map = new mapboxgl.Map({
   center: [8.507412548555335, 47.40639137110055],
   zoom: 10
 })
+
 
 var legendControl = map.addControl(new mapboxgl.NavigationControl());
 class MyCustomControl {
@@ -123,93 +127,6 @@ var tooltip = d3.select("text#tooltip");
 //svg.call(zoom);
 
 
-// PREPARE CHART  ////////////////////////////////////////////////////////////////////////////////////
-var margin = { top: 10, right: 30, bottom: 40, left: 60 };
-var widthTimeline = d3
-  .select('#chart-container')
-  .node()
-  .getBoundingClientRect().width - margin.left - margin.right;
-// Set dimensions
-var heightTimeline = d3
-  .select('#chart-container')
-  .node()
-  .getBoundingClientRect().height - margin.top - margin.bottom;
-
-
-var svgTimeline = d3.select("#timeline")
-  .append("svg")
-  .attr("width", widthTimeline + margin.left + margin.right)
-  .attr("height", heightTimeline + margin.top + margin.bottom)
-  .append("g")
-  .attr("transform",
-    "translate(" + margin.left + "," + margin.top + ")")
-
-// text label for the y axis
-svgTimeline.append("text")
-  .attr("font-size", "10px")
-  .attr("transform", "rotate(-90)")
-  .attr("y", 0 - margin.left / 2)
-  .attr("x", 0 - (heightTimeline / 2))
-  .style("text-anchor", "middle")
-  .text("Staytime [hrs]");
-
-// Initialize the X axis
-var xScale = d3.scaleBand()
-  .range([0, widthTimeline])
-  .padding(0.2);
-
-xScale.invert = function (x) {
-  var domain = this.domain();
-  var range = this.range()
-  var scale = d3.scaleQuantize().domain(range).range(domain)
-  return scale(x)
-};
-var xAxis = svgTimeline.append("g")
-  .attr("transform", "translate(0," + heightTimeline + ")")
-
-// Initialize the Y axis
-var yScale = d3.scaleLinear()
-  .range([heightTimeline, 0]);
-var yAxis = svgTimeline.append("g")
-  .attr("class", "myYaxis")
-
-
-// PREPARE TIME  ////////////////////////////////////////////////////////////////////////////////////
-
-// set the dimensions and margins of the graph
-var marginTime = { top: 10, right: 20, bottom: 0, left: 50 };
-
-var widthTime = d3
-  .select('#time-container')
-  .node()
-  .getBoundingClientRect().width - marginTime.left - marginTime.right;
-var heightTime = d3
-  .select('#time-container')
-  .node()
-  .getBoundingClientRect().height - marginTime.top - marginTime.bottom;
-
-var svgTime = d3.select("#time")
-  .append("svg")
-  .attr("width", widthTime + marginTime.left + marginTime.right)
-  .attr("height", heightTime + marginTime.top + marginTime.bottom)
-  .append("g")
-  .attr("transform",
-    "translate(" + marginTime.left + "," + marginTime.top + ")")
-
-// Initialize the X axis
-var xScaleTime = d3.scaleBand()
-  .range([0, widthTime])
-  .padding(0.2);
-
-xScaleTime.invert = function (x) {
-  var domain = this.domain();
-  var range = this.range()
-  var scale = d3.scaleQuantize().domain(range).range(domain)
-  return scale(x)
-};
-var xAxisTime = svgTime.append("g")
-
-
 
 // LOAD DATA  ////////////////////////////////////////////////////////////////////////////////////
 
@@ -242,6 +159,23 @@ var extents;
 var startTime = 0;
 var endTime = 23;
 
+var margin
+var widthTimeline
+var heightTimeline
+var svgTimeline
+var xScale
+var xAxis 
+var yScale
+var yAxis
+var marginTime
+var widthTime
+var heightTime
+var svgTime
+var xScaleTime
+var xAxisTime
+var numOfBoxes
+var topkPlaces
+
 // load the place and trip data together
 let promises = [
   d3.dsv(';', urls.places, typePlace),
@@ -249,7 +183,8 @@ let promises = [
   d3.csv(urls.timeline),
   d3.csv(urls.semanticInfo),
   d3.csv(urls.homeworkbal),
-  d3.csv(urls.transportation)
+  d3.csv(urls.transportation),
+  d3.csv(urls.basicStatistics)
 ];
 
 Promise.all(promises).then(processData);
@@ -263,6 +198,9 @@ function processData(values) {
   semanticInfo = values[3][0];
   homeworkbal = values[4];
   transportationmode = values[5];
+  basicStatistics = values[6];
+
+  setBasicStatistics(basicStatistics);
 
   extents = getExtentofPlaces(places)
   // convert places array (pre filter) into map for fast lookup
@@ -272,6 +210,103 @@ function processData(values) {
   console.log(" trips: " + trips.length);
 
 
+  numOfBoxes = places.length+1;
+  if (numOfBoxes > 11) {
+    numOfBoxes = 11;
+  }
+  var myDiv = document.getElementById("box-1").parentNode;
+  for (let i = 2; i < numOfBoxes; i++) {
+    var divClone = myDiv.cloneNode(true); // the true is for deep cloning
+    divClone.childNodes[1].id = "box-"+i
+    divClone.childNodes[3].id = "zoom-"+i
+    document.getElementById("places-boxes").appendChild(divClone);
+  }
+  // PREPARE CHART  ////////////////////////////////////////////////////////////////////////////////////
+  margin = { top: 10, right: 30, bottom: 40, left: 60 };
+  widthTimeline = d3
+    .select('#chart-container')
+    .node()
+    .getBoundingClientRect().width - margin.left - margin.right;
+  // Set dimensions
+  heightTimeline = d3
+    .select('#chart-container')
+    .node()
+    .getBoundingClientRect().height - margin.top - margin.bottom;
+
+
+  svgTimeline = d3.select("#timeline")
+    .append("svg")
+    .attr("width", widthTimeline + margin.left + margin.right)
+    .attr("height", heightTimeline + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform",
+      "translate(" + margin.left + "," + margin.top + ")")
+
+  // text label for the y axis
+  svgTimeline.append("text")
+    .attr("font-size", "10px")
+    .attr("transform", "rotate(-90)")
+    .attr("y", 0 - margin.left / 2)
+    .attr("x", 0 - (heightTimeline / 2))
+    .style("text-anchor", "middle")
+    .text("Staytime [hrs]");
+
+  // Initialize the X axis
+  xScale = d3.scaleBand()
+    .range([0, widthTimeline])
+    .padding(0.2);
+
+  xScale.invert = function (x) {
+    var domain = this.domain();
+    var range = this.range()
+    var scale = d3.scaleQuantize().domain(range).range(domain)
+    return scale(x)
+  };
+  xAxis = svgTimeline.append("g")
+    .attr("transform", "translate(0," + heightTimeline + ")")
+
+  // Initialize the Y axis
+  yScale = d3.scaleLinear()
+    .range([heightTimeline, 0]);
+  yAxis = svgTimeline.append("g")
+    .attr("class", "myYaxis")
+
+
+// PREPARE TIME  ////////////////////////////////////////////////////////////////////////////////////
+
+// set the dimensions and margins of the graph
+marginTime = { top: 10, right: 20, bottom: 0, left: 50 };
+
+widthTime = d3
+  .select('#time-container')
+  .node()
+  .getBoundingClientRect().width - marginTime.left - marginTime.right;
+heightTime = d3
+  .select('#time-container')
+  .node()
+  .getBoundingClientRect().height - marginTime.top - marginTime.bottom;
+
+svgTime = d3.select("#time")
+  .append("svg")
+  .attr("width", widthTime + marginTime.left + marginTime.right)
+  .attr("height", heightTime + marginTime.top + marginTime.bottom)
+  .append("g")
+  .attr("transform",
+    "translate(" + marginTime.left + "," + marginTime.top + ")")
+
+// Initialize the X axis
+xScaleTime = d3.scaleBand()
+  .range([0, widthTime])
+  .padding(0.2);
+
+xScaleTime.invert = function (x) {
+  var domain = this.domain();
+  var range = this.range()
+  var scale = d3.scaleQuantize().domain(range).range(domain)
+  return scale(x)
+};
+xAxisTime = svgTime.append("g")
+// PREPARE MAP  ////////////////////////////////////////////////////////////////////////////////////
 
   // calculate incoming and outgoing degree based on trips
   // trips are given by place placeId code (not index)
@@ -283,26 +318,12 @@ function processData(values) {
     link.target.incoming += link.count;
   });
 
-  // remove places without any trips
-  old = places.length;
-  places = places.filter(place => place.outgoing > 0 || place.incoming > 0);
-  console.log(" removed: " + (old - places.length) + " places without trips");
-
   // sort places by outgoing degree
   places.sort((a, b) => d3.descending(a.outgoing, b.outgoing));
 
   // done filtering places can draw
   drawPlaces(places);
   //drawPolygons(places);
-
-  // reset map to only include places post-filter
-  placeId = new Map(places.map(node => [node.placeId, node]));
-
-  // filter out trips that are not between places we have leftover
-  old = trips.length;
-  trips = trips.filter(link => placeId.has(link.source.placeId) && placeId.has(link.target.placeId));
-  console.log(" removed: " + (old - trips.length) + " trips");
-
   // done filtering trips can draw
   drawTrips(places, trips);
 
@@ -317,12 +338,13 @@ function processData(values) {
   transportationSeries = [];
   yAxisMax = [];
   var tempabs = [];
-
+  
   fillPlacesBoxes();
   colorPlacesBoxes(startTime, endTime);
   drawTimeline();
 
-  for (let i = 1; i < 11; i++) {
+
+  for (let i = 1; i < numOfBoxes; i++) {
     document.getElementById("box-" + i).addEventListener('click', event => { updateTimeline(placeIdOfBox[i]) });
     document.getElementById("zoom-" + i).addEventListener('click', event => { updateZoom(placeIdOfBox[i]) });
     document.getElementById("box-" + i).parentNode.addEventListener("mouseover", event => { mousoverFunction(placeIdOfBox[i]) });
@@ -334,14 +356,14 @@ function processData(values) {
   // Make monochrome colors
   var barColors = (function () {
     var colors = [],
-        base = Highcharts.getOptions().colors[0],
-        i;
+      base = Highcharts.getOptions().colors[0],
+      i;
 
     for (i = 0; i < homeworkbal.length; i += 1) {
-        // Start out with a darkened base color (negative brighten), and end
-        // up with a much brighter color
-        colors.push(Highcharts.color(base).brighten((i - 2) / 6).get());
-   }
+      // Start out with a darkened base color (negative brighten), and end
+      // up with a much brighter color
+      colors.push(Highcharts.color(base).brighten((i - 2) / 6).get());
+    }
     return colors;
   }());
   for (let i = 0; i < homeworkbal.length; i++) {
@@ -361,7 +383,7 @@ function processData(values) {
     }
     // console.log(data);
     var homeworkname = capitalize(homeworkid).concat(': ', homework['placeName'])
-    var homeworkarray = [homeworkname, data, barColors[i]]    
+    var homeworkarray = [homeworkname, data, barColors[i]]
     HomeWorkData.push(homeworkarray);
   }
   // console.log(tempabs);
@@ -445,7 +467,7 @@ function fillPlacesBoxes() {
   var keys = Object.keys(timeData);
   count = 1;
   placeIdOfBox = {};
-  while (count < 11) {
+  while (count < numOfBoxes) {
     var maxIdx = values.indexOf(Math.max.apply(Math, values))
     var placeId = keys[maxIdx];
 
@@ -459,7 +481,7 @@ function fillPlacesBoxes() {
     keys.splice(maxIdx, 1);
     count++;
   }
-
+  topkPlaces = Object.values(placeIdOfBox);
 }
 
 function getPlaceTime(startTime, endTime) {
@@ -484,7 +506,7 @@ function colorPlacesBoxes(startTime, endTime) {
   var color = d3.scaleLinear()
     .domain([0, maxValue])
     .range(["#ffffff ", "#1F407A"]);
-  for (let i = 1; i < 11; i++) {
+  for (let i = 1; i < numOfBoxes; i++) {
     document.getElementById("box-" + i).parentNode.style.backgroundColor = color(Math.log(timeData[placeIdOfBox[i]]));
     document.getElementById("box-" + i).innerHTML = "<span style='font-size:15px;'>" + semanticInfo[placeIdOfBox[i]] + "</span>" + "<span style='font-size:10px;'>" + ", Staytime: " + Math.round(timeData[placeIdOfBox[i]]) + " hrs" + "</span>";
     if (Math.log(timeData[placeIdOfBox[i]]) > 0.6 * maxValue) {
@@ -494,13 +516,13 @@ function colorPlacesBoxes(startTime, endTime) {
       document.getElementById("box-" + i).style.color = "black";
     }
     try {
-      placeId.get(placeIdOfBox[i]).bubble.style.fill = color(Math.log(timeData[placeIdOfBox[i]])) 
+      placeId.get(placeIdOfBox[i]).bubble.style.fill = color(Math.log(timeData[placeIdOfBox[i]]))
 
     }
     catch {
 
     }
-    
+
   }
 
 }
@@ -559,7 +581,9 @@ function drawPlaces(places) {
       mouseoutFunction(d.placeId)
     })
     .on("click", function (d) {
-      updateTimeline(d.placeId);
+      if (topkPlaces.includes(d.placeId)){
+        updateTimeline(d.placeId);
+      }
     });
 }
 
@@ -825,7 +849,7 @@ function notHighlight(selection, type) {
 function updateTimeline(selectedVar) {
 
   order = 0;
-  for (let i = 1; i < 11; i++) {
+  for (let i = 1; i < numOfBoxes; i++) {
     if (placeIdOfBox[i] == selectedVar) {
       document.getElementById("box-" + i).parentNode.style.order = order;
       order += 2;
@@ -909,7 +933,7 @@ function arcTween(a) {
 }
 
 function mousoverFunction(i) {
-  if (parseInt(i) < places.length) {
+  if (parseInt(i) < places.length+1) {
     let place = placeId.get(i);
 
     d3.select(place.bubble)
@@ -1085,7 +1109,7 @@ function drawNegativeBar(HomeWorkSeries, yAxisMax) {
         fontSize: '20px',
         fontWeight: 'bold',
         font: 'Arial',
-     }  
+      }
     },
     // subtitle: {
     //   text: ''
@@ -1189,11 +1213,11 @@ function drawTransPieChart(transportationSeries) {
         fontSize: '20px',
         fontWeight: 'bold',
         font: 'Arial',
-     }  
+      }
     },
-    subtitle:{
+    subtitle: {
       text: 'Your total CO2 emission is xxx: xx km by Bus x xx/km + xx km by Car x xx/km + xx km by Train x xx/km + xx km by Tram x xx/km + xx km on Foot x xx/km + xx km by Bike x xx/km +',
-     // align: "left"
+      // align: "left"
     },
     tooltip: {
       headerFormat: '<span style="font-size:11px">{series.name}</span><br>',
@@ -1236,7 +1260,7 @@ function drawTransPieChart(transportationSeries) {
             // fontWeight: 'bold',
             font: 'Arial',
             textOutline: '0px contrast'
-         }  
+          }
         }
       }
     },
@@ -1248,12 +1272,24 @@ function drawTransPieChart(transportationSeries) {
   });
 }
 
+document.getElementById("info-button").addEventListener("click", function () {
+  let toggle = d3.select("#info-container").classed("collapseHoriz");
+  d3.select('#info-container')
+    .classed("collapseHoriz", !toggle);
+});
+
 document.getElementById("collapeButton2").addEventListener("click", function () {
   let toggle = d3.select("#homeWorkBalance-container").classed("collapse");
   d3.select('#homeWorkBalance-container')
-  .style("visibility", toggle ?"visible": "hidden");
+    .style("visibility", toggle ? "visible" : "hidden");
   d3.select("#homeWorkBalance-container")
     .classed("collapse", !toggle);
+  if (toggle) {
+    this.getElementsByTagName("span")[0].innerHTML = "&gt;";
+  }
+  else {
+    this.getElementsByTagName("span")[0].innerHTML = "&lt;";
+  }
 
 });
 
@@ -1261,10 +1297,15 @@ document.getElementById("collapeButton1").addEventListener("click", function () 
 
   let toggle = d3.select("#places-container").classed("collapse");
   d3.select('#places-boxes')
-  .style("visibility", toggle ?"visible": "hidden");
+    .style("visibility", toggle ? "visible" : "hidden");
   d3.select("#places-container")
     .classed("collapse", !toggle);
-
+  if (toggle) {
+    this.getElementsByTagName("span")[0].innerHTML = "&lt;";
+  }
+  else {
+    this.getElementsByTagName("span")[0].innerHTML = "&gt;";
+  }
 });
 
 document.getElementById("buttonChangeHighcart").addEventListener("click", function () {
@@ -1300,7 +1341,8 @@ d3.selectAll(".flex-item")
       .attr('width', widthMap)
       .attr('height', heightMap)
 
-  });
+    });
+
 
 
 function getExtentofPlaces(places) {
@@ -1323,7 +1365,35 @@ function getExtentofPlaces(places) {
 }
 
 d3.select("#homeWorkBalance-container")
-.style("max-width",document.getElementById('homeWorkBalance-container').getBoundingClientRect().width)
+  .style("max-width", document.getElementById('homeWorkBalance-container').getBoundingClientRect().width)
 
 d3.select("#places-container")
-.style("max-width",document.getElementById('places-container').getBoundingClientRect().width )
+  .style("max-width", document.getElementById('places-container').getBoundingClientRect().width)
+
+
+function setBasicStatistics(basicStatistics){
+  for (var i = 0; i < basicStatistics.length;i++) {
+    if (basicStatistics[i].id == dataName){
+      basicStats = basicStatistics[i]
+    }
+  }
+
+  
+  mybody = document.getElementsByTagName("body")[0];
+  mytable = mybody.getElementsByTagName("table")[0];
+  mytablebody = mytable.getElementsByTagName("tbody")[0];
+  rowTime = mytablebody.getElementsByTagName("tr")[0];
+  mycel = rowTime.getElementsByTagName("td")[1].textContent = basicStats['startTime'] + " - " + basicStats['endTime'];
+  
+  rowPhone = mytablebody.getElementsByTagName("tr")[1];
+  mycel = rowPhone.getElementsByTagName("td")[1].textContent = basicStats['phoneModel'] ;
+
+  rowPoints = mytablebody.getElementsByTagName("tr")[2];
+  mycel = rowPoints.getElementsByTagName("td")[1].textContent = basicStats['NumPoints'] + " Locations" ;
+  
+  rowDistAvg = mytablebody.getElementsByTagName("tr")[3];
+  mycel = rowDistAvg.getElementsByTagName("td")[1].textContent = parseFloat(basicStats['AvgDist']).toFixed(1) + " km/day";
+
+  rowDist = mytablebody.getElementsByTagName("tr")[4];
+  mycel = rowDist.getElementsByTagName("td")[1].textContent = parseFloat(basicStats['TotalDist']).toFixed(1) + " km total" ;
+}

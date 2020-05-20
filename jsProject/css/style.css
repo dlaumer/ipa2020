@@ -40,7 +40,41 @@ body {
 #title-container {
   height: 7%;
   width: 100%;
+  padding-left:10px;
   }
+
+#info-container {
+  padding-left:10px;
+  height: 30%;
+  width: 100%;
+  visibility: visible;
+  transition: all 2s;
+}
+#info-title-div {
+  height: 15%; 
+}
+#info-container2 {
+  height: 85%;
+  width: 100%;
+}
+
+#info1 {
+  flex-basis: 30%; 
+  min-width: 100px; 
+  height: 100%; 
+}
+
+#info2 {
+  flex-basis: 30%; 
+  min-width: 100px; 
+  height: 100%; 
+}
+#info3 {
+  flex-basis: 30%; 
+  min-width: 100px; 
+  height: 100%; 
+}
+
 #map-and-places-container {
   height: 93%;
   width: 100%;
@@ -165,11 +199,17 @@ img {
   max-width: 15px;  
   height: 100%; 
   background-color: #8b8b8b;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 #collapeButton2 {
   max-width: 15px;  
   height: 100%; 
   background-color: #8b8b8b;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 #homeWorkBalance-container {
   flex-basis:25%; 
@@ -224,19 +264,27 @@ input[type="number"] {
   flex-grow: 0.00001 !important; 
 }
 
+.collapseHoriz {
+  height: 0 !important;
+  visibility: hidden !important;
+  overflow: hidden !important;
+}
+
 
 #highcharts-container{
-  height: 70%;
+  margin-bottom: 10%;
+  height: 60%;
 }
 #basicStatistics-container{
+  margin: 10px;
 }
 
 #buttonChangeHighcart {
   width:60%;
-  height: 5%;
+  height: 3%;
   background-color: #1F407A;
   text-align:center;
-  margin:5px;
+  margin:auto;
   padding: 5px;
 }
 
@@ -245,4 +293,19 @@ input[type="number"] {
 }
 .hover-button:hover {
   opacity: 0.7;
+}
+
+#info-button {
+  flex-basis: 5%; 
+  height: 100%; 
+}
+
+#title-div {
+  flex-basis: 95%; 
+  min-width: 200px; 
+  height: 100%; 
+}
+
+h1 {
+  margin:0;
 }
