@@ -22,7 +22,6 @@ var urls = {
     "./stat" + dataName + "/HomeWorkStay.csv",
 
   transportation:
-
     "./stat" + dataName + "/TransportationModeCo2Perc.csv",
   
     basicStatistics:
@@ -71,8 +70,8 @@ const myCustomControl2 = new MyCustomControl("zoomAll", "");
 const myCustomControl3 = new MyCustomControl("removeLabelsButton", "");
 const myCustomControl4 = new MyCustomControl("showOriginalTrips", "Original Map");
 
-map.addControl(myCustomControl, 'top-left');
 map.addControl(myCustomControl5, 'top-left');
+map.addControl(myCustomControl, 'top-left');
 map.addControl(myCustomControl2, 'top-right');
 map.addControl(myCustomControl3, 'top-right');
 map.addControl(myCustomControl4, 'top-left');
@@ -89,27 +88,24 @@ d3.select('#showGeometric').classed('selectMap', true)
 d3.select('#showSchematic').classed('selectMap', true)
 d3.select('#showOriginalTrips').classed('selectMap', true)
 d3.select('#showSchematic')
-      .style('border', "solid #A8322D 2px")
+      .style('background-color', "#A8322D")
 
 document.getElementById("showGeometric").addEventListener('click', event => {
+  
   if (mapBlank) {
 
     d3.selectAll('.selectMap')
-      .style('border', "none")
+      .style('background-color', "#1F407A")
     d3.select('#showGeometric')
-      .style('border', "solid #A8322D 2px")
-
-    d3.select("#showOriginalTrips")
-      .style("pointer-events", "all")
-      .style("background-color", "#1F407A");
+      .style('background-color', "#A8322D")
 
     changeData("geometric")
   }
   else if (geomMap) {
     d3.selectAll('.selectMap')
-      .style('border', "none")
+    .style('background-color', "#1F407A")
     d3.select('#showGeometric')
-      .style('border', "solid #A8322D 2px")
+    .style('background-color', "#A8322D")
     geomMap = false;
     drawTrips(places, trips, geomMap)
   }
@@ -118,36 +114,36 @@ document.getElementById("showSchematic").addEventListener('click', event => {
   if (!mapBlank) {
 
     d3.selectAll('.selectMap')
-      .style('border', "none")
+    .style('background-color', "#1F407A")
     d3.select('#showSchematic')
-      .style('border', "solid #A8322D 2px")
+    .style('background-color', "#A8322D")
 
-    d3.select("#showOriginalTrips")
-      .style("pointer-events", "none")
-      .style("background-color", "rgb(172, 172, 172)");
+    geomMap = false
 
     changeData("schematic")
   }
 });
 document.getElementById("showOriginalTrips").addEventListener('click', event => {
+  d3.selectAll('.selectMap')
+  .style('background-color', "#1F407A")
+  d3.select('#showOriginalTrips')
+  .style('background-color', "#A8322D")
+
   if (!geomMap) {
-    d3.selectAll('.selectMap')
-      .style('border', "none")
-    d3.select('#showOriginalTrips')
-      .style('border', "solid #A8322D 2px")
 
     geomMap = true;
     drawTrips(places, trips, geomMap)
+  }
+
+  if (mapBlank) {
+    geomMap = true;
+    changeData("geometric")
   }
 });
 
 
 document.getElementById("removeLabelsButton").addEventListener('click', event => { removeLabels() });
 document.getElementById("zoomAll").addEventListener('click', event => { zoomToAll() });
-
-d3.select('#showOriginalTrips')
-  .style("pointer-events", "none")
-  .style("background-color", "rgb(172, 172, 172)")
 
 // re-render our visualization whenever the view changes
 map.on("viewreset", function () {
@@ -519,7 +515,7 @@ function processData(values) {
   }
   // console.log(transportationSeries);
   // console.log(HomeWorkSeries);
-  drawTransPieChart(transportationSeries, totalCo2);
+  //drawTransPieChart(transportationSeries, totalCo2);
 
   zoomToAll();
 }
@@ -1257,7 +1253,7 @@ function changeData(mapMode) {
 
 
   function endall() {
-    drawTrips(places, trips, false);
+    drawTrips(places, trips, geomMap);
     drawPlaces(places);
     colorPlacesBoxes(startTime, endTime);
     zoomToAll();
@@ -1389,7 +1385,7 @@ function drawTransPieChart(transportationSeries, totalCo2) {
     return colors;
   }());
 
-  Highcharts.chart('piechart-container', {
+  Highcharts.chart('container', {
     chart: {
       plotBackgroundColor: null,
       plotBorderWidth: null,
@@ -1497,17 +1493,17 @@ document.getElementById("collapeButton1").addEventListener("click", function () 
   }
 });
 
+var toggleChart = true;
 document.getElementById("buttonChangeHighcart").addEventListener("click", function () {
-  d1 = document.getElementById("balance-div");
-  d2 = document.getElementById("piechart-div");
-  if (d2.style.display == "none") {
-    d1.style.display = "none";
-    d2.style.display = "block";
+  if (toggleChart) {
+    drawTransPieChart(transportationSeries, totalCo2);
+
   }
-  else {
-    d1.style.display = "block";
-    d2.style.display = "none";
+  else{
+    drawNegativeBar(HomeWorkSeries, yAxisMax);
+
   }
+  toggleChart = !toggleChart;
 
 });
 
