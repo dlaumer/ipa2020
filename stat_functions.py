@@ -237,6 +237,9 @@ def plcsStayHour(stps, plcs, dataname):
         stps['hourdiff'].iloc[i] = stps['finished_at'].iloc[i].hour - stps['started_at'].iloc[i].hour
         stps['monthdiff'].iloc[i] = stps['finished_at'].iloc[i].month - stps['started_at'].iloc[i].month
 
+        if (stps['hourdiff'].iloc[i]<0):
+            stps['hourdiff'].iloc[i] += 24
+            
         list31 = [1,3,5,7,8,10,12]
         list30 = [4,6,9,11]
         listFeb = [2] 
@@ -332,13 +335,13 @@ def plcsStayHour(stps, plcs, dataname):
 
 
     # column_names = ["user_id","place_id","center","extent","location","placeName","nameId",'totalStayHrs',"0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23"]
-    column_names = ["user_id","place_id","center","extent","location","placeName","nameId","totalStayHrs","id","0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23"]
+    column_names = ["user_id","place_id","center","extent","location","placeName","nameId","totalStayHrs","0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23"]
     
     plcs = plcs.reindex(columns=column_names)
     
     return plcs    
     
-def homeworkStay(stps, dataname, places, threeQua, minDist, minPoints):
+def homeworkStay(plcs, stps, dataname, places, threeQua):
     """
     Calculate stay time statistics of home and work places for all past data
 
@@ -354,241 +357,317 @@ def homeworkStay(stps, dataname, places, threeQua, minDist, minPoints):
     None
     """
     
-    stps['tracked_at_hour'] = 0
-    for i in range(0,len(stps)): stps['tracked_at_hour'].iloc[i] = stps['started_at'].iloc[i].hour
-    stps['t_diff'] = 0
-    for i in range(0,len(stps)): stps['t_diff'].iloc[i] = (stps['finished_at'].iloc[i] - stps['started_at'].iloc[i]).total_seconds()/3600
-    
-    ## HOME ADDRESS   
-    homestps = stps[(stps['tracked_at_hour']<=5) | (stps['tracked_at_hour']>=22) | (stps['t_diff']>=18)]
-    homeplcs = main.findPlaces(homestps, dataname, minDist, minPoints) 
-    homeplcs = poi.reverseGeoCoding(homeplcs)
-    
-    cols = [str(i) for i in range(0,7)]
-    for col in cols: homeplcs[col] = 0
+    flag = 0
 
-    cols = [str(i) for i in range(0,7)]
-    for col in cols: homestps[col] = 0
-      
-    # Calculate stay time
-    homestps['daydiff'] = 0
-    homestps['wdaydiff'] = 0 # weekday difference
-    homestps['weekdiff'] = 0
-    homestps['monthdiff'] = 0
+    cols = [str(i) for i in range(0,24)]
+    stps = stps.drop(cols, axis=1)
+        
+    homecols = [str(i) for i in range(0,7)] + [str(i) for i in range(22,24)]
+    homeHrs = list(plcs[homecols].sum(axis=1))
     
-    for i in range(0,len(homestps)):
-        homestps['daydiff'].iloc[i] = homestps['finished_at'].iloc[i].day - homestps['started_at'].iloc[i].day
-        homestps['monthdiff'].iloc[i] = homestps['finished_at'].iloc[i].month - homestps['started_at'].iloc[i].month
-
-        list31 = [1,3,5,7,8,10,12]
-        list30 = [4,6,9,11]
-        listFeb = [2] 
-        if (homestps['monthdiff'].iloc[i] >= 1):
-            startMonth = homestps['started_at'].iloc[i].month
-            if (startMonth in list31):
-                homestps['daydiff'].iloc[i] += 31
-            elif (startMonth in list30):
-                homestps['daydiff'].iloc[i] += 30
-            elif (startMonth in listFeb):
-                homestps['daydiff'].iloc[i] += 29; # change based on current year
-            else:
-                print("invalid start month")
-        if (homestps['monthdiff'].iloc[i] >= 2):
-            secMonth = homestps['started_at'].iloc[i].month+1
-            if (secMonth in list31):
-                homestps['daydiff'].iloc[i] += 31
-            elif (secMonth in list30):
-                homestps['daydiff'].iloc[i] += 30
-            elif (secMonth in listFeb):
-                homestps['daydiff'].iloc[i] += 29; # change based on current year
-            else:
-                print("invalid start month")
-        homestps['weekdiff'].iloc[i] =  homestps['daydiff'].iloc[i] // 7
-        homestps['wdaydiff'].iloc[i] = homestps['daydiff'].iloc[i] % 7
+    if(max(homeHrs)>40): 
+        homeidx = homeHrs.index(max(homeHrs))
+        homeid = plcs['place_id'].iloc[homeidx]
         
-        if (homestps['wdaydiff'].iloc[i] == 0):  
-            startWday = homestps['started_at'].iloc[i].weekday()
-            startHour = homestps['started_at'].iloc[i].hour
-            startMin = homestps['started_at'].iloc[i].minute
-            startSec = homestps['started_at'].iloc[i].second
-            homestps[str(startWday)].iloc[i] = 24*3600 - startHour*3600 - startMin*60 - startSec
-        elif (homestps['wdaydiff'].iloc[i] == 1):
-            startWday = homestps['started_at'].iloc[i].weekday()
-            startHour = homestps['started_at'].iloc[i].hour
-            startMin = homestps['started_at'].iloc[i].minute
-            startSec = homestps['started_at'].iloc[i].second           
-            homestps[str(startWday)].iloc[i] = 24*3600 - startHour*3600 - startMin*60 - startSec
-            endWday = homestps['finished_at'].iloc[i].weekday()
-            endHour = homestps['finished_at'].iloc[i].hour
-            endMin = homestps['finished_at'].iloc[i].minute
-            endSec = homestps['finished_at'].iloc[i].second           
-            homestps[str(endWday)].iloc[i] = endHour*3600 + endMin*60 + endSec  
-        elif (homestps['wdaydiff'].iloc[i] >= 2):
-            startWday = homestps['started_at'].iloc[i].weekday()
-            startHour = homestps['started_at'].iloc[i].hour
-            startMin = homestps['started_at'].iloc[i].minute
-            startSec = homestps['started_at'].iloc[i].second           
-            homestps[str(startWday)].iloc[i] = 24*3600 - startHour*3600 - startMin*60 - startSec
-            endWday = homestps['finished_at'].iloc[i].weekday()
-            endHour = homestps['finished_at'].iloc[i].hour
-            endMin = homestps['finished_at'].iloc[i].minute
-            endSec = homestps['finished_at'].iloc[i].second           
-            homestps[str(endWday)].iloc[i] = endHour*3600 + endMin*60 + endSec             
-            for midWDay in range(1,homestps['wdaydiff'].iloc[i]):
-                # print(str((startWday+midWDay)%7))
-                homestps[str((startWday+midWDay)%7)].iloc[i] = 24*3600 
-        else: print('Wrong weekday difference info')
-            
-        if (homestps['weekdiff'].iloc[i] >= 1):
-            for wDay in range(0,7): homestps[str(wDay)].iloc[i] += (24*3600) * homestps['weekdiff'].iloc[i]
-        if (homestps['weekdiff'].iloc[i] < 0): 
-            print('Wrong week difference')
-            
-    for i in range(0,len(homeplcs)):
-        plcid = i+1
-        stps_plcid = homestps[homestps['place_id']==plcid]
+        homeplcs = plcs[plcs['place_id']==homeid]
+        plcs = plcs.drop(homeplcs.index,axis=0)
+        cols = [str(i) for i in range(0,24)]
+        homeplcs = homeplcs.drop(cols, axis=1)
+        homestps = stps[stps['place_id']==homeid]
         
+        # stps['tracked_at_hour'] = 0
+        # for i in range(0,len(stps)): stps['tracked_at_hour'].iloc[i] = stps['started_at'].iloc[i].hour
+        # stps['t_diff'] = 0
+        # for i in range(0,len(stps)): stps['t_diff'].iloc[i] = (stps['finished_at'].iloc[i] - stps['started_at'].iloc[i]).total_seconds()/3600
+        
+        ## HOME ADDRESS   
+        # homestps = stps[(stps['tracked_at_hour']<=5) | (stps['tracked_at_hour']>=22) | (stps['t_diff']>=18)]
+        # homeplcs = main.findPlaces(homestps, dataname, minDist, minPoints) 
+        # homeplcs = poi.reverseGeoCoding(homeplcs)
+        
+        cols = [str(i) for i in range(0,7)]
+        for col in cols: homeplcs[col] = 0
+    
+        cols = [str(i) for i in range(0,7)]
+        for col in cols: homestps[col] = 0
+          
+        # Calculate stay time
+        homestps['daydiff'] = 0
+        homestps['wdaydiff'] = 0 # weekday difference
+        homestps['weekdiff'] = 0
+        homestps['monthdiff'] = 0
+        
+        for i in range(0,len(homestps)):
+            homestps['daydiff'].iloc[i] = homestps['finished_at'].iloc[i].day - homestps['started_at'].iloc[i].day
+            homestps['monthdiff'].iloc[i] = homestps['finished_at'].iloc[i].month - homestps['started_at'].iloc[i].month
+    
+            list31 = [1,3,5,7,8,10,12]
+            list30 = [4,6,9,11]
+            listFeb = [2] 
+            if (homestps['monthdiff'].iloc[i] >= 1):
+                startMonth = homestps['started_at'].iloc[i].month
+                if (startMonth in list31):
+                    homestps['daydiff'].iloc[i] += 31
+                elif (startMonth in list30):
+                    homestps['daydiff'].iloc[i] += 30
+                elif (startMonth in listFeb):
+                    homestps['daydiff'].iloc[i] += 29; # change based on current year
+                else:
+                    print("invalid start month")
+            if (homestps['monthdiff'].iloc[i] >= 2):
+                secMonth = homestps['started_at'].iloc[i].month+1
+                if (secMonth in list31):
+                    homestps['daydiff'].iloc[i] += 31
+                elif (secMonth in list30):
+                    homestps['daydiff'].iloc[i] += 30
+                elif (secMonth in listFeb):
+                    homestps['daydiff'].iloc[i] += 29; # change based on current year
+                else:
+                    print("invalid start month")
+                    
+            homestps['weekdiff'].iloc[i] =  homestps['daydiff'].iloc[i] // 7
+            homestps['wdaydiff'].iloc[i] = homestps['daydiff'].iloc[i] % 7
+            
+            if (homestps['wdaydiff'].iloc[i] == 0 and homestps['weekdiff'].iloc[i]==0):  
+                startWday = homestps['started_at'].iloc[i].weekday()
+                startHour = homestps['started_at'].iloc[i].hour
+                startMin = homestps['started_at'].iloc[i].minute
+                startSec = homestps['started_at'].iloc[i].second
+                homestps[str(startWday)].iloc[i] = (homestps['finished_at'].iloc[i]-homestps['started_at'].iloc[i]).total_seconds()
+                # endWday = homestps['finished_at'].iloc[i].weekday()
+                # endHour = homestps['finished_at'].iloc[i].hour
+                # endMin = homestps['finished_at'].iloc[i].minute
+                # endSec = homestps['finished_at'].iloc[i].second 
+                # homestps[str(startWday)].iloc[i] = 24*3600 - startHour*3600 - startMin*60 - startSec
+            elif (homestps['wdaydiff'].iloc[i] == 1):
+                startWday = homestps['started_at'].iloc[i].weekday()
+                startHour = homestps['started_at'].iloc[i].hour
+                startMin = homestps['started_at'].iloc[i].minute
+                startSec = homestps['started_at'].iloc[i].second           
+                homestps[str(startWday)].iloc[i] = 24*3600 - startHour*3600 - startMin*60 - startSec
+                endWday = homestps['finished_at'].iloc[i].weekday()
+                endHour = homestps['finished_at'].iloc[i].hour
+                endMin = homestps['finished_at'].iloc[i].minute
+                endSec = homestps['finished_at'].iloc[i].second           
+                homestps[str(endWday)].iloc[i] = endHour*3600 + endMin*60 + endSec  
+            elif (homestps['wdaydiff'].iloc[i] >= 2 or (homestps['wdaydiff'].iloc[i] == 0 and homestps['weekdiff'].iloc[i]>=1)):
+                startWday = homestps['started_at'].iloc[i].weekday()
+                startHour = homestps['started_at'].iloc[i].hour
+                startMin = homestps['started_at'].iloc[i].minute
+                startSec = homestps['started_at'].iloc[i].second           
+                homestps[str(startWday)].iloc[i] = 24*3600 - startHour*3600 - startMin*60 - startSec
+                endWday = homestps['finished_at'].iloc[i].weekday()
+                endHour = homestps['finished_at'].iloc[i].hour
+                endMin = homestps['finished_at'].iloc[i].minute
+                endSec = homestps['finished_at'].iloc[i].second           
+                homestps[str(endWday)].iloc[i] = endHour*3600 + endMin*60 + endSec             
+                for midWDay in range(1,homestps['wdaydiff'].iloc[i]):
+                    # print(str((startWday+midWDay)%7))
+                    homestps[str((startWday+midWDay)%7)].iloc[i] = 24*3600 
+            else: print('Wrong weekday difference info')
+                
+            if (homestps['weekdiff'].iloc[i] >= 1):
+                for wDay in range(0,7): homestps[str(wDay)].iloc[i] += (24*3600) * homestps['weekdiff'].iloc[i]
+            if (homestps['weekdiff'].iloc[i] < 0): 
+                print('Wrong week difference')
+            
         for col in cols:
-            stps_placeid_wday = stps_plcid[col]
-            homeplcs.loc[homeplcs['place_id']==plcid,col]=stps_placeid_wday.sum()
-    
-    for col in cols: homeplcs[col] = homeplcs[col]/3600 # convert unit from second to hour
-    
-    tempcols = homeplcs[cols]
-    homeplcs['totalStayDays'] = tempcols.sum(axis=1)/24 # convert unit from hour to day only for this column
-    homeplcs = homeplcs[homeplcs['totalStayDays']>2]
-    
-
-    ## WORKING ADDRESS   
-    stps['tracked_at_Wday'] = 0
-    for i in range(0,len(stps)): stps['tracked_at_Wday'].iloc[i] = stps['started_at'].iloc[i].weekday()
-    
-    workstps = stps[stps['tracked_at_Wday']<=4]
-    workstps = workstps[((workstps['tracked_at_hour']>=8) & (workstps['tracked_at_hour']<=12)) | ((workstps['tracked_at_hour']>=14) & (workstps['tracked_at_hour']<=18))]
-    workplcs = main.findPlaces(workstps, dataname, minDist, minPoints*2) 
-    workplcs = poi.reverseGeoCoding(workplcs)
-    
-    cols = [str(i) for i in range(0,7)]
-    for col in cols: workplcs[col] = 0
-
-    cols = [str(i) for i in range(0,7)]
-    for col in cols: workstps[col] = 0
-      
-    # Calculate stay time
-    workstps['daydiff'] = 0
-    workstps['wdaydiff'] = 0 # weekday difference
-    workstps['weekdiff'] = 0
-    workstps['monthdiff'] = 0
-    
-    for i in range(0,len(workstps)):
-        workstps['daydiff'].iloc[i] = workstps['finished_at'].iloc[i].day - workstps['started_at'].iloc[i].day
-        workstps['monthdiff'].iloc[i] = workstps['finished_at'].iloc[i].month - workstps['started_at'].iloc[i].month
-
-        list31 = [1,3,5,7,8,10,12]
-        list30 = [4,6,9,11]
-        listFeb = [2] 
-        if (workstps['monthdiff'].iloc[i] >= 1):
-            startMonth = workstps['started_at'].iloc[i].month
-            if (startMonth in list31):
-                workstps['daydiff'].iloc[i] += 31
-            elif (startMonth in list30):
-                workstps['daydiff'].iloc[i] += 30
-            elif (startMonth in listFeb):
-                workstps['daydiff'].iloc[i] += 29; # change based on current year
-            else:
-                print("invalid start month")
-        if (workstps['monthdiff'].iloc[i] >= 2):
-            secMonth = workstps['started_at'].iloc[i].month+1
-            if (secMonth in list31):
-                workstps['daydiff'].iloc[i] += 31
-            elif (secMonth in list30):
-                workstps['daydiff'].iloc[i] += 30
-            elif (secMonth in listFeb):
-                workstps['daydiff'].iloc[i] += 29; # change based on current year
-            else:
-                print("invalid start month")
-        workstps['weekdiff'].iloc[i] =  workstps['daydiff'].iloc[i] // 7
-        workstps['wdaydiff'].iloc[i] = workstps['daydiff'].iloc[i] % 7
-        
-        if (workstps['wdaydiff'].iloc[i] == 0):  
-            startWday = workstps['started_at'].iloc[i].weekday()
-            startHour = workstps['started_at'].iloc[i].hour
-            startMin = workstps['started_at'].iloc[i].minute
-            startSec = workstps['started_at'].iloc[i].second
-            workstps[str(startWday)].iloc[i] = 24*3600 - startHour*3600 - startMin*60 - startSec
-        elif (workstps['wdaydiff'].iloc[i] == 1):
-            startWday = workstps['started_at'].iloc[i].weekday()
-            startHour = workstps['started_at'].iloc[i].hour
-            startMin = workstps['started_at'].iloc[i].minute
-            startSec = workstps['started_at'].iloc[i].second           
-            workstps[str(startWday)].iloc[i] = 24*3600 - startHour*3600 - startMin*60 - startSec
-            endWday = workstps['finished_at'].iloc[i].weekday()
-            endHour = workstps['finished_at'].iloc[i].hour
-            endMin = workstps['finished_at'].iloc[i].minute
-            endSec = workstps['finished_at'].iloc[i].second           
-            workstps[str(endWday)].iloc[i] = endHour*3600 + endMin*60 + endSec  
-        elif (workstps['wdaydiff'].iloc[i] >= 2):
-            startWday = workstps['started_at'].iloc[i].weekday()
-            startHour = workstps['started_at'].iloc[i].hour
-            startMin = workstps['started_at'].iloc[i].minute
-            startSec = workstps['started_at'].iloc[i].second           
-            workstps[str(startWday)].iloc[i] = 24*3600 - startHour*3600 - startMin*60 - startSec
-            endWday = workstps['finished_at'].iloc[i].weekday()
-            endHour = workstps['finished_at'].iloc[i].hour
-            endMin = workstps['finished_at'].iloc[i].minute
-            endSec = workstps['finished_at'].iloc[i].second           
-            workstps[str(endWday)].iloc[i] = endHour*3600 + endMin*60 + endSec             
-            for midWDay in range(1,workstps['wdaydiff'].iloc[i]):
-                # print(str((startWday+midWDay)%7))
-                workstps[str((startWday+midWDay)%7)].iloc[i] = 24*3600 
-        else: print('Wrong weekday difference info')
+            stps_placeid_wday = homestps[col]
+            homeplcs[col]=stps_placeid_wday.sum()
+                
+        # for i in range(0,len(homeplcs)):
+        #     plcid = i+1
+        #     stps_plcid = homestps[homestps['place_id']==plcid]
             
-        if (workstps['weekdiff'].iloc[i] >= 1):
-            for wDay in range(0,7): workstps[str(wDay)].iloc[i] += (24*3600) * workstps['weekdiff'].iloc[i]
-        if (workstps['weekdiff'].iloc[i] < 0): 
-            print('Wrong week difference')
-            
-    for i in range(0,len(workplcs)):
-        plcid = i+1
-        stps_plcid = workstps[workstps['place_id']==plcid]
+        #     for col in cols:
+        #         stps_placeid_wday = stps_plcid[col]
+        #         homeplcs.loc[homeplcs['place_id']==plcid,col]=stps_placeid_wday.sum()
         
+        for col in cols: 
+            homeplcs[col] = homeplcs[col]/3600 # convert unit from second to hour
+        
+        tempcols = homeplcs[cols]
+        homeplcs['totalStayDays'] = tempcols.sum(axis=1)/24 # convert unit from hour to day only for this column
+        # homeplcs = homeplcs[homeplcs['totalStayDays']>2]
+
+    else: print('No home place found!')
+    
+    ## WORKING ADDRESS  
+    workcols = [str(i) for i in range(9,12)] + [str(i) for i in range(14,17)]
+    workHrs = list(plcs[workcols].sum(axis=1))
+    
+    if(max(workHrs)>20): 
+        workidx = workHrs.index(max(workHrs))
+        workid = plcs['place_id'].iloc[workidx]
+        
+        workplcs = plcs[plcs['place_id']==workid]
+        cols = [str(i) for i in range(0,24)]
+        workplcs = workplcs.drop(cols, axis=1)
+        workstps = stps[stps['place_id']==workid]
+     
+        # stps['tracked_at_Wday'] = 0
+        # for i in range(0,len(stps)): stps['tracked_at_Wday'].iloc[i] = stps['started_at'].iloc[i].weekday()
+        
+        # workstps = stps[stps['tracked_at_Wday']<=4]
+        # workstps = workstps[((workstps['tracked_at_hour']>=8) & (workstps['tracked_at_hour']<=12)) | ((workstps['tracked_at_hour']>=14) & (workstps['tracked_at_hour']<=18))]
+        # workplcs = main.findPlaces(workstps, dataname, minDist, minPoints*2) 
+        # workplcs = poi.reverseGeoCoding(workplcs)
+        
+        cols = [str(i) for i in range(0,7)]
+        for col in cols: workplcs[col] = 0
+    
+        cols = [str(i) for i in range(0,7)]
+        for col in cols: workstps[col] = 0
+          
+        # Calculate stay time
+        workstps['daydiff'] = 0
+        workstps['wdaydiff'] = 0 # weekday difference
+        workstps['weekdiff'] = 0
+        workstps['monthdiff'] = 0
+        
+        for i in range(0,len(workstps)):
+            workstps['daydiff'].iloc[i] = workstps['finished_at'].iloc[i].day - workstps['started_at'].iloc[i].day
+            workstps['monthdiff'].iloc[i] = workstps['finished_at'].iloc[i].month - workstps['started_at'].iloc[i].month
+    
+            list31 = [1,3,5,7,8,10,12]
+            list30 = [4,6,9,11]
+            listFeb = [2] 
+            if (workstps['monthdiff'].iloc[i] >= 1):
+                startMonth = workstps['started_at'].iloc[i].month
+                if (startMonth in list31):
+                    workstps['daydiff'].iloc[i] += 31
+                elif (startMonth in list30):
+                    workstps['daydiff'].iloc[i] += 30
+                elif (startMonth in listFeb):
+                    workstps['daydiff'].iloc[i] += 29; # change based on current year
+                else:
+                    print("invalid start month")
+            if (workstps['monthdiff'].iloc[i] >= 2):
+                secMonth = workstps['started_at'].iloc[i].month+1
+                if (secMonth in list31):
+                    workstps['daydiff'].iloc[i] += 31
+                elif (secMonth in list30):
+                    workstps['daydiff'].iloc[i] += 30
+                elif (secMonth in listFeb):
+                    workstps['daydiff'].iloc[i] += 29; # change based on current year
+                else:
+                    print("invalid start month")
+            workstps['weekdiff'].iloc[i] =  workstps['daydiff'].iloc[i] // 7
+            workstps['wdaydiff'].iloc[i] = workstps['daydiff'].iloc[i] % 7
+            
+            if (workstps['wdaydiff'].iloc[i] == 0 and workstps['weekdiff'].iloc[i]==0):  
+                startWday = workstps['started_at'].iloc[i].weekday()
+                startHour = workstps['started_at'].iloc[i].hour
+                startMin = workstps['started_at'].iloc[i].minute
+                startSec = workstps['started_at'].iloc[i].second
+                workstps[str(startWday)].iloc[i] = (workstps['finished_at'].iloc[i]-workstps['started_at'].iloc[i]).total_seconds()
+                # workstps[str(startWday)].iloc[i] = 24*3600 - startHour*3600 - startMin*60 - startSec
+            elif (workstps['wdaydiff'].iloc[i] == 1):
+                startWday = workstps['started_at'].iloc[i].weekday()
+                startHour = workstps['started_at'].iloc[i].hour
+                startMin = workstps['started_at'].iloc[i].minute
+                startSec = workstps['started_at'].iloc[i].second           
+                workstps[str(startWday)].iloc[i] = 24*3600 - startHour*3600 - startMin*60 - startSec
+                endWday = workstps['finished_at'].iloc[i].weekday()
+                endHour = workstps['finished_at'].iloc[i].hour
+                endMin = workstps['finished_at'].iloc[i].minute
+                endSec = workstps['finished_at'].iloc[i].second           
+                workstps[str(endWday)].iloc[i] = endHour*3600 + endMin*60 + endSec  
+            elif (workstps['wdaydiff'].iloc[i] >= 2 or (workstps['wdaydiff'].iloc[i] == 0 and workstps['weekdiff'].iloc[i]>=1)):
+                startWday = workstps['started_at'].iloc[i].weekday()
+                startHour = workstps['started_at'].iloc[i].hour
+                startMin = workstps['started_at'].iloc[i].minute
+                startSec = workstps['started_at'].iloc[i].second           
+                workstps[str(startWday)].iloc[i] = 24*3600 - startHour*3600 - startMin*60 - startSec
+                endWday = workstps['finished_at'].iloc[i].weekday()
+                endHour = workstps['finished_at'].iloc[i].hour
+                endMin = workstps['finished_at'].iloc[i].minute
+                endSec = workstps['finished_at'].iloc[i].second           
+                workstps[str(endWday)].iloc[i] = endHour*3600 + endMin*60 + endSec             
+                for midWDay in range(1,workstps['wdaydiff'].iloc[i]):
+                    # print(str((startWday+midWDay)%7))
+                    workstps[str((startWday+midWDay)%7)].iloc[i] = 24*3600 
+            else: print('Wrong weekday difference info')
+                
+            if (workstps['weekdiff'].iloc[i] >= 1):
+                for wDay in range(0,7): workstps[str(wDay)].iloc[i] += (24*3600) * workstps['weekdiff'].iloc[i]
+            if (workstps['weekdiff'].iloc[i] < 0): 
+                print('Wrong week difference')
+                
         for col in cols:
-            stps_placeid_wday = stps_plcid[col]
-            workplcs.loc[workplcs['place_id']==plcid,col]=stps_placeid_wday.sum()
+            stps_placeid_wday = workstps[col]
+            workplcs[col]=stps_placeid_wday.sum()
+            
+        # for i in range(0,len(workplcs)):
+        #     plcid = i+1
+        #     stps_plcid = workstps[workstps['place_id']==plcid]
+            
+        #     for col in cols:
+        #         stps_placeid_wday = stps_plcid[col]
+        #         workplcs.loc[workplcs['place_id']==plcid,col]=stps_placeid_wday.sum()
+        
+        for col in cols: workplcs[col] = workplcs[col]/3600 # convert unit from second to hour
+        
+        tempcols = workplcs[cols]
+        workplcs['totalStayDays'] = tempcols.sum(axis=1)/8 # convert unit from hour to workday (8hrs) only for this column
+        # workplcs = workplcs[workplcs['totalStayDays']>7]
+        workplcs['totalStayDays'] = workplcs['totalStayDays']/3 # further convert to natural day      
+        flag = 1
+        
+    else:
+        print('No work place found!')
+     
+    if (flag == 1):
+        workplcs['totalStayHrs'] = workplcs['totalStayDays']*24 # convert to hrs
+        homeplcs['totalStayDays'] = homeplcs['totalStayDays']
+        homeplcs['totalStayHrs'] = homeplcs['totalStayDays']*24 # convert to hrs
+        
+        homeplcs = poi.reverseGeoCoding(homeplcs)
+        homeplcs['id'] = 'home'
+        workplcs = poi.reverseGeoCoding(workplcs)
+        workplcs['id'] = 'work'
+        
+        homeworkplcs = pd.concat([homeplcs, workplcs], axis=0)
+        homeworkplcs = homeworkplcs.reset_index(drop=True)
+        # homeworkplcs['place_id'] = homeworkplcs.index
     
-    for col in cols: workplcs[col] = workplcs[col]/3600 # convert unit from second to hour
+        homeworkplcs = hlp.findSemanticInfo(places, homeworkplcs, threeQua)
     
-    tempcols = workplcs[cols]
-    workplcs['totalStayDays'] = tempcols.sum(axis=1)/8 # convert unit from hour to workday (8hrs) only for this column
-    workplcs = workplcs[workplcs['totalStayDays']>7]
-    workplcs['totalStayDays'] = workplcs['totalStayDays']/3 # further convert to natural day
-
-    workplcs['totalStayHrs'] = workplcs['totalStayDays']*24 # convert to hrs
-    homeplcs['totalStayDays'] = homeplcs['totalStayDays']
-    homeplcs['totalStayHrs'] = homeplcs['totalStayDays']*24 # convert to hrs
+        column_names = ["user_id","place_id","center","extent","location","placeName","id","totalStayDays","totalStayHrs","0","1","2","3","4","5","6"]
+        homeworkplcs = homeworkplcs.reindex(columns=column_names)
+        homeworkplcs = homeworkplcs.rename(columns={'0':'Mon','1':"Tues","2":"Wed","3":"Thur","4":"Fri","5":"Sat","6":"Sun"})  
+        
+        if not(os.path.exists('../data/stat/'+ dataname + '/')):
+            os.makedirs('../data/stat/'+ dataname + '/')
+        homeworkplcs.to_csv('../data/stat/'+ dataname + '/' + 'HomeWorkStay.csv', index = True)
+        
+    else:        
+        # workplcs['totalStayHrs'] = workplcs['totalStayDays']*24 # convert to hrs
+        homeplcs['totalStayDays'] = homeplcs['totalStayDays']
+        homeplcs['totalStayHrs'] = homeplcs['totalStayDays']*24 # convert to hrs
+        
+        homeplcs = poi.reverseGeoCoding(homeplcs)
+        homeplcs['id'] = 'home'
+        # workplcs = poi.reverseGeoCoding(workplcs)
+        # workplcs['id'] = 'work'
+        
+        # homeworkplcs = pd.concat([homeplcs, workplcs], axis=0)
+        homeplcs = homeplcs.reset_index(drop=True)
+        # homeplcs['place_id'] = homeplcs.index
     
-    homeplcs = poi.reverseGeoCoding(homeplcs)
-    homeplcs['id'] = 'home'
-    workplcs = poi.reverseGeoCoding(workplcs)
-    workplcs['id'] = 'work'
+        homeplcs = hlp.findSemanticInfo(places, homeplcs, threeQua)
     
-    # homeworkplcs = pd.concat([homeplcs, workplcs], axis=0)
-    # homeworkplcs = homeworkplcs.reset_index(drop=True)
-    # homeworkplcs['place_id'] = homeworkplcs.index
+        column_names = ["user_id","place_id","center","extent","location","placeName","id","totalStayDays","totalStayHrs","0","1","2","3","4","5","6"]
+        homeplcs = homeplcs.reindex(columns=column_names)
+        homeplcs = homeplcs.rename(columns={'0':'Mon','1':"Tues","2":"Wed","3":"Thur","4":"Fri","5":"Sat","6":"Sun"})  
+        homeworkplcs = homeplcs
+        if not(os.path.exists('../data/stat/'+ dataname + '/')):
+            os.makedirs('../data/stat/'+ dataname + '/')
+        homeworkplcs.to_csv('../data/stat/'+ dataname + '/' + 'HomeWorkStay.csv', index = True)
+        
+    return homeworkplcs
 
-    # homeworkplcs = hlp.findSemanticInfo(places, homeworkplcs, threeQua)
-
-    # column_names = ["user_id","place_id","center","extent","location","placeName","id","totalStayDays","totalStayHrs","0","1","2","3","4","5","6"]
-    # homeworkplcs = homeworkplcs.reindex(columns=column_names)
-    # homeworkplcs = homeworkplcs.rename(columns={'0':'Mon','1':"Tues","2":"Wed","3":"Thur","4":"Fri","5":"Sat","6":"Sun"})  
-    
-    # if not(os.path.exists('../data/stat/'+ dataname + '/')):
-    #     os.makedirs('../data/stat/'+ dataname + '/')
-    # homeworkplcs.to_csv('../data/stat/'+ dataname + '/' + 'HomeWorkStay.csv', index = True)
-
-    # return homeworkplcs
-
-    return homeplcs, homestps, workplcs, workstps
+    # return homeplcs, homestps, workplcs, workstps
 
 def homeworkStayMonth(pfs, dataname, dist_threshold, time_threshold, minDist, minPoints):
     """
