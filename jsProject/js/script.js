@@ -22,14 +22,10 @@ var urls = {
     "./stat" + dataName + "/HomeWorkStay.csv",
 
   transportation:
-<<<<<<< HEAD
-    "./stat"+dataName+"/TransportationModeCo2.csv",
-=======
-    "./stat" + dataName + "/TransportationMode.csv",
-
-  basicStatistics:
+    "./stat" + dataName + "/TransportationModeCo2.csv",
+  
+    basicStatistics:
     "./stat" + dataName + "/BasicStatistics.csv",
->>>>>>> 13bbd13212f325467d575dcc951a237ae34ac29b
 };
 
 // PERPARE MAP  ////////////////////////////////////////////////////////////////////////////////////
@@ -204,10 +200,7 @@ let promises = [
   d3.csv(urls.semanticInfo),
   d3.csv(urls.homeworkbal),
   d3.csv(urls.transportation),
-<<<<<<< HEAD
-=======
   d3.csv(urls.basicStatistics)
->>>>>>> 13bbd13212f325467d575dcc951a237ae34ac29b
 ];
 
 Promise.all(promises).then(processData);
@@ -1338,21 +1331,12 @@ function drawTransPieChart(transportationSeries,totalCo2) {
       style: {
         fontSize: '18px',
         fontWeight: 'bold',
-<<<<<<< HEAD
         fontFamily: 'Arial'
      }  
     },
     subtitle:{
       text: 'Your total CO2 emission is: ' + totalCo2.toFixed(2) + ' kg',
      // align: "left"
-=======
-        font: 'Arial',
-      }
-    },
-    subtitle: {
-      text: 'Your total CO2 emission is xxx: xx km by Bus x xx/km + xx km by Car x xx/km + xx km by Train x xx/km + xx km by Tram x xx/km + xx km on Foot x xx/km + xx km by Bike x xx/km +',
-      // align: "left"
->>>>>>> 13bbd13212f325467d575dcc951a237ae34ac29b
     },
     tooltip: {
       headerFormat: '<span style="font-size:11px">{series.name}</span><br>',
