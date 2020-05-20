@@ -47,6 +47,7 @@ class MyCustomControl {
     this.container.id = this.id;
     this.container.className = 'mapboxgl-ctrl my-custom-control hover-button';
     this.container.textContent = this.textContent;
+    //this.container.innerHTML = document.createElement("IMG")
     this.container.type = "button";
     return this.container;
   }
@@ -57,9 +58,13 @@ class MyCustomControl {
 }
 
 const myCustomControl = new MyCustomControl("changeMapButton", "Change Map");
-const myCustomControl2 = new MyCustomControl("zoomAll", "Zoom Map");
+const myCustomControl2 = new MyCustomControl("zoomAll", "");
 map.addControl(myCustomControl, 'top-left');
 map.addControl(myCustomControl2, 'top-left');
+
+var elem = document.createElement("img");
+elem.setAttribute("src", "imgs/zoom_out_map-white-48dp.svg");
+document.getElementById("zoomAll").appendChild(elem);
 
 document.getElementById("changeMapButton").addEventListener('click', event => { changeData() });
 document.getElementById("zoomAll").addEventListener('click', event => { zoomToAll() });
