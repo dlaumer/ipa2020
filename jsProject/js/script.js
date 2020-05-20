@@ -23,8 +23,8 @@ var urls = {
 
   transportation:
     "./stat" + dataName + "/TransportationModeCo2.csv",
-  
-    basicStatistics:
+
+  basicStatistics:
     "./stat" + dataName + "/BasicStatistics.csv",
 };
 
@@ -64,7 +64,7 @@ class MyCustomControl {
   }
 }
 
-const myCustomControl = new MyCustomControl("showGeometric", "Geometric Map");
+const myCustomControl = new MyCustomControl("showGeometric", "Aggregated Map");
 const myCustomControl5 = new MyCustomControl("showSchematic", "Schematic Map");
 const myCustomControl2 = new MyCustomControl("zoomAll", "");
 const myCustomControl3 = new MyCustomControl("removeLabelsButton", "");
@@ -84,16 +84,69 @@ var elem = document.createElement("img");
 elem.setAttribute("src", "imgs/local_offer-white-36dp.svg");
 document.getElementById("removeLabelsButton").appendChild(elem);
 
-document.getElementById("showGeometric").addEventListener('click', event => {if (mapBlank) { d3.select("#showOriginalTrips").style("pointer-events","all").style("background-color","#1F407A"); changeData("geometric")} });
-document.getElementById("showSchematic").addEventListener('click', event => {if (!mapBlank) {d3.select("#showOriginalTrips").style("pointer-events","none").style("background-color","rgb(172, 172, 172)"); changeData("schematic") }});
+d3.select('#showGeometric').classed('selectMap', true)
+d3.select('#showSchematic').classed('selectMap', true)
+d3.select('#showOriginalTrips').classed('selectMap', true)
+d3.select('#showSchematic')
+      .style('border', "solid #A8322D 2px")
+
+document.getElementById("showGeometric").addEventListener('click', event => {
+  if (mapBlank) {
+
+    d3.selectAll('.selectMap')
+      .style('border', "none")
+    d3.select('#showGeometric')
+      .style('border', "solid #A8322D 2px")
+
+    d3.select("#showOriginalTrips")
+      .style("pointer-events", "all")
+      .style("background-color", "#1F407A");
+
+    changeData("geometric")
+  }
+  else if (geomMap) {
+    d3.selectAll('.selectMap')
+      .style('border', "none")
+    d3.select('#showGeometric')
+      .style('border', "solid #A8322D 2px")
+    geomMap = false;
+    drawTrips(places, trips, geomMap)
+  }
+});
+document.getElementById("showSchematic").addEventListener('click', event => {
+  if (!mapBlank) {
+
+    d3.selectAll('.selectMap')
+      .style('border', "none")
+    d3.select('#showSchematic')
+      .style('border', "solid #A8322D 2px")
+
+    d3.select("#showOriginalTrips")
+      .style("pointer-events", "none")
+      .style("background-color", "rgb(172, 172, 172)");
+
+    changeData("schematic")
+  }
+});
+document.getElementById("showOriginalTrips").addEventListener('click', event => {
+  if (!geomMap) {
+    d3.selectAll('.selectMap')
+      .style('border', "none")
+    d3.select('#showOriginalTrips')
+      .style('border', "solid #A8322D 2px")
+
+    geomMap = true;
+    drawTrips(places, trips, geomMap)
+  }
+});
+
 
 document.getElementById("removeLabelsButton").addEventListener('click', event => { removeLabels() });
 document.getElementById("zoomAll").addEventListener('click', event => { zoomToAll() });
-document.getElementById("showOriginalTrips").addEventListener('click', event => {geomMap = !geomMap;
-  drawTrips(places, trips, geomMap) });
-  d3.select('#showOriginalTrips')
-  .style("pointer-events","none")
-  .style("background-color","rgb(172, 172, 172)")
+
+d3.select('#showOriginalTrips')
+  .style("pointer-events", "none")
+  .style("background-color", "rgb(172, 172, 172)")
 
 // re-render our visualization whenever the view changes
 map.on("viewreset", function () {
@@ -188,7 +241,7 @@ var widthTimeline
 var heightTimeline
 var svgTimeline
 var xScale
-var xAxis 
+var xAxis
 var yScale
 var yAxis
 var marginTime
@@ -236,15 +289,15 @@ function processData(values) {
   console.log(" trips: " + trips.length);
 
 
-  numOfBoxes = places.length+1;
+  numOfBoxes = places.length + 1;
   if (numOfBoxes > 11) {
     numOfBoxes = 11;
   }
   var myDiv = document.getElementById("box-1").parentNode;
   for (let i = 2; i < numOfBoxes; i++) {
     var divClone = myDiv.cloneNode(true); // the true is for deep cloning
-    divClone.childNodes[1].id = "box-"+i
-    divClone.childNodes[3].id = "zoom-"+i
+    divClone.childNodes[1].id = "box-" + i
+    divClone.childNodes[3].id = "zoom-" + i
     document.getElementById("places-boxes").appendChild(divClone);
   }
   // PREPARE CHART  ////////////////////////////////////////////////////////////////////////////////////
@@ -298,41 +351,41 @@ function processData(values) {
     .attr("class", "myYaxis")
 
 
-// PREPARE TIME  ////////////////////////////////////////////////////////////////////////////////////
+  // PREPARE TIME  ////////////////////////////////////////////////////////////////////////////////////
 
-// set the dimensions and margins of the graph
-marginTime = { top: 10, right: 20, bottom: 0, left: 50 };
+  // set the dimensions and margins of the graph
+  marginTime = { top: 10, right: 20, bottom: 0, left: 50 };
 
-widthTime = d3
-  .select('#time-container')
-  .node()
-  .getBoundingClientRect().width - marginTime.left - marginTime.right;
-heightTime = d3
-  .select('#time-container')
-  .node()
-  .getBoundingClientRect().height - marginTime.top - marginTime.bottom;
+  widthTime = d3
+    .select('#time-container')
+    .node()
+    .getBoundingClientRect().width - marginTime.left - marginTime.right;
+  heightTime = d3
+    .select('#time-container')
+    .node()
+    .getBoundingClientRect().height - marginTime.top - marginTime.bottom;
 
-svgTime = d3.select("#time")
-  .append("svg")
-  .attr("width", widthTime + marginTime.left + marginTime.right)
-  .attr("height", heightTime + marginTime.top + marginTime.bottom)
-  .append("g")
-  .attr("transform",
-    "translate(" + marginTime.left + "," + marginTime.top + ")")
+  svgTime = d3.select("#time")
+    .append("svg")
+    .attr("width", widthTime + marginTime.left + marginTime.right)
+    .attr("height", heightTime + marginTime.top + marginTime.bottom)
+    .append("g")
+    .attr("transform",
+      "translate(" + marginTime.left + "," + marginTime.top + ")")
 
-// Initialize the X axis
-xScaleTime = d3.scaleBand()
-  .range([0, widthTime])
-  .padding(0.2);
+  // Initialize the X axis
+  xScaleTime = d3.scaleBand()
+    .range([0, widthTime])
+    .padding(0.2);
 
-xScaleTime.invert = function (x) {
-  var domain = this.domain();
-  var range = this.range()
-  var scale = d3.scaleQuantize().domain(range).range(domain)
-  return scale(x)
-};
-xAxisTime = svgTime.append("g")
-// PREPARE MAP  ////////////////////////////////////////////////////////////////////////////////////
+  xScaleTime.invert = function (x) {
+    var domain = this.domain();
+    var range = this.range()
+    var scale = d3.scaleQuantize().domain(range).range(domain)
+    return scale(x)
+  };
+  xAxisTime = svgTime.append("g")
+  // PREPARE MAP  ////////////////////////////////////////////////////////////////////////////////////
 
   // calculate incoming and outgoing degree based on trips
   // trips are given by place placeId code (not index)
@@ -344,7 +397,7 @@ xAxisTime = svgTime.append("g")
     link.target.incoming += link.count;
   });
 
-   // calculate incoming and outgoing degree based on trips
+  // calculate incoming and outgoing degree based on trips
   // trips are given by place placeId code (not index)
   tripsOriginal.forEach(function (link) {
     link.source = placeId.get(link.origin);
@@ -377,7 +430,7 @@ xAxisTime = svgTime.append("g")
   yAxisMax = [];
   totalCo2 = 0;
   var tempabs = [];
-  
+
   fillPlacesBoxes();
   colorPlacesBoxes(startTime, endTime);
   drawTimeline();
@@ -447,7 +500,7 @@ xAxisTime = svgTime.append("g")
     var percentage = transportationi['percentage'] * 100
     var val = transportationi['value'] / 1000
     var co2 = transportationi['co2']
-    var co2Emission = val*co2
+    var co2Emission = val * co2
     var transarray = [mode, percentage, val, co2, co2Emission]
     totalCo2 = totalCo2 + co2Emission
     transportationData.push(transarray);
@@ -464,7 +517,7 @@ xAxisTime = svgTime.append("g")
   }
   // console.log(transportationSeries);
   // console.log(HomeWorkSeries);
-  drawTransPieChart(transportationSeries,totalCo2);
+  drawTransPieChart(transportationSeries, totalCo2);
 
   zoomToAll();
 }
@@ -626,12 +679,12 @@ function drawPlaces(places) {
       mouseoutFunction(d.placeId)
     })
     .on("click", function (d) {
-      if (topkPlaces.includes(d.placeId)){
+      if (topkPlaces.includes(d.placeId)) {
         updateTimeline(d.placeId);
       }
     });
 
-    labels = g.places.selectAll(".label")
+  labels = g.places.selectAll(".label")
     .data(places, d => d.placeId)
     .enter()
     .append("text")
@@ -639,13 +692,13 @@ function drawPlaces(places) {
     //.attr("cx", function(d) {if (!mapBlank) {return d.x} else {return d.xSchematic}}) // calculated on load
     //.attr("cx", function(d) {if (!mapBlank) {return d.y} else {return d.ySchematic}}) // calculated on load
     .attr("class", "label")
-    .text(function(d) { return semanticInfo[d.placeId]; })
-    .attr("text-anchor","end")
+    .text(function (d) { return semanticInfo[d.placeId]; })
+    .attr("text-anchor", "end")
     .attr("dx", "-20px")
     .attr("dy", "10px")
     .attr("x", d => project(d).x)
     .attr("y", d => project(d).y)
-    .attr("opacity",0);
+    .attr("opacity", 0);
 
 }
 
@@ -944,7 +997,7 @@ function distance(source, target) {
 function highlight(selection) {
   selection
     .style("opacity", 0.8)
-    .style("stroke", "1F407A")
+    .style("stroke", "#A8322D")
     .style("stroke-opacity", 0.8);
 }
 
@@ -1049,9 +1102,13 @@ function arcTween(a) {
 }
 
 function mousoverFunction(i) {
-  if (parseInt(i) < places.length+1) {
+  if (parseInt(i) < places.length + 1) {
     let place = placeId.get(i);
 
+    svg.selectAll('path')
+      .call(notHighlight, 'trip');
+    svg.selectAll('circle')
+      .call(notHighlight, 'aiport');
     d3.select(place.bubble)
       .call(highlight);
 
@@ -1152,7 +1209,7 @@ function render() {
 
 function changeData(mapMode) {
   drawTrips(places, trips, false);
-  if (mapMode == 'schematic'){
+  if (mapMode == 'schematic') {
     mapBlank = true;
   }
   if (mapMode == 'geometric') {
@@ -1239,7 +1296,7 @@ function drawNegativeBar(HomeWorkSeries, yAxisMax) {
         fontSize: '18px',
         fontWeight: 'bold',
         fontFamily: 'Arial'
-     }  
+      }
     },
     // subtitle: {
     //   text: ''
@@ -1315,7 +1372,7 @@ function drawNegativeBar(HomeWorkSeries, yAxisMax) {
   });
 }
 
-function drawTransPieChart(transportationSeries,totalCo2) {
+function drawTransPieChart(transportationSeries, totalCo2) {
   // Make monochrome colors
   var pieColors = (function () {
     var colors = [],
@@ -1343,11 +1400,11 @@ function drawTransPieChart(transportationSeries,totalCo2) {
         fontSize: '18px',
         fontWeight: 'bold',
         fontFamily: 'Arial'
-     }  
+      }
     },
-    subtitle:{
+    subtitle: {
       text: 'Your total CO2 emission is: ' + totalCo2.toFixed(2) + ' kg',
-     // align: "left"
+      // align: "left"
     },
     tooltip: {
       headerFormat: '<span style="font-size:11px">{series.name}</span><br>',
@@ -1471,7 +1528,7 @@ d3.selectAll(".flex-item")
       .attr('width', widthMap)
       .attr('height', heightMap)
 
-    });
+  });
 
 
 
@@ -1501,35 +1558,35 @@ d3.select("#places-container")
   .style("max-width", document.getElementById('places-container').getBoundingClientRect().width)
 
 
-function setBasicStatistics(basicStatistics){
-  for (var i = 0; i < basicStatistics.length;i++) {
-    if (basicStatistics[i].id == dataName){
+function setBasicStatistics(basicStatistics) {
+  for (var i = 0; i < basicStatistics.length; i++) {
+    if (basicStatistics[i].id == dataName) {
       basicStats = basicStatistics[i]
     }
   }
 
-  
+
   mybody = document.getElementsByTagName("body")[0];
   mytable = mybody.getElementsByTagName("table")[0];
   mytablebody = mytable.getElementsByTagName("tbody")[0];
   rowTime = mytablebody.getElementsByTagName("tr")[0];
   mycel = rowTime.getElementsByTagName("td")[1].textContent = basicStats['startTime'] + " - " + basicStats['endTime'];
-  
+
   rowPhone = mytablebody.getElementsByTagName("tr")[1];
-  mycel = rowPhone.getElementsByTagName("td")[1].textContent = basicStats['phoneModel'] ;
+  mycel = rowPhone.getElementsByTagName("td")[1].textContent = basicStats['phoneModel'];
 
   rowPoints = mytablebody.getElementsByTagName("tr")[2];
-  mycel = rowPoints.getElementsByTagName("td")[1].textContent = basicStats['NumPoints'] + " GPS Points" ;
-  
+  mycel = rowPoints.getElementsByTagName("td")[1].textContent = basicStats['NumPoints'] + " GPS Points";
+
   rowDistAvg = mytablebody.getElementsByTagName("tr")[3];
   mycel = rowDistAvg.getElementsByTagName("td")[1].textContent = parseFloat(basicStats['AvgDist']).toFixed(1) + " km/day";
 
   rowDist = mytablebody.getElementsByTagName("tr")[4];
-  mycel = rowDist.getElementsByTagName("td")[1].textContent = parseFloat(basicStats['TotalDist']).toFixed(1) + " km total" ;
+  mycel = rowDist.getElementsByTagName("td")[1].textContent = parseFloat(basicStats['TotalDist']).toFixed(1) + " km total";
 }
 
 function removeLabels() {
-  newOpacity = d3.selectAll(".label").attr("opacity")==0 ? 1:0;
+  newOpacity = d3.selectAll(".label").attr("opacity") == 0 ? 1 : 0;
   d3.selectAll(".label").attr("opacity", newOpacity);
 
 }

@@ -1,3 +1,4 @@
+
 body {
   margin: 0;
   height: 100%;
@@ -17,11 +18,12 @@ body {
   width: 40px;
 }
 
+
 .my-custom-control {
   color: white; 
   margin: 10px;
   height: 30px;
-  width: 100px;
+  width: 120px;
   -webkit-border-radius: 10px;
   -moz-border-radius: 10px;
   border-radius: 10px;
@@ -46,12 +48,10 @@ body {
 #title-container {
   height: 7%;
   width: 100%;
-  padding-left:10px;
   background-color: rgb(172, 172, 172);
   }
 
 #info-container {
-  padding-left:10px;
   height: 30%;
   width: 100%;
   visibility: visible;
@@ -227,6 +227,9 @@ img {
 /* For Pie Chart */
 .piechart-container{
   text-align: center;
+  height:100%;
+  width: 100%;
+
 }
 .highcharts-figure, .highcharts-data-table table {
   min-width: 120px; 
@@ -288,6 +291,11 @@ input[type="number"] {
   width: 100%;
 }
 
+#container2{
+  height:100%;
+  width: 100%;
+}
+
 
 #basicStatistics-container{
   margin: 10px;
@@ -313,13 +321,29 @@ input[type="number"] {
   flex-basis: 5%; 
   height: 100%; 
 }
+#info-dataName {
+  flex-basis: 20%; 
+  height: 100%; 
+}
 
 #title-div {
-  flex-basis: 95%; 
+  flex-basis: 75%; 
   min-width: 200px; 
   height: 100%; 
 }
 
 h1 {
   margin:0;
+  padding-left:10px;
+}
+
+h2 {
+  margin:0;
+  padding-left:10px;
+}
+
+#title-div h1,
+#title-div p {
+    display: inline;
+
 }
