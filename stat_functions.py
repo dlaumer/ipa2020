@@ -726,7 +726,7 @@ def accuracyStat(dataName, dataNames, mac, timestart, timeend):
     
     for dataName in dataNames:
         print('Processing '+ dataName)
-        dfStatistics = pd.DataFrame(columns =['id','OneQuatile','Median','ThreeQuatile','Avg','30','40','50','60','70', 'NumDays', 'NumPoints', 'AvgNumPoints', 'phoneModel'])
+        dfStatistics = pd.DataFrame(columns =['id','OneQuatile','Median','ThreeQuatile','Avg','30','40','50','60','70', 'NumDays', 'NumPoints', 'AvgNumPoints', 'TotalDist', 'AvgDist', 'phoneModel'])
 
         tempStat = {}
 
@@ -737,6 +737,8 @@ def accuracyStat(dataName, dataNames, mac, timestart, timeend):
         dataPathLocs,dataPathTrips = hlp.selectRange(dataPathLocs, dataPathTrips, mac, dateStart = timestart, dateEnd = timeend)
         
         locs, locsgdf = hlp.parseLocs(dataPathLocs)
+        locs['d_diff'] = np.append(haversine_dist(locs.longitudeE7[1:], locs.latitudeE7[1:], locs.longitudeE7[:-1], locs.latitudeE7[:-1]),0)
+
         #trips, tripdf, tripsgdf = hlp.parseTrips(dataPathTrips)
     
         # tempStat['dateStart'] = labelStart
@@ -753,6 +755,8 @@ def accuracyStat(dataName, dataNames, mac, timestart, timeend):
         tempStat['NumDays'] = len(perDay)
         tempStat['NumPoints'] = perDay.sum()
         tempStat['AvgNumPoints'] = perDay.mean()
+        tempStat['TotalDist'] = locs['d_diff'].sum(axis=0)/1000 # unit: km
+        tempStat['AvgDist'] = tempStat['TotalDist']/tempStat['NumDays']
         
         #hlp.checkTrips(trips)
         tempStat['phoneModel'] = dfPhoneModel.loc[np.where(dfPhoneModel["Enter your participant ID:"] == int(dataName))[0][0],"What is your mobile phone's brand used to collect data?"]
@@ -764,5 +768,5 @@ def accuracyStat(dataName, dataNames, mac, timestart, timeend):
         generated_dfStatistics.append(tempStat)
         dfStatistics = dfStatistics.append(generated_dfStatistics)
         
-        dfStatistics.to_csv('../data/statistics.csv', index=False)
+    dfStatistics.to_csv('../data/statistics.csv', index=False)
     return dfStatistics
