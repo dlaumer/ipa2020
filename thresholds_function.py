@@ -39,6 +39,8 @@ def stydiffstat(dataNameList, SELECT_RANGE, dateStart, dateEnd):
         locs, locsgdf = hlp.parseLocs(dataPathLocs)
         
         locs['d_diff'] = np.append(haversine_dist(locs.longitudeE7[1:], locs.latitudeE7[1:], locs.longitudeE7[:-1], locs.latitudeE7[:-1]),0)
+        accuracy_threshold = np.quantile(locs['d_diff'], .95)
+        
         locs['t_diff'] = np.append((locs.index[1:]-locs.index[:-1]).total_seconds(),0)
           
         maxi = max(locs['d_diff'])
