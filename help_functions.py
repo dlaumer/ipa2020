@@ -475,7 +475,7 @@ def prepareGPXforAPI(path, routeId, pathId):
 
 def selectLastMonth(dataPathLoc,dataPathTrip):
     oneMonth = 2592000000 # in ms
-    dataPathLocs,dataPathTrips = selectRange(dataPathLoc,dataPathTrip, timerange = oneMonth)
+    dataPathLocs,dataPathTrips = selectRange(dataPathLoc,dataPathTrip, mac, timerange = oneMonth)
     return dataPathLocs,dataPathTrips
 
 def selectRange(dataPathLoc,dataPathTrip, mac, dateStart = 'beginning', dateEnd = 'end', timerange = None):
@@ -652,7 +652,8 @@ def combineTrajectory(cluster1, cluster2):
 
 def findSemanticInfo(places, plcs, threeQua):
     count = 0
-    plcs['nameId'] = ''
+    plcs['nameId'] = ""
+
     for idx in plcs.index:
         minDist = math.inf
         minIdx = None
@@ -680,6 +681,7 @@ def findSemanticInfo(places, plcs, threeQua):
                 plcs.loc[idx,'placeName'] = a + ' ' + b
         
     print(str(count)+" plcs out of "+str(len(plcs))+" are macthed!")
+
     return plcs
 
 def removeLongTrips(trps, trpsCount):

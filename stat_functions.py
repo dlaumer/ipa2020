@@ -134,9 +134,13 @@ def transModeCsv(transtat, dataname):
     
     transtatdf.sort_values("percentage", axis = 0, ascending = False, 
                      inplace = True, na_position ='last') 
-    
-    modes = ['by Car','by Train','by Plane','Walking','by Bus','by Bike','by Ferry','by Tram','Running']
-    transtatdf['name'] = modes
+
+    # labels = ["IN_PASSENGER_VEHICLE","STILL","WALKING","IN_BUS","CYCLING","FLYING","RUNNING","IN_FERRY","IN_TRAIN","SKIING","SAILING","IN_SUBWAY","IN_TRAM","IN_VEHICLE"]
+    # modes = ['by Car','by Train','by Plane','Walking','by Bus','by Bike','by Ferry','by Tram','Running']
+    labels2modes = {"IN_PASSENGER_VEHICLE":'by Car',"STILL":'Still',"WALKING": 'Walking',"IN_BUS": 'by Bus',"CYCLING":'by Bike',"FLYING":'by Plane',"RUNNING":'Running',"IN_FERRY":'by Ferry',"IN_TRAIN": 'by Train',"SKIING": 'Skiing',"SAILING": 'Sailing',"IN_SUBWAY": 'by Subway',"IN_TRAM": 'by Tram',"IN_VEHICLE":'in Vehicle'} 
+
+    transtatdf['name'] = transtatdf['mode']
+    transtatdf=transtatdf.replace({"name": labels2modes})
     
     if not(os.path.exists('../data/stat/'+ dataname + '/')):
         os.makedirs('../data/stat/'+ dataname + '/')
@@ -326,12 +330,15 @@ def plcsStayHour(stps, plcs, dataname):
     plcsInfoT.columns = plcs['place_id']
     plcsInfoT.to_csv('../../5-Final Product/stat'+ dataname + '/PlcsInfo.csv', index = True)
 
+
+    # column_names = ["user_id","place_id","center","extent","location","placeName","nameId",'totalStayHrs',"0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23"]
     column_names = ["user_id","place_id","center","extent","location","placeName","nameId","totalStayHrs","id","0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23"]
+    
     plcs = plcs.reindex(columns=column_names)
     
     return plcs    
     
-def homeworkStay(stps, dataname, places, minDist, minPoints):
+def homeworkStay(stps, dataname, places, threeQua, minDist, minPoints):
     """
     Calculate stay time statistics of home and work places for all past data
 
@@ -353,7 +360,7 @@ def homeworkStay(stps, dataname, places, minDist, minPoints):
     for i in range(0,len(stps)): stps['t_diff'].iloc[i] = (stps['finished_at'].iloc[i] - stps['started_at'].iloc[i]).total_seconds()/3600
     
     ## HOME ADDRESS   
-    homestps = stps[(stps['tracked_at_hour']<=7) | (stps['tracked_at_hour']>=22) | (stps['t_diff']>=36)]
+    homestps = stps[(stps['tracked_at_hour']<=5) | (stps['tracked_at_hour']>=22) | (stps['t_diff']>=18)]
     homeplcs = main.findPlaces(homestps, dataname, minDist, minPoints) 
     homeplcs = poi.reverseGeoCoding(homeplcs)
     
@@ -564,21 +571,24 @@ def homeworkStay(stps, dataname, places, minDist, minPoints):
     homeplcs['id'] = 'home'
     workplcs = poi.reverseGeoCoding(workplcs)
     workplcs['id'] = 'work'
-    homeworkplcs = pd.concat([homeplcs, workplcs], axis=0)
-    homeworkplcs = homeworkplcs.reset_index(drop=True)
-    homeworkplcs['place_id'] = homeworkplcs.index
-
-    homeworkplcs = hlp.findSemanticInfo(places, homeworkplcs)
-
-    column_names = ["user_id","place_id","center","extent","location","placeName","id","totalStayDays","totalStayHrs","0","1","2","3","4","5","6"]
-    homeworkplcs = homeworkplcs.reindex(columns=column_names)
-    homeworkplcs = homeworkplcs.rename(columns={'0':'Mon','1':"Tues","2":"Wed","3":"Thur","4":"Fri","5":"Sat","6":"Sun"})  
     
-    if not(os.path.exists('../data/stat/'+ dataname + '/')):
-        os.makedirs('../data/stat/'+ dataname + '/')
-    homeworkplcs.to_csv('../data/stat/'+ dataname + '/' + 'HomeWorkStay.csv', index = True)
+    # homeworkplcs = pd.concat([homeplcs, workplcs], axis=0)
+    # homeworkplcs = homeworkplcs.reset_index(drop=True)
+    # homeworkplcs['place_id'] = homeworkplcs.index
 
-    return homeworkplcs
+    # homeworkplcs = hlp.findSemanticInfo(places, homeworkplcs, threeQua)
+
+    # column_names = ["user_id","place_id","center","extent","location","placeName","id","totalStayDays","totalStayHrs","0","1","2","3","4","5","6"]
+    # homeworkplcs = homeworkplcs.reindex(columns=column_names)
+    # homeworkplcs = homeworkplcs.rename(columns={'0':'Mon','1':"Tues","2":"Wed","3":"Thur","4":"Fri","5":"Sat","6":"Sun"})  
+    
+    # if not(os.path.exists('../data/stat/'+ dataname + '/')):
+    #     os.makedirs('../data/stat/'+ dataname + '/')
+    # homeworkplcs.to_csv('../data/stat/'+ dataname + '/' + 'HomeWorkStay.csv', index = True)
+
+    # return homeworkplcs
+
+    return homeplcs, homestps, workplcs, workstps
 
 def homeworkStayMonth(pfs, dataname, dist_threshold, time_threshold, minDist, minPoints):
     """
@@ -701,7 +711,7 @@ def homeworkStayMonth(pfs, dataname, dist_threshold, time_threshold, minDist, mi
         homeworkplcs.to_csv('../data/stat/'+ dataname + '/' + str(month) + 'HomeWorkStaybyMonth.csv', index = True)
     
     
-def accuracyStat(dataName, dataNames, timestart, timeend):
+def accuracyStat(dataName, dataNames, mac, timestart, timeend):
     # Trip files
     if len(dataNames) == 0:
         for root,dirs,files in os.walk("../../4-Collection/DataParticipants/"):
@@ -716,7 +726,7 @@ def accuracyStat(dataName, dataNames, timestart, timeend):
     
     for dataName in dataNames:
         print('Processing '+ dataName)
-        dfStatistics = pd.DataFrame(columns =['id','OneQuatile','Median','ThreeQuatile','Avg','30','40','50','60','70', 'NumDays', 'NumPoints', 'AvgNumPoints', 'phoneModel'])
+        dfStatistics = pd.DataFrame(columns =['id','OneQuatile','Median','ThreeQuatile','Avg','30','40','50','60','70', 'NumDays', 'NumPoints', 'AvgNumPoints', 'TotalDist', 'AvgDist', 'phoneModel'])
 
         tempStat = {}
 
@@ -724,9 +734,11 @@ def accuracyStat(dataName, dataNames, timestart, timeend):
         tempStat['id'] = dataName
         
         dataPathLocs,dataPathTrips = hlp.getDataPaths(dataName)
-        dataPathLocs,dataPathTrips = hlp.selectRange(dataPathLocs, dataPathTrips, dateStart = timestart, dateEnd = timeend)
+        dataPathLocs,dataPathTrips = hlp.selectRange(dataPathLocs, dataPathTrips, mac, dateStart = timestart, dateEnd = timeend)
         
         locs, locsgdf = hlp.parseLocs(dataPathLocs)
+        locs['d_diff'] = np.append(haversine_dist(locs.longitudeE7[1:], locs.latitudeE7[1:], locs.longitudeE7[:-1], locs.latitudeE7[:-1]),0)
+
         #trips, tripdf, tripsgdf = hlp.parseTrips(dataPathTrips)
     
         # tempStat['dateStart'] = labelStart
@@ -743,6 +755,8 @@ def accuracyStat(dataName, dataNames, timestart, timeend):
         tempStat['NumDays'] = len(perDay)
         tempStat['NumPoints'] = perDay.sum()
         tempStat['AvgNumPoints'] = perDay.mean()
+        tempStat['TotalDist'] = locs['d_diff'].sum(axis=0)/1000 # unit: km
+        tempStat['AvgDist'] = tempStat['TotalDist']/tempStat['NumDays']
         
         #hlp.checkTrips(trips)
         tempStat['phoneModel'] = dfPhoneModel.loc[np.where(dfPhoneModel["Enter your participant ID:"] == int(dataName))[0][0],"What is your mobile phone's brand used to collect data?"]
@@ -754,5 +768,5 @@ def accuracyStat(dataName, dataNames, timestart, timeend):
         generated_dfStatistics.append(tempStat)
         dfStatistics = dfStatistics.append(generated_dfStatistics)
         
-        dfStatistics.to_csv('../data/statistics.csv', index=False, sep=';')
+    dfStatistics.to_csv('../data/statistics.csv', index=False)
     return dfStatistics
