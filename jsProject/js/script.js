@@ -1061,7 +1061,7 @@ function updateTimeline(selectedVar) {
     .attr("y", function (d) { return yScale(d[selectedVar]); })
     .attr("width", xScale.bandwidth())
     .attr("height", function (d) { return heightTimeline - yScale(d[selectedVar]); })
-    .attr("fill", "#1F407A")
+    .attr("fill", "#A8322D")
     .attr("class", "bars")
 
 
@@ -1567,8 +1567,12 @@ function setBasicStatistics(basicStatistics) {
   mybody = document.getElementsByTagName("body")[0];
   mytable = mybody.getElementsByTagName("table")[0];
   mytablebody = mytable.getElementsByTagName("tbody")[0];
+
+  var parseTime = d3.timeParse("%Y-%m-%d");
+  var formatTime = d3.timeFormat("%d. %b %Y");
+
   rowTime = mytablebody.getElementsByTagName("tr")[0];
-  mycel = rowTime.getElementsByTagName("td")[1].textContent = basicStats['startTime'] + " - " + basicStats['endTime'];
+  mycel = rowTime.getElementsByTagName("td")[1].textContent = formatTime(parseTime(basicStats['startTime'])) + " - " + formatTime(parseTime(basicStats['endTime']));
 
   rowPhone = mytablebody.getElementsByTagName("tr")[1];
   mycel = rowPhone.getElementsByTagName("td")[1].textContent = basicStats['phoneModel'];
@@ -1584,7 +1588,12 @@ function setBasicStatistics(basicStatistics) {
 }
 
 function removeLabels() {
+
   newOpacity = d3.selectAll(".label").attr("opacity") == 0 ? 1 : 0;
   d3.selectAll(".label").attr("opacity", newOpacity);
+
+d3.select('#removeLabelsButton')
+  .style('background-color',newOpacity==0 ? "#1F407A":"#A8322D")
+  
 
 }

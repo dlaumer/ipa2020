@@ -197,9 +197,7 @@ img {
 
 /* shadow trick from bl.ocks.org */
 #tooltip {
-  font-size: 10pt;
-  font-weight: 900;
-  fill: black;
+  font-size: 12pt;
 }
 
 #collapeButton1 {
@@ -320,6 +318,11 @@ input[type="number"] {
 #info-button {
   flex-basis: 5%; 
   height: 100%; 
+  background-color: #A8322D;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 #info-dataName {
   flex-basis: 20%; 
