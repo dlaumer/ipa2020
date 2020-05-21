@@ -36,7 +36,7 @@ from trackintel.geogr.distances import haversine_dist
 #import noiserm_functions as nrm
 dataNameList = ["1","2","3","4","5","6","7","17","20","25","28"]
 
-dataName = '3'
+dataName = '28'
 
 mac = True
 
@@ -225,7 +225,7 @@ if FIND_PLACES:
 
 #%% MATCH GOOGLE PLACES %%%%%%%
 if FIND_SEMANTIC_INFO:
-    dfStatistics = pd.read_csv('../data/statistics.csv',sep=",")
+    dfStatistics = pd.read_csv('../data/statistics.csv', sep=',')
     dataStat = dfStatistics[dfStatistics['id']==int(dataName)]    
     threeQua = dataStat['ThreeQuatile'][dataNameList.index(dataName)]
     
@@ -274,7 +274,7 @@ if HOMEWORK:
     homeworkplcs = homeworkplcs.rename(columns={'0':'Mon','1':"Tues","2":"Wed","3":"Thur","4":"Fri","5":"Sat","6":"Sun"})  
     
     if not(os.path.exists('../data/stat/'+ dataName + '/')):
-        os.makedirs('../data/stat/'+ dataname + '/')
+        os.makedirs('../data/stat/'+ dataName + '/')
     homeworkplcs.to_csv('../data/stat/'+ dataName + '/' + 'HomeWorkStay.csv', index = True)
 
     if exportShp: 
@@ -306,7 +306,7 @@ if HOMEWORKHRS:
     homeworkplcs2 = homeworkplcs.loc[[2,4,5],:]
     homeworkplcs2.to_csv('../data/stat/'+ dataName + '/' + 'HomeWorkStay.csv', index = True)
     
-    homeHrs = calstat.plcsStayHour(homestps, homeplcs, dataName)
+    #homeHrs = calstat.plcsStayHour(    , homeplcs, dataName)
     workHrs = calstat.plcsStayHour(workstps, workplcs, dataName)
     homeWorkHrs = pd.concat([homeHrs, workHrs], axis=0)
 

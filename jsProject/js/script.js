@@ -1,5 +1,5 @@
 // Data files to import
-var dataName = "6";
+var dataName = "4";
 var urls = {
   map: "swiss.json",
 
@@ -1212,7 +1212,7 @@ function render() {
 }
 
 
-function changeData() {
+function changeData(mapMode) {
   drawTrips(places, trips, false);
 
   if (mapMode == 'schematic') {

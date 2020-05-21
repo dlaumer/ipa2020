@@ -8,7 +8,6 @@ body {
 }
 
 h1{
-  font-family: Segoe UI; 
   font-size: 28px;
 }
 
@@ -70,20 +69,22 @@ h1{
 }
 
 #info1 {
-  flex-basis: 30%; 
-  min-width: 100px; 
+  flex-basis: 20%; 
   height: 100%; 
+  padding:20px;
+  text-align:justify;
 }
 
 #info2 {
-  flex-basis: 30%; 
-  min-width: 100px; 
+  flex-basis: 20%; 
   height: 100%; 
+  padding:20px;
+  text-align:justify;
 }
 #info3 {
-  flex-basis: 30%; 
-  min-width: 100px; 
+  flex-basis: 20%; 
   height: 100%; 
+  padding:20px;
 }
 
 #map-and-places-container {
@@ -287,7 +288,7 @@ input[type="number"] {
 
 #highcharts-container{
   /* margin-bottom: 10%; */
-  height: 60%;
+  height: 65%;
 }
 
 #container{
