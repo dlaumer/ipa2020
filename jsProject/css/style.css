@@ -7,6 +7,10 @@ body {
 
 }
 
+h1{
+  font-family: Segoe UI; 
+  font-size: 28px;
+}
 
 #zoomAll {
   height: 40px;
@@ -137,8 +141,10 @@ body {
 }
 #timeExplain {
   margin-left: 10px;
-  font-size: 10px;
-  width:80%;
+  font-family: Segoe UI; 
+  font-size: 13px;
+  font-weight: bold;
+  width:50%;
   height:12px;
 }
 
@@ -280,7 +286,7 @@ input[type="number"] {
 
 
 #highcharts-container{
-  margin-bottom: 10%;
+  /* margin-bottom: 10%; */
   height: 60%;
 }
 
@@ -300,7 +306,7 @@ input[type="number"] {
 }
 
 #buttonChangeHighcart {
-  width:60%;
+  width: 40%;
   height: 3%;
   background-color: #1F407A;
   text-align:center;

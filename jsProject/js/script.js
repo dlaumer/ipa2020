@@ -64,11 +64,13 @@ class MyCustomControl {
   }
 }
 
+
 const myCustomControl = new MyCustomControl("showGeometric", "Aggregated Map");
 const myCustomControl5 = new MyCustomControl("showSchematic", "Schematic Map");
 const myCustomControl2 = new MyCustomControl("zoomAll", "");
 const myCustomControl3 = new MyCustomControl("removeLabelsButton", "");
 const myCustomControl4 = new MyCustomControl("showOriginalTrips", "Original Map");
+
 
 map.addControl(myCustomControl5, 'top-left');
 map.addControl(myCustomControl, 'top-left');
@@ -494,12 +496,15 @@ function processData(values) {
   for (let i = 0; i < transportationmode.length; i++) {
     var transportationi = transportationmode[i];
     var mode = transportationi['name']
-    var percentage = transportationi['percentage'] * 100
-    var val = transportationi['value'] / 1000
-    var co2 = transportationi['co2']
-    var co2Emission = val * co2
+    var co2Perc = transportationi['co2Perc'] * 100
+    var dist = transportationi['dist']
+    var co2km = transportationi['co2km']
+    var co2Emission = dist*co2km
+    var distPerc = transportationi['distPerc']
+    // co2Emission = co2Emission.toFixed(2)
+    // console.log(co2Emission)
+    var transarray = [mode, co2Perc, dist, co2km, co2Emission, distPerc]
 
-    var transarray = [mode, percentage, val, co2, co2Emission]
     totalCo2 = totalCo2 + co2Emission
     transportationData.push(transarray);
   }
@@ -508,14 +513,16 @@ function processData(values) {
     transportationSeries.push({
       name: transportationData[i][0],
       y: transportationData[i][1],
-      val: transportationData[i][2],
-      co2: transportationData[i][3],
-      co2Emission: transportationData[i][4],
+      distVal: transportationData[i][2],
+      co2kmVal: transportationData[i][3],
+      co2EmissionVal: transportationData[i][4],
+      distPercVal: transportationData[i][5],
     })
   }
+
   // console.log(transportationSeries);
   // console.log(HomeWorkSeries);
-  //drawTransPieChart(transportationSeries, totalCo2);
+  // drawTransPieChart(transportationSeries, totalCo2);
 
   zoomToAll();
 }
@@ -1205,8 +1212,9 @@ function render() {
 }
 
 
-function changeData(mapMode) {
+function changeData() {
   drawTrips(places, trips, false);
+
   if (mapMode == 'schematic') {
     mapBlank = true;
   }
@@ -1393,7 +1401,7 @@ function drawTransPieChart(transportationSeries, totalCo2) {
       type: 'pie'
     },
     title: {
-      text: 'Commuting Preferences',
+      text: 'Commuting Habits',
       style: {
         fontSize: '18px',
         fontWeight: 'bold',
@@ -1406,7 +1414,7 @@ function drawTransPieChart(transportationSeries, totalCo2) {
     },
     tooltip: {
       headerFormat: '<span style="font-size:11px">{series.name}</span><br>',
-      pointFormat: '{point.name}</span>: <b>{point.y:.1f}%</b> of total<br/> {point.val:.1f} km</b>'
+      pointFormat: '<b>{point.name}</b></span>: <b>{point.y:.1f}%</b> of total CO2 emission<br/> {point.distVal:.1f} km x {point.co2kmVal} kg/km = <b>{point.co2EmissionVal:.2f}</b> kg'
     },
     accessibility: {
       point: {
@@ -1429,7 +1437,7 @@ function drawTransPieChart(transportationSeries, totalCo2) {
         allowPointSelect: true,
         cursor: 'pointer',
         colors: pieColors,
-        center: ["50%", "50%"],
+        center: ["50%", "48%"],
         size: "75%",
         dataLabels: {
           enabled: true,
