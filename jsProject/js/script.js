@@ -1,5 +1,5 @@
 // Data files to import
-var dataName = "4";
+var dataName = "20";
 var urls = {
   map: "swiss.json",
 
