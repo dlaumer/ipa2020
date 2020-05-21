@@ -68,19 +68,19 @@ class MyCustomControl {
 const myCustomControl = new MyCustomControl("showGeometric", "Aggregated Map");
 const myCustomControl5 = new MyCustomControl("showSchematic", "Schematic Map");
 const myCustomControl2 = new MyCustomControl("zoomAll", "");
-const myCustomControl3 = new MyCustomControl("removeLabelsButton", "Labels");
-const myCustomControl4 = new MyCustomControl("showOriginalTrips", "Show Original");
+const myCustomControl3 = new MyCustomControl("removeLabelsButton", "");
+const myCustomControl4 = new MyCustomControl("showOriginalTrips", "Original Map");
 
 
 map.addControl(myCustomControl5, 'top-left');
 map.addControl(myCustomControl, 'top-left');
 map.addControl(myCustomControl2, 'top-right');
+map.addControl(myCustomControl3, 'top-right');
 map.addControl(myCustomControl4, 'top-left');
 
 var elem = document.createElement("img");
 elem.setAttribute("src", "imgs/zoom_out_map-white-48dp.svg");
 document.getElementById("zoomAll").appendChild(elem);
-
 
 var elem = document.createElement("img");
 elem.setAttribute("src", "imgs/local_offer-white-36dp.svg");
@@ -519,9 +519,10 @@ function processData(values) {
       distPercVal: transportationData[i][5],
     })
   }
+
   // console.log(transportationSeries);
   // console.log(HomeWorkSeries);
-  //drawTransPieChart(transportationSeries, totalCo2);
+  // drawTransPieChart(transportationSeries, totalCo2);
 
   zoomToAll();
 }
@@ -1436,7 +1437,7 @@ function drawTransPieChart(transportationSeries, totalCo2) {
         allowPointSelect: true,
         cursor: 'pointer',
         colors: pieColors,
-        center: ["50%", "30%"],
+        center: ["50%", "48%"],
         size: "75%",
         dataLabels: {
           enabled: true,
