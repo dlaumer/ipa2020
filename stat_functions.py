@@ -122,7 +122,7 @@ def transModeCsv(transtat, dataname):
     -------
     None
     """
-    
+    import pandas as pd    
     transtatdf = pd.DataFrame(list(transtat))
     transtatdf = transtatdf.T
     transtatdf['percentage'] = ""
@@ -141,10 +141,52 @@ def transModeCsv(transtat, dataname):
 
     transtatdf['name'] = transtatdf['mode']
     transtatdf=transtatdf.replace({"name": labels2modes})
+        
+    co2 = pd.read_csv('../data/Co2Emission.csv')
+    allModes = list(co2['name'])
     
-    if not(os.path.exists('../data/stat/'+ dataname + '/')):
-        os.makedirs('../data/stat/'+ dataname + '/')
-    transtatdf.to_csv('../../5-Final Product/stat'+dataname+'/TransportationMode.csv', index = True)
+    # dataname = "1"
+    # dataNameList = ["3","4","5","6","7","17","20","25","28"]
+    trans = transtatdf
+    # for dataname in dataNameList:
+    # trans = pd.read_csv('E:/Google Drive/IPA 2020/5-Final Product/FINALDATA/stat'+dataname+'/TransportationMode.csv')
+    # trans = pd.read_csv('E:/1_IPA/5-Final Product/stat1/TransportationMode.csv')
+    # labels2modes = {"IN_PASSENGER_VEHICLE":'by Car',"STILL":'Still',"WALKING": 'Walking',"IN_BUS": 'by Bus',"CYCLING":'by Bike',"FLYING":'by Plane',"RUNNING":'Running',"IN_FERRY":'by Ferry',"IN_TRAIN": 'by Train',"SKIING": 'Skiing',"SAILING": 'Sailing',"IN_SUBWAY": 'by Subway',"IN_TRAM": 'by Tram',"IN_VEHICLE":'in Vehicle'} 
+    # trans['name'] = trans['mode']
+    # trans=trans.replace({"name": labels2modes})
+    
+    trans['value'] = trans['value']/1000
+    trans['co2km'] = ""
+    
+    for i in range(0,len(trans)):
+        modei = trans['name'].iloc[i]
+        idx = allModes.index(modei)
+        trans['co2km'].iloc[i] = co2['co2'].iloc[idx]
+    
+    transdf = trans[['name','value','percentage','co2km']]
+    
+    transdf = transdf.rename(columns={'value':'dist','percentage':"distPerc"})  
+
+    transdf['co2Total'] = ""
+    transdf['co2Perc'] = ""
+    
+    for i in range(0,len(transdf)):
+        transdf['co2Total'].iloc[i] = transdf['dist'].iloc[i] * transdf['co2km'].iloc[i]
+            
+    for i in range(0,len(transdf)):
+        valsum = transdf['co2Total'].sum(axis=0)
+        transdf['co2Perc'].iloc[i] = round(transdf['co2Total'].iloc[i]/valsum,4)
+    
+    transdf.sort_values("co2Perc", axis = 0, ascending = False, 
+                     inplace = True, na_position ='last')  
+
+    # transdf.to_csv('E:/1_IPA/5-Final Product/stat1/TransportationModeCo2Perc.csv')
+    # transdf.to_csv('E:/Google Drive/IPA 2020/5-Final Product/FINALDATA/stat'+dataname+'/TransportationModeCo2Perc.csv')
+    
+    # if not(os.path.exists('../data/stat/'+ dataname + '/')):
+    #     os.makedirs('../data/stat/'+ dataname + '/')
+    # transtatdf.to_csv('../../5-Final Product/stat'+dataname+'/TransportationMode.csv', index = True)
+    transdf.to_csv('../../5-Final Product/stat'+dataname+'/TransportationModeCo2Perc.csv', index = True)
     
     
 def plcsStayWorkday(stps, plcs, dataname):
@@ -322,6 +364,11 @@ def plcsStayHour(stps, plcs, dataname):
     plcstocsv_transpose = plcstocsv.T
     plcstocsv_transpose.columns = plcs['place_id']
 
+    # if not(os.path.exists('../data/stat/'+ dataname + '/')):
+        # os.makedirs('../data/stat/'+ dataname + '/')
+    # plcstocsv_transpose.to_csv('../data/stat/'+ dataname + '/PlcsStayHour.csv', index = True)
+    # plcstocsv_transpose.to_csv('../../5-Final Product/stat'+ dataname + '/PlcsStayHour.csv', index = True)
+
     if not(os.path.exists('../../5-Final Product/stat'+ dataname + '/')):
         os.makedirs('../../5-Final Product/stat'+ dataname + '/')
     #plcstocsv_transpose.to_csv('../data/stat/'+ dataname + '/PlcsStayHour.csv', index = True)
@@ -332,6 +379,8 @@ def plcsStayHour(stps, plcs, dataname):
     plcsInfo = plcs[['placeName']]
     plcsInfoT = plcsInfo.T
     plcsInfoT.columns = plcs['place_id']
+
+    # plcsInfoT.to_csv('../../5-Final Product/stat'+ dataname + '/PlcsInfo.csv', index = True)
 
     plcsInfoT.to_csv('../../5-Final Product/stat'+ dataname + '/PlcsInfo.csv', index = False)
 
