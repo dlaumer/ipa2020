@@ -1,5 +1,5 @@
 // Data files to import
-var dataName = "20";
+var dataName = "1";
 var urls = {
   map: "swiss.json",
 
@@ -64,12 +64,34 @@ class MyCustomControl {
   }
 }
 
+class MyCustomText {
+
+  constructor(id, textContent) {
+    this.id = id;
+    this.textContent = textContent
+  }
+  onAdd(map) {
+    this.map = map;
+    this.container = document.createElement('text');
+    this.container.id = this.id;
+    this.container.className = 'mapboxgl-ctrl';
+    this.container.textContent = this.textContent;
+    //this.container.innerHTML = document.createElement("IMG")
+    this.container.type = "text";
+    return this.container;
+  }
+  onRemove() {
+    this.container.parentNode.removeChild(this.container);
+    this.map = undefined;
+  }
+}
 
 const myCustomControl = new MyCustomControl("showGeometric", "Aggregated Map");
 const myCustomControl5 = new MyCustomControl("showSchematic", "Schematic Map");
 const myCustomControl2 = new MyCustomControl("zoomAll", "");
 const myCustomControl3 = new MyCustomControl("removeLabelsButton", "");
 const myCustomControl4 = new MyCustomControl("showOriginalTrips", "Original Map");
+const myCustomText = new MyCustomText("hitouchText", "Schematic Map ©Hitouch AG");
 
 
 map.addControl(myCustomControl5, 'top-left');
@@ -77,6 +99,8 @@ map.addControl(myCustomControl, 'top-left');
 map.addControl(myCustomControl2, 'top-right');
 map.addControl(myCustomControl3, 'top-right');
 map.addControl(myCustomControl4, 'top-left');
+map.addControl(myCustomText, 'bottom-right');
+
 
 var elem = document.createElement("img");
 elem.setAttribute("src", "imgs/zoom_out_map-white-48dp.svg");
@@ -111,6 +135,9 @@ document.getElementById("showGeometric").addEventListener('click', event => {
     geomMap = false;
     drawTrips(places, trips, geomMap)
   }
+
+  d3.select("#hitouchText")
+  .style("visibility", "hidden")
 });
 document.getElementById("showSchematic").addEventListener('click', event => {
   if (!mapBlank) {
@@ -124,6 +151,8 @@ document.getElementById("showSchematic").addEventListener('click', event => {
 
     changeData("schematic")
   }
+  d3.select("#hitouchText")
+  .style("visibility", "visible")
 });
 document.getElementById("showOriginalTrips").addEventListener('click', event => {
   d3.selectAll('.selectMap')
@@ -141,6 +170,8 @@ document.getElementById("showOriginalTrips").addEventListener('click', event => 
     geomMap = true;
     changeData("geometric")
   }
+  d3.select("#hitouchText")
+  .style("visibility", "hidden")
 });
 
 

@@ -288,7 +288,7 @@ input[type="number"] {
 
 #highcharts-container{
   /* margin-bottom: 10%; */
-  height: 65%;
+  height: 60%;
 }
 
 #container{
@@ -357,3 +357,8 @@ h2 {
     display: inline;
 
 }
+
+#hitouchText{
+  font-size: 8pt;
+}
+
