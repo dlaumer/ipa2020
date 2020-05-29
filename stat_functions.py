@@ -42,7 +42,7 @@ def stats(locs, trips):
 
     Parameters
     ----------
-    locs : gdf - individual location data
+    locs : gdf - Individual location data
     trips : dict - Semantic information (nested)
 
     Returns
@@ -116,7 +116,7 @@ def transModeCsv(transtat, dataname):
     Parameters
     ----------
     transtat : tuple - returned results of pieChartInfoPlus() function
-    dataname: str - indicate the participant ID
+    dataname: str - participant ID
     
     Returns
     -------
@@ -145,121 +145,50 @@ def transModeCsv(transtat, dataname):
     co2 = pd.read_csv('../data/input/Co2Emission.csv')
     allModes = list(co2['name'])
     
-    # dataname = "1"
-    # dataNameList = ["3","4","5","6","7","17","20","25","28"]
     trans = transtatdf
-    # for dataname in dataNameList:
-    # trans = pd.read_csv('E:/Google Drive/IPA 2020/5-Final Product/FINALDATA/stat/'+dataname+'/TransportationMode.csv')
-    # trans = pd.read_csv('E:/1_IPA/5-Final Product/stat1/TransportationMode.csv')
-    # labels2modes = {"IN_PASSENGER_VEHICLE":'by Car',"STILL":'Still',"WALKING": 'Walking',"IN_BUS": 'by Bus',"CYCLING":'by Bike',"FLYING":'by Plane',"RUNNING":'Running',"IN_FERRY":'by Ferry',"IN_TRAIN": 'by Train',"SKIING": 'Skiing',"SAILING": 'Sailing',"IN_SUBWAY": 'by Subway',"IN_TRAM": 'by Tram',"IN_VEHICLE":'in Vehicle'} 
-    # trans['name'] = trans['mode']
-    # trans=trans.replace({"name": labels2modes})
-    
-    trans['value'] = trans['value']/1000
+    trans['value'] = trans['value']/1000 # transfer the unit from m to km
     trans['co2km'] = ""
     
+    # Find the CO2 statistics for each transportation mode
     for i in range(0,len(trans)):
         modei = trans['name'].iloc[i]
         idx = allModes.index(modei)
         trans['co2km'].iloc[i] = co2['co2'].iloc[idx]
     
-    transdf = trans[['name','value','percentage','co2km']]
-    
+    transdf = trans[['name','value','percentage','co2km']
     transdf = transdf.rename(columns={'value':'dist','percentage':"distPerc"})  
-
     transdf['co2Total'] = ""
     transdf['co2Perc'] = ""
     
+    # Calculate total CO2 emission of each transportation mode
     for i in range(0,len(transdf)):
         transdf['co2Total'].iloc[i] = transdf['dist'].iloc[i] * transdf['co2km'].iloc[i]
-            
+ 
+    # Calculate the percentage of CO2 emission of each transportation mode        
     for i in range(0,len(transdf)):
         valsum = transdf['co2Total'].sum(axis=0)
         transdf['co2Perc'].iloc[i] = round(transdf['co2Total'].iloc[i]/valsum,4)
     
+    # Sort transportation mode according to the percentage of CO2 emission
     transdf.sort_values("co2Perc", axis = 0, ascending = False, 
                      inplace = True, na_position ='last')  
 
-    # transdf.to_csv('E:/1_IPA/5-Final Product/stat1/TransportationModeCo2Perc.csv')
-    # transdf.to_csv('E:/Google Drive/IPA 2020/5-Final Product/FINALDATA/stat/'+dataname+'/TransportationModeCo2Perc.csv')
-    
-    # if not(os.path.exists('../data/stat/'+ dataname + '/')):
-    #     os.makedirs('../data/stat/'+ dataname + '/')
-    # transtatdf.to_csv('../../5-Final Product/stat/'+dataname+'/TransportationMode.csv', index = True)
     transdf.to_csv('../data/results/stat/'+dataname+'/TransportationModeCo2Perc.csv', index = True)
     
-    
-def plcsStayWorkday(stps, plcs, dataname):
-    """
-    Calculate stay time statistics of each place for each working day
-
-    Parameters
-    ----------
-    stps : dataframe - stay points
-    plcs: dataframe - clustered places
-
-    Returns
-    -------
-    None
-    """
-
-    # Calculate stay time for each stay point
-    stps['stay_time'] = 0
-    for i in range(0,len(stps)):
-        stps['stay_time'].iloc[i] = (stps['finished_at'].iloc[i]-stps['started_at'].iloc[i]).total_seconds()
-    
-    # Calcualte stay time for each place for each working day
-    stps['started_at_weekday'] = 0
-    for i in range(0,len(stps)): stps['started_at_weekday'].iloc[i] = stps['started_at'].iloc[i].weekday() # 0 for Monday, 6 for Sunday
-    
-    # Summarize stay time by weekday for each clustered place
-    cols = ['Mon_totalstay','Tues_totalstay','Wed_totalstay','Thur_totalstay','Fri_totalstay','Sat_totalstay','Sun_totalstay']
-    for col in cols: plcs[col] = 0
-    for i in range(0,len(plcs)):
-        place_id = i+1
-        stps_placeid = stps[stps['place_id']==place_id]
-        stps_placeid_weekday1 = stps_placeid[stps_placeid['started_at_weekday']==0]
-        plcs.loc[plcs['place_id']==place_id,'Mon_totalstay']=stps_placeid_weekday1['stay_time'].sum()
-        stps_placeid_weekday2 = stps_placeid[stps_placeid['started_at_weekday']==1]
-        plcs.loc[plcs['place_id']==place_id,'Tues_totalstay']=stps_placeid_weekday2['stay_time'].sum()
-        stps_placeid_weekday3 = stps_placeid[stps_placeid['started_at_weekday']==2]
-        plcs.loc[plcs['place_id']==place_id,'Wed_totalstay']=stps_placeid_weekday3['stay_time'].sum()
-        stps_placeid_weekday4 = stps_placeid[stps_placeid['started_at_weekday']==3]
-        plcs.loc[plcs['place_id']==place_id,'Thur_totalstay']=stps_placeid_weekday4['stay_time'].sum()
-        stps_placeid_weekday5 = stps_placeid[stps_placeid['started_at_weekday']==4]
-        plcs.loc[plcs['place_id']==place_id,'Fri_totalstay']=stps_placeid_weekday5['stay_time'].sum()
-        stps_placeid_weekday6 = stps_placeid[stps_placeid['started_at_weekday']==5]
-        plcs.loc[plcs['place_id']==place_id,'Sat_totalstay']=stps_placeid_weekday6['stay_time'].sum()
-        stps_placeid_weekday7 = stps_placeid[stps_placeid['started_at_weekday']==6]
-        plcs.loc[plcs['place_id']==place_id,'Sun_totalstay']=stps_placeid_weekday7['stay_time'].sum()
-    for col in cols: plcs[col] =  plcs[col]/60 # in min
-
-    # V1: simple matrix with hour x place_id
-    plcstocsv = plcs[cols]
-    plcstocsv_transpose = plcstocsv.T
-    plcstocsv_transpose.columns = plcs['place_id']
-    if not(os.path.exists('../data/stat/'+ dataname + '/')):
-        os.makedirs('../data/stat/'+ dataname + '/')
-    plcstocsv_transpose.to_csv('../data/stat/'+ dataname + '/' + '/StaybyWorkday.csv', index = True)
-    
-    # V2: with more information
-    plcs = poi.reverseGeoCoding(plcs)
-    plcstocsv_transpose.columns = plcs['location']
-    plcstocsv_transpose.to_csv('../data/stat/'+ dataname + '/' + '/StaybyWorkdayLocinfo.csv', index = True)
-
 
 def plcsStayHour(stps, plcs, dataname):
     """
-    Calculate stay time statistics of each place for each hour
+    Calculate stay time statistics of each place by 24-hour
 
     Parameters
     ----------
-    stps : dataframe - stay points
-    plcs: dataframe - clustered places
-
+    stps : gdf - detected stay points
+    plcs: gdf - clustered places
+    dataname: str - participant ID
+        
     Returns
     -------
-    None
+    plcs: gdf - clustered places with 24-hour stay time to further detect home and work address
     """
     
     cols = [str(i) for i in range(0,24)]
@@ -281,10 +210,11 @@ def plcsStayHour(stps, plcs, dataname):
 
         if (stps['hourdiff'].iloc[i]<0):
             stps['hourdiff'].iloc[i] += 24
-            
-        list31 = [1,3,5,7,8,10,12]
-        list30 = [4,6,9,11]
-        listFeb = [2] 
+ 
+        # Examine if the day difference across the month, if so, corresponding days need to be added
+        list31 = [1,3,5,7,8,10,12] # for each month of this list, 31 days should be added
+        list30 = [4,6,9,11] # 30 days for each month of this list
+        listFeb = [2] # 29 days for each month of this list
         if (stps['monthdiff'].iloc[i] >= 1):
             startMonth = stps['started_at'].iloc[i].month
             if (startMonth in list31):
@@ -305,7 +235,9 @@ def plcsStayHour(stps, plcs, dataname):
                 stps['daydiff'].iloc[i] += 29; # change based on current year
             else:
                 print("invalid start month")
-                
+        
+        # Calculate stay time of each stay point by each hour based on the day difference
+        # When the start time and end time of the stay point is one the same day
         if (stps['daydiff'].iloc[i] == 0):
             startHour = stps['started_at'].iloc[i].hour
             endHour = stps['finished_at'].iloc[i].hour
@@ -321,6 +253,7 @@ def plcsStayHour(stps, plcs, dataname):
                     stps[str(midHour)].iloc[i] = 3600  
             else:
                 print('Wrong hour difference! Please check your data.')
+        # When the start time and end time of the stay point has one day difference
         elif (stps['daydiff'].iloc[i] == 1):
             startHour = stps['started_at'].iloc[i].hour
             endHour = stps['finished_at'].iloc[i].hour
@@ -330,11 +263,11 @@ def plcsStayHour(stps, plcs, dataname):
                 stps[str(midHourSday)].iloc[i] += 3600  
             for midHourEday in range(0, endHour):
                 stps[str(midHourEday)].iloc[i] += 3600              
+        # When the start time and end time of the stay point has two day difference
         elif (stps['daydiff'].iloc[i] >= 2):
             wholeDays = stps['daydiff'].iloc[i] - 1;
             for wholeHour in range(0, 24):
                 stps[str(wholeHour)].iloc[i] = 3600*wholeDays
-            # repetitive as for daydiff==1
             startHour = stps['started_at'].iloc[i].hour
             endHour = stps['finished_at'].iloc[i].hour
             stps[str(startHour)].iloc[i] += (3600 - stps['started_at'].iloc[i].minute*60 - stps['started_at'].iloc[i].second)
@@ -345,7 +278,8 @@ def plcsStayHour(stps, plcs, dataname):
                 stps[str(midHourEday)].iloc[i] += 3600             
         else:
             print("Wrong day difference! Please check your codes.")
-                
+    
+    # Calculate stay time for each place by summing up all stay points
     for i in range(0,len(plcs)):
         plcid = i+1
         stps_plcid = stps[stps['place_id']==plcid]
@@ -364,55 +298,52 @@ def plcsStayHour(stps, plcs, dataname):
     plcstocsv_transpose = plcstocsv.T
     plcstocsv_transpose.columns = plcs['place_id']
 
-    # if not(os.path.exists('../data/stat/'+ dataname + '/')):
-        # os.makedirs('../data/stat/'+ dataname + '/')
-    # plcstocsv_transpose.to_csv('../data/stat/'+ dataname + '/PlcsStayHour.csv', index = True)
-    # plcstocsv_transpose.to_csv('../../5-Final Product/stat/'+ dataname + '/PlcsStayHour.csv', index = True)
-
     if not(os.path.exists('../data/results/stat/'+ dataname + '/')):
         os.makedirs('../data/results/stat/'+ dataname + '/stat/')
     plcstocsv_transpose.to_csv('../data/results/stat/'+ dataname + '/PlcsStayHour.csv', index = True)
 
-    # V2: with more information
+    # V2: with place name added
     plcs = poi.reverseGeoCoding(plcs)
     plcsInfo = plcs[['placeName']]
     plcsInfoT = plcsInfo.T
     plcsInfoT.columns = plcs['place_id']
-
     plcsInfoT.to_csv('../data/results/stat/'+ dataname + '/PlcsInfo.csv', index = False)
 
-
-    # column_names = ["user_id","place_id","center","extent","location","placeName","nameId",'totalStayHrs',"0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23"]
     column_names = ["user_id","place_id","center","extent","location","placeName","nameId","totalStayHrs","0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23"]
-    
     plcs = plcs.reindex(columns=column_names)
     
     return plcs    
     
+
 def homeworkStay(plcs, stps, dataname, places, threeQua):
     """
-    Calculate stay time statistics of home and work places for all past data
+    Calculate stay time statistics of home and work places by weekday
 
     Parameters
     ----------
-    pfs : dataframe - location points
-    dataname: str
-    dist_threshold, time_threshold - parameters for stay point detection
-    minDist, minPoints - parameters for DBSCAN Clustering
+    stps : gdf - detected stay points
+    plcs: gdf - clustered places
+    dataname: str - participant ID
+    places : gdf - places defined by google with place name provided
+    threeQua: float- 3rd quantile of the distance difference, used as the threshold to match place name
 
     Returns
     -------
-    None
+    homeworkplcs: gdf - home and workplace with weekday stay time
     """
     
+    # Define a flag to see if the user has the workplace    
     flag = 0
-
+    
+    # HOME ADDRESS 
     cols = [str(i) for i in range(0,24)]
     stps = stps.drop(cols, axis=1)
-        
-    homecols = [str(i) for i in range(0,7)] + [str(i) for i in range(22,24)]
-    homeHrs = list(plcs[homecols].sum(axis=1))
     
+    # Choose the daytime to detect homeplace
+    homecols = [str(i) for i in range(0,7)] + [str(i) for i in range(22,24)]
+    homeHrs = list(plcs[homecols].sum(axis=1)) 
+    
+    # Set the minimum stay time threshold for homeplace
     if(max(homeHrs)>40): 
         homeidx = homeHrs.index(max(homeHrs))
         homeid = plcs['place_id'].iloc[homeidx]
@@ -422,17 +353,7 @@ def homeworkStay(plcs, stps, dataname, places, threeQua):
         cols = [str(i) for i in range(0,24)]
         homeplcs = homeplcs.drop(cols, axis=1)
         homestps = stps[stps['place_id']==homeid]
-        
-        # stps['tracked_at_hour'] = 0
-        # for i in range(0,len(stps)): stps['tracked_at_hour'].iloc[i] = stps['started_at'].iloc[i].hour
-        # stps['t_diff'] = 0
-        # for i in range(0,len(stps)): stps['t_diff'].iloc[i] = (stps['finished_at'].iloc[i] - stps['started_at'].iloc[i]).total_seconds()/3600
-        
-        ## HOME ADDRESS   
-        # homestps = stps[(stps['tracked_at_hour']<=5) | (stps['tracked_at_hour']>=22) | (stps['t_diff']>=18)]
-        # homeplcs = main.findPlaces(homestps, dataname, minDist, minPoints) 
-        # homeplcs = poi.reverseGeoCoding(homeplcs)
-        
+                
         cols = [str(i) for i in range(0,7)]
         for col in cols: homeplcs[col] = 0
     
@@ -449,9 +370,11 @@ def homeworkStay(plcs, stps, dataname, places, threeQua):
             homestps['daydiff'].iloc[i] = homestps['finished_at'].iloc[i].day - homestps['started_at'].iloc[i].day
             homestps['monthdiff'].iloc[i] = homestps['finished_at'].iloc[i].month - homestps['started_at'].iloc[i].month
     
-            list31 = [1,3,5,7,8,10,12]
-            list30 = [4,6,9,11]
-            listFeb = [2] 
+            # Examine if the day difference across the month, if so, corresponding days need to be added
+            list31 = [1,3,5,7,8,10,12] # for each month of this list, 31 days should be added
+            list30 = [4,6,9,11] # 30 days for each month of this list
+            listFeb = [2] # 29 days for each month of this list
+
             if (homestps['monthdiff'].iloc[i] >= 1):
                 startMonth = homestps['started_at'].iloc[i].month
                 if (startMonth in list31):
@@ -472,7 +395,8 @@ def homeworkStay(plcs, stps, dataname, places, threeQua):
                     homestps['daydiff'].iloc[i] += 29; # change based on current year
                 else:
                     print("invalid start month")
-                    
+            
+            # Calculate stay time of each stay point of homeplace by each weekday
             homestps['weekdiff'].iloc[i] =  homestps['daydiff'].iloc[i] // 7
             homestps['wdaydiff'].iloc[i] = homestps['daydiff'].iloc[i] % 7
             
@@ -482,11 +406,6 @@ def homeworkStay(plcs, stps, dataname, places, threeQua):
                 startMin = homestps['started_at'].iloc[i].minute
                 startSec = homestps['started_at'].iloc[i].second
                 homestps[str(startWday)].iloc[i] = (homestps['finished_at'].iloc[i]-homestps['started_at'].iloc[i]).total_seconds()
-                # endWday = homestps['finished_at'].iloc[i].weekday()
-                # endHour = homestps['finished_at'].iloc[i].hour
-                # endMin = homestps['finished_at'].iloc[i].minute
-                # endSec = homestps['finished_at'].iloc[i].second 
-                # homestps[str(startWday)].iloc[i] = 24*3600 - startHour*3600 - startMin*60 - startSec
             elif (homestps['wdaydiff'].iloc[i] == 1):
                 startWday = homestps['started_at'].iloc[i].weekday()
                 startHour = homestps['started_at'].iloc[i].hour
@@ -518,18 +437,11 @@ def homeworkStay(plcs, stps, dataname, places, threeQua):
                 for wDay in range(0,7): homestps[str(wDay)].iloc[i] += (24*3600) * homestps['weekdiff'].iloc[i]
             if (homestps['weekdiff'].iloc[i] < 0): 
                 print('Wrong week difference')
-            
+ 
+        # Sum up stay time of all stay points by weekday
         for col in cols:
             stps_placeid_wday = homestps[col]
             homeplcs[col]=stps_placeid_wday.sum()
-                
-        # for i in range(0,len(homeplcs)):
-        #     plcid = i+1
-        #     stps_plcid = homestps[homestps['place_id']==plcid]
-            
-        #     for col in cols:
-        #         stps_placeid_wday = stps_plcid[col]
-        #         homeplcs.loc[homeplcs['place_id']==plcid,col]=stps_placeid_wday.sum()
         
         for col in cols: 
             homeplcs[col] = homeplcs[col]/3600 # convert unit from second to hour
@@ -540,10 +452,12 @@ def homeworkStay(plcs, stps, dataname, places, threeQua):
 
     else: print('No home place found!')
     
-    ## WORKING ADDRESS  
+    # WORKING ADDRESS  
+    # Choose nighttime to detect workplace
     workcols = [str(i) for i in range(9,12)] + [str(i) for i in range(14,17)]
     workHrs = list(plcs[workcols].sum(axis=1))
     
+    # Minimum stay time for workplace should be met
     if(max(workHrs)>15): 
         workidx = workHrs.index(max(workHrs))
         workid = plcs['place_id'].iloc[workidx]
@@ -552,14 +466,6 @@ def homeworkStay(plcs, stps, dataname, places, threeQua):
         cols = [str(i) for i in range(0,24)]
         workplcs = workplcs.drop(cols, axis=1)
         workstps = stps[stps['place_id']==workid]
-     
-        # stps['tracked_at_Wday'] = 0
-        # for i in range(0,len(stps)): stps['tracked_at_Wday'].iloc[i] = stps['started_at'].iloc[i].weekday()
-        
-        # workstps = stps[stps['tracked_at_Wday']<=4]
-        # workstps = workstps[((workstps['tracked_at_hour']>=8) & (workstps['tracked_at_hour']<=12)) | ((workstps['tracked_at_hour']>=14) & (workstps['tracked_at_hour']<=18))]
-        # workplcs = main.findPlaces(workstps, dataname, minDist, minPoints*2) 
-        # workplcs = poi.reverseGeoCoding(workplcs)
         
         cols = [str(i) for i in range(0,7)]
         for col in cols: workplcs[col] = 0
@@ -567,7 +473,7 @@ def homeworkStay(plcs, stps, dataname, places, threeQua):
         cols = [str(i) for i in range(0,7)]
         for col in cols: workstps[col] = 0
           
-        # Calculate stay time
+        # Calculate stay time of each stay point of workplace
         workstps['daydiff'] = 0
         workstps['wdaydiff'] = 0 # weekday difference
         workstps['weekdiff'] = 0
@@ -641,30 +547,23 @@ def homeworkStay(plcs, stps, dataname, places, threeQua):
                 for wDay in range(0,7): workstps[str(wDay)].iloc[i] += (24*3600) * workstps['weekdiff'].iloc[i]
             if (workstps['weekdiff'].iloc[i] < 0): 
                 print('Wrong week difference')
-                
+              
+        # Sum up stay time of all stay points by weekday
         for col in cols:
             stps_placeid_wday = workstps[col]
             workplcs[col]=stps_placeid_wday.sum()
-            
-        # for i in range(0,len(workplcs)):
-        #     plcid = i+1
-        #     stps_plcid = workstps[workstps['place_id']==plcid]
-            
-        #     for col in cols:
-        #         stps_placeid_wday = stps_plcid[col]
-        #         workplcs.loc[workplcs['place_id']==plcid,col]=stps_placeid_wday.sum()
         
         for col in cols: workplcs[col] = workplcs[col]/3600 # convert unit from second to hour
         
         tempcols = workplcs[cols]
         workplcs['totalStayDays'] = tempcols.sum(axis=1)/8 # convert unit from hour to workday (8hrs) only for this column
-        # workplcs = workplcs[workplcs['totalStayDays']>7]
         workplcs['totalStayDays'] = workplcs['totalStayDays']/3 # further convert to natural day      
-        flag = 1
+        flag = 1 # change the flag
         
     else:
         print('No work place found!')
-     
+
+    # Output csv file based on if there is any workplace found
     if (flag == 1):
         workplcs['totalStayHrs'] = workplcs['totalStayDays']*24 # convert to hrs
         homeplcs['totalStayDays'] = homeplcs['totalStayDays']
@@ -677,7 +576,6 @@ def homeworkStay(plcs, stps, dataname, places, threeQua):
         
         homeworkplcs = pd.concat([homeplcs, workplcs], axis=0)
         homeworkplcs = homeworkplcs.reset_index(drop=True)
-        # homeworkplcs['place_id'] = homeworkplcs.index
     
         homeworkplcs = hlp.findSemanticInfo(places, homeworkplcs, threeQua)
     
@@ -690,18 +588,12 @@ def homeworkStay(plcs, stps, dataname, places, threeQua):
         homeworkplcs.to_csv('../data/results/stat/'+ dataname+ '/' + 'HomeWorkStay.csv', index = True)
         
     else:        
-        # workplcs['totalStayHrs'] = workplcs['totalStayDays']*24 # convert to hrs
         homeplcs['totalStayDays'] = homeplcs['totalStayDays']
         homeplcs['totalStayHrs'] = homeplcs['totalStayDays']*24 # convert to hrs
         
         homeplcs = poi.reverseGeoCoding(homeplcs)
         homeplcs['id'] = 'home'
-        # workplcs = poi.reverseGeoCoding(workplcs)
-        # workplcs['id'] = 'work'
-        
-        # homeworkplcs = pd.concat([homeplcs, workplcs], axis=0)
         homeplcs = homeplcs.reset_index(drop=True)
-        # homeplcs['place_id'] = homeplcs.index
     
         homeplcs = hlp.findSemanticInfo(places, homeplcs, threeQua)
     
@@ -717,7 +609,21 @@ def homeworkStay(plcs, stps, dataname, places, threeQua):
 
     
 def accuracyStat(dataName, dataNames, mac, timestart, timeend):
+    """
+    Calculate basic statistics for each participant
 
+    Parameters
+    ----------
+    dataName: str - participant ID
+    dataNames: list - all participants' ID
+    mac: bool - change the file route based on if it is mac or windows system
+    timestart: str - start day of the data
+    timeend : str - end day of the data
+
+    Returns
+    -------
+    None
+    """
     if len(dataNames) == 0:
         for root,dirs,files in os.walk("../data/results/questionnaires"):
             dataNames = dirs
@@ -734,8 +640,6 @@ def accuracyStat(dataName, dataNames, mac, timestart, timeend):
         dfStatistics = pd.DataFrame(columns =['id','OneQuatile','Median','ThreeQuatile','Avg','30','40','50','60','70', 'NumDays', 'NumPoints', 'AvgNumPoints', 'TotalDist', 'AvgDist', 'phoneModel'])
 
         tempStat = {}
-
-        #dfStatistics = dfStatistics.append(pd.Series(name=dataName))
         tempStat['id'] = dataName
         
         dataPathLocs,dataPathTrips = hlp.getDataPaths(dataName)
@@ -743,16 +647,10 @@ def accuracyStat(dataName, dataNames, mac, timestart, timeend):
         
         locs, locsgdf = hlp.parseLocs(dataPathLocs)
         locs['d_diff'] = np.append(haversine_dist(locs.longitudeE7[1:], locs.latitudeE7[1:], locs.longitudeE7[:-1], locs.latitudeE7[:-1]),0)
-
-        #trips, tripdf, tripsgdf = hlp.parseTrips(dataPathTrips)
-    
-        # tempStat['dateStart'] = labelStart
-        # tempStat['dateEnd'] = lebelEnd
         
         # Number of points per day
         idx = pd.date_range(locs.index[0].date(), locs.index[-1].date())
         perDay = (locs.groupby(locs.index.date).count()['timestampMs'])
-        #perDay = perDay.reindex(idx, fill_value=0)
         tempStat['Median'] = locs['accuracy'].median(axis=0)
         tempStat['Avg'] = locs['accuracy'].mean(axis=0)
         tempStat['OneQuatile'] = np.quantile(locs['accuracy'], .25)
@@ -762,23 +660,34 @@ def accuracyStat(dataName, dataNames, mac, timestart, timeend):
         tempStat['AvgNumPoints'] = perDay.mean()
         tempStat['TotalDist'] = locs['d_diff'].sum(axis=0)/1000 # unit: km
         tempStat['AvgDist'] = tempStat['TotalDist']/tempStat['NumDays']
-        
-        #hlp.checkTrips(trips)
+    
         tempStat['phoneModel'] = dfPhoneModel.loc[np.where(dfPhoneModel["Enter your participant ID:"] == int(dataName))[0][0],"What is your mobile phone's brand used to collect data?"]
         
-        #Accuracy
+        # Calculate the percentage of GPS points within chosen accuracy threshold
         for i in [30,40,50,60,70]:
             tempStat[str(i)] =  round(100*len(locs[locs['accuracy'].lt(i)])/len(locs),2)
             
         generated_dfStatistics.append(tempStat)
         dfStatistics = dfStatistics.append(generated_dfStatistics)
         
-    dfStatistics.to_csv('../data/results/EDAResults.csv', index=False)
+    dfStatistics.to_csv('../data/results/statistics.csv', index=False)
     return dfStatistics
 
 
 def analysePreQuest():
+    """
+    Calculate the mean score of the interesting tasks in pre-questionnaire
     
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    qmean: list - mean score of each questions
+    highest: list - the number of participants rating 'Very interested' for each question
+    secHigh: list - the number of participants rating 'Somewhat interested' for each question
+    """   
     pre = pd.read_csv('../data/results/questionnaires/Pre-Questionnaire - Location Diary.csv')
     labels2score = {"Very interested":5,"Somewhat interested":4,"Neither interested or uninterested":3,"Somewhat uninterested":2,"Very uninterested":1}
     cols = [str(i) for i in range(1,10)]    
@@ -788,7 +697,6 @@ def analysePreQuest():
     highest = []
     secHigh = []
     for col in cols:
-        # col="2"
         highest.append(len(pre[pre[col] == 5]))
         secHigh.append(len(pre[pre[col] == 4]))
     return qmean, highest, secHigh
