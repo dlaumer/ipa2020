@@ -1016,7 +1016,7 @@ def savecsv4jsTrps(dataName, trips):
         trips.loc[i, "waypointsLat"] = ' '.join([str(j[1]) for j in trips.loc[i,'geom'].coords])
 
     trips = trips[['origin', 'destination','waypointsLong','waypointsLat']]
-    trips.to_csv('../data/result/stat/' + dataName+'/trips.csv',  index = False, sep = ";")
+    trips.to_csv('../data/results/stat/' + dataName+'/trips.csv',  index = False, sep = ";")
 
     
 

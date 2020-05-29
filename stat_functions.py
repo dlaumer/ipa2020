@@ -149,7 +149,7 @@ def transModeCsv(transtat, dataname):
     # dataNameList = ["3","4","5","6","7","17","20","25","28"]
     trans = transtatdf
     # for dataname in dataNameList:
-    # trans = pd.read_csv('E:/Google Drive/IPA 2020/5-Final Product/FINALDATA/stat'+dataname+'/TransportationMode.csv')
+    # trans = pd.read_csv('E:/Google Drive/IPA 2020/5-Final Product/FINALDATA/stat/'+dataname+'/TransportationMode.csv')
     # trans = pd.read_csv('E:/1_IPA/5-Final Product/stat1/TransportationMode.csv')
     # labels2modes = {"IN_PASSENGER_VEHICLE":'by Car',"STILL":'Still',"WALKING": 'Walking',"IN_BUS": 'by Bus',"CYCLING":'by Bike',"FLYING":'by Plane',"RUNNING":'Running',"IN_FERRY":'by Ferry',"IN_TRAIN": 'by Train',"SKIING": 'Skiing',"SAILING": 'Sailing',"IN_SUBWAY": 'by Subway',"IN_TRAM": 'by Tram',"IN_VEHICLE":'in Vehicle'} 
     # trans['name'] = trans['mode']
@@ -181,12 +181,12 @@ def transModeCsv(transtat, dataname):
                      inplace = True, na_position ='last')  
 
     # transdf.to_csv('E:/1_IPA/5-Final Product/stat1/TransportationModeCo2Perc.csv')
-    # transdf.to_csv('E:/Google Drive/IPA 2020/5-Final Product/FINALDATA/stat'+dataname+'/TransportationModeCo2Perc.csv')
+    # transdf.to_csv('E:/Google Drive/IPA 2020/5-Final Product/FINALDATA/stat/'+dataname+'/TransportationModeCo2Perc.csv')
     
     # if not(os.path.exists('../data/stat/'+ dataname + '/')):
     #     os.makedirs('../data/stat/'+ dataname + '/')
-    # transtatdf.to_csv('../../5-Final Product/stat'+dataname+'/TransportationMode.csv', index = True)
-    transdf.to_csv('../../5-Final Product/stat'+dataname+'/TransportationModeCo2Perc.csv', index = True)
+    # transtatdf.to_csv('../../5-Final Product/stat/'+dataname+'/TransportationMode.csv', index = True)
+    transdf.to_csv('../data/results/stat/'+dataname+'/TransportationModeCo2Perc.csv', index = True)
     
     
 def plcsStayWorkday(stps, plcs, dataname):
@@ -367,10 +367,10 @@ def plcsStayHour(stps, plcs, dataname):
     # if not(os.path.exists('../data/stat/'+ dataname + '/')):
         # os.makedirs('../data/stat/'+ dataname + '/')
     # plcstocsv_transpose.to_csv('../data/stat/'+ dataname + '/PlcsStayHour.csv', index = True)
-    # plcstocsv_transpose.to_csv('../../5-Final Product/stat'+ dataname + '/PlcsStayHour.csv', index = True)
+    # plcstocsv_transpose.to_csv('../../5-Final Product/stat/'+ dataname + '/PlcsStayHour.csv', index = True)
 
     if not(os.path.exists('../data/results/stat/'+ dataname + '/')):
-        os.makedirs('../data/results/stat/'+ dataname + '/stat')
+        os.makedirs('../data/results/stat/'+ dataname + '/stat/')
     plcstocsv_transpose.to_csv('../data/results/stat/'+ dataname + '/PlcsStayHour.csv', index = True)
 
     # V2: with more information
@@ -685,9 +685,9 @@ def homeworkStay(plcs, stps, dataname, places, threeQua):
         homeworkplcs = homeworkplcs.reindex(columns=column_names)
         homeworkplcs = homeworkplcs.rename(columns={'0':'Mon','1':"Tues","2":"Wed","3":"Thur","4":"Fri","5":"Sat","6":"Sun"})  
         
-        if not(os.path.exists('../data/results'+ dataname + '/stat)):
-            os.makedirs('../../5-Final Product/stat'+ dataname + '/')
-        homeworkplcs.to_csv('../../5-Final Product/stat'+ dataname + '/' + 'HomeWorkStay.csv', index = True)
+        if not(os.path.exists('../data/results/stat/'+ dataname+ '/')):
+            os.makedirs('../data/results/stat/'+ dataname+ '/')
+        homeworkplcs.to_csv('../data/results/stat/'+ dataname+ '/' + 'HomeWorkStay.csv', index = True)
         
     else:        
         # workplcs['totalStayHrs'] = workplcs['totalStayDays']*24 # convert to hrs

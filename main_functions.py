@@ -266,6 +266,8 @@ def clusterTrips(trps, trpsCount, minDistTh, factorTh, dataName, saveDendogramms
 
         # Maybe save the images of the trees
         if saveDendogramms:
+            if not os.path.exists('../data/results/clustering/'):
+                os.mkdir('../data/results/clustering/')
             if not os.path.exists('../data/results/clustering/' + dataName + '/'):
                 os.mkdir('../data/results/clustering/' + dataName + '/')
             fig = plt.figure(figsize=(25, 10))
