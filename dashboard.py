@@ -34,11 +34,11 @@ from shapely.geometry import Point, LineString, Polygon
 from trackintel.geogr.distances import haversine_dist
 
 #import noiserm_functions as nrm
-dataNameList = ["1","2","3","4","5","6","7","17","20","25","28"]
+dataNameList = ["3","4","5","6","7","17","20","25","28"]
+dataNameListPreQ = ["3","4","5","6","7","10","11","15","17","18","20","25","28"]
+dataName = '2'
 
-dataName = '28'
-
-mac = True
+mac = False
 
 IMPORT_THRES =      True
 CHOOSE_THRES =      False
@@ -48,16 +48,15 @@ FIND_STAY_POINTS =  True
 FIND_PLACES =       True
 FIND_TRIPS =        True
 FIND_SEMANTIC_INFO =True
-CLUSTER_TRPS =      False
-EXPORT_GPX =        False
-API_CALL =          False
-EXPORT_FOR_DASHBOARD = False
+CLUSTER_TRPS =      True
+EXPORT_GPX =        True
+API_CALL =          True
+EXPORT_FOR_DASHBOARD = True
 
-exportShp =         False
-loadTh =            False
+exportShp =         True
 
 TimelineStat =      True
-TransmodeStat =     False
+TransmodeStat =     True
 HomeWorkStat =      True
 
 
@@ -65,7 +64,7 @@ HomeWorkStat =      True
 if IMPORT_THRES:
     import ast
     
-    inputFile = open("../data/stat/thresholds.txt", "r")
+    inputFile = open("../data/stat/thresholds2405.txt", "r")
     lines = inputFile.readlines()
     
     objects = []
@@ -77,6 +76,41 @@ if IMPORT_THRES:
     thresholds = allthresholds[dataName]
 
 # thresholds['accuracy_threshold'] = 200
+
+#%% Pre-Questionnaire analysis to rank the interested questions
+
+threshdf = pd.DataFrame.from_dict(allthresholds).T
+# threshdf.to_csv('../data/allthreshods2405.csv', index=False)
+dfStatistics = pd.read_csv('../data/statistics.csv',sep=",")
+threshdf['id'] = threshdf.index.astype(int)
+finalstat = pd.merge(threshdf,dfStatistics,left_on='id',right_on='id')
+finalstat.to_csv('../data/allthreshods2405.csv', index=False)
+
+pre = pd.read_csv('../data/pre.csv')
+labels2score = {"Very interested":5,"Somewhat interested":4,"Neither interested or uninterested":3,"Somewhat uninterested":2,"Very uninterested":1}
+cols = [str(i) for i in range(1,10)]    
+for col in cols:
+    pre=pre.replace({col: labels2score})
+qmean = pre.mean()
+highest = []
+secHigh = []
+for col in cols:
+    # col="2"
+    highest.append(len(pre[pre[col] == 5]))
+    secHigh.append(len(pre[pre[col] == 4]))
+
+#%% Merge the basic statistics of formal participants and Haojun & Daniel's
+
+dfStatisticsAll = pd.read_csv('../data/statisticsAll.csv',sep=",")
+dfStatistics = pd.read_csv('../data/statistics.csv',sep=",")
+updatedStat = dfStatisticsAll.append(dfStatistics.iloc[0], ignore_index=True)
+updatedStat = updatedStat.append(dfStatistics.iloc[1], ignore_index=True)
+columns =['id','phoneModel','NumDays', 'NumPoints', 'AvgNumPoints','TotalDist', 'AvgDist', 'OneQuatile','Median','ThreeQuatile','Avg','30','40','50','60','70']
+updatedStat = updatedStat[columns]
+updatedStat2 = updatedStat.drop(['TotalDist', 'AvgDist', 'OneQuatile','Median','ThreeQuatile'],axis=1)
+# labelsChange = {'Avg':'AvgAccuracy'}
+updatedStat2 = updatedStat2.rename(columns={'Avg': 'AvgAccuracy'})
+
 #%% CHOOSE THRESHOLDS - PART 1
 if CHOOSE_THRES:
     # For the first time, run the following four lines to save the data
@@ -89,8 +123,8 @@ if CHOOSE_THRES:
     # staythred = pd.read_csv('../data/csv'+'/StayDiffStat.csv') 
     staythredrange = pd.read_csv('../data/csv'+'/StayDiffStatRange.csv') 
     
-    # dfStatistics = calstat.accuracyStat(dataName, dataNameList, mac, dateStart, dateEnd)
-    dfStatistics = pd.read_csv('../data/statistics.csv',sep=",")
+    # dfStatistics = calstat.accuracyStat(dataName, dataNameListPreQ, mac, dateStart, dateEnd)
+    dfStatistics = pd.read_csv('../data/statisticsAll.csv',sep=",")
     
     # staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
     # staythredrange[staythredrange['dataName']==int(dataName)]['time_quarter'][dataNameList.index(dataName)],
@@ -132,6 +166,9 @@ if CHOOSE_THRES:
 
 #%% IMPORT DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 print("-> Loading the data")
+dateStart = '2020-01-01'
+dateEnd = 'end'
+dataName = "21"
 dataPathLocs,dataPathTrips = hlp.getDataPaths(dataName)
 
 if SELECT_RANGE:    
@@ -391,18 +428,19 @@ if EXPORT_GPX:
 #%%
 if API_CALL:
     print("-> Calling the API from Hitouch")
-    version = 5
-    thresholds["DP_tolerance"] = 0.08
-    thresholds["fisheye_factor"] = 1
-    thresholds["curver_max"] = 360
-    thresholds["curver_min"] = 0
-    thresholds["curver_r"] = 20000
+    version = 6
+    if CHOOSE_THRES:
+        thresholds["DP_tolerance"] = 0.002
+        thresholds["fisheye_factor"] = 0.7
+        thresholds["curver_max"] = 360
+        thresholds["curver_min"] = 0
+        thresholds["curver_r"] = 500
     
     # homes = homeworkplcs.loc[homeworkplcs['id']=='work']
     # homeCoords = homes.loc[homes['totalStayHrs'].idxmax()].center.coords[:][0]
     
     # For participant 17, change index to 13
-    homeCoords = plcs[plcs['totalStayHrs']==plcs['totalStayHrs'].max()]['center'][9].coords[:][0]    
+    homeCoords = plcs[plcs['totalStayHrs']==plcs['totalStayHrs'].max()]['center'][0].coords[:][0]    
     
     api.apiCall(dataName, 1000 * int(dataName) + version, homeCoords, thresholds["DP_tolerance"], thresholds["fisheye_factor"],thresholds["curver_min"], thresholds["curver_max"], thresholds["curver_r"])
     tripsAgrSchematic = api.readApiCall(trpsAgr.copy(), 1000*int(dataName)+version )
