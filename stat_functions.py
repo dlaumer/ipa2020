@@ -381,7 +381,7 @@ def homeworkStay(plcs, stps, dataname, places, threeQua):
             list30 = [4,6,9,11] # 30 days for each month of this list
             listFeb = [2] # 29 days for each month of this list
 
-            if (homestps['monthdi<<ff'].iloc[i] >= 1):
+            if (homestps['monthdiff'].iloc[i] >= 1):
                 startMonth = homestps['started_at'].iloc[i].month
                 if (startMonth in list31):
                     homestps['daydiff'].iloc[i] += 31

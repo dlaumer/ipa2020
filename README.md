@@ -7,15 +7,16 @@ Authors: Haojun Cai and Daniel Laumer
 
 Analysis:
 In order to use the analysis part of our code you need to run the file dashboard.py
+It requires the python 3 (we used 3.6)
 
 Visualisation:
-In order to see the visualisation, you need to open a local host in the folder "vsualisation" and open the index.html.
+In order to see the visualisation, you need to open a local host in the outmost folder and open the code/visualization/index.html.
 
 ### Prerequisites
 
 What things you need to install the software and how to install them
 
-Thw following python packages are required:
+The following python packages are required:
 ```
 * pandas
 * plotly
@@ -39,50 +40,13 @@ Thw following python packages are required:
 * trackintel
 ```
 
-### Installing
-
-A step by step series of examples that tell you how to get a development env running
-
-Say what the step will be
-
-```
-Give the example
-```
-
-And repeat
-
-```
-until finished
-```
-
-End with an example of getting some data out of the system or using it for a little demo
-
-## Running the tests
-
-Explain how to run the automated tests for this system
-
-### Break down into end to end tests
-
-Explain what these tests test and why
-
-```
-Give an example
-```
-
-### And coding style tests
-
-Explain what these tests test and why
-
-```
-Give an example
-```
-
-## Deployment
-
-Add additional notes about how to deploy this on a live system
-
 ## Built With
-
+* python
+* HTML
+* JavaScript
+* CSS
+* D3
+* Highcharts
 
 
 ## Authors
@@ -97,7 +61,6 @@ This project is licensed under the MIT License* see the [LICENSE.md](LICENSE.md)
 
 ## Acknowledgments
 
-* Hat tip to anyone whose code was used
-* Inspiration
-* etc
+* Thanks to trackintel for the code on staypoint detection and clustering
+* Thanks for Hitouch for their API on schematic maps
 
