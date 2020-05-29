@@ -105,7 +105,7 @@ def apiCall(dataname, scenarioNumber, homeCoords, DP_tolerance, fisheye_factor,c
     userId = "3cfb3bd4-add1-4460-8955-88e7eec7cb3b"
 
     # Read all the files in the directory (hardcoded path)
-    for root,dirs,files in os.walk("../data/gpx/" + dataname + "/"):
+    for root,dirs,files in os.walk("../data/results/gpx/" + dataname + "/"):
        gpxFiles = files
        break
     
@@ -117,11 +117,11 @@ def apiCall(dataname, scenarioNumber, homeCoords, DP_tolerance, fisheye_factor,c
     urlImport = urlCore + 'import/' + importID
     gpsFileIds = []
     for gpxFile in gpxFiles:
-        fileContent = readFile('../data/gpx/' + dataname + '/' + gpxFile)
+        fileContent = readFile('../data/results/gpx/' + dataname + '/' + gpxFile)
         gpsFileIds.append(putResponse(urlImport, fileContent))
     
     # Read the settings file
-    aeFile = readFile('../data/ETH1.json')
+    aeFile = readFile('../data/input/ETH1.json')
     aeFileJson = json.loads(aeFile)
 
     # Change some parameters according to the participant
@@ -140,7 +140,9 @@ def apiCall(dataname, scenarioNumber, homeCoords, DP_tolerance, fisheye_factor,c
     aeFileJson["curver"]["radius2"] = curver_r
     
     # Save the json file for further use
-    with open('../data/APISettings/' + dataname + '.json','w') as f:
+    if not os.path.exists('../data/results/APISettings/'):
+        os.mkdir('../data/results/APISettings/')
+    with open('../data/results/APISettings/' + dataname + '.json','w') as f:
         json.dump(aeFileJson, f)
 
     # Also upload the settings file
@@ -172,7 +174,9 @@ def apiCall(dataname, scenarioNumber, homeCoords, DP_tolerance, fisheye_factor,c
     z = zipfile.ZipFile(io.BytesIO(gpxData.content))
     
     # Unzip the file and save it for further use
-    dataPath = "../data/gpxAPI/"+str(scenarioNumber) + '/'
+    if not os.path.exists("../data/results/gpxAPI/"):
+        os.mkdir("../data/results/gpxAPI/")
+    dataPath = "../data/results/gpxAPI/"+str(scenarioNumber) + '/'
     if os.path.exists(dataPath):
         shutil.rmtree(dataPath)
     os.makedirs(dataPath)
@@ -194,7 +198,7 @@ def readApiCall(trips, scenarioNumber):
 
     """
     # Find all returned gps files
-    pathRoot = "../data/gpxAPI/" + str(scenarioNumber) + "/IPA_Compilation/IPA_Scenario_" + str(scenarioNumber) + "/"
+    pathRoot = "../data/results/gpxAPI/" + str(scenarioNumber) + "/IPA_Compilation/IPA_Scenario_" + str(scenarioNumber) + "/"
     for root,dirs,files in os.walk(pathRoot):
        gpxFiles = files
        break

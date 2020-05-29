@@ -51,7 +51,7 @@ def getDataPaths(participantId):
     dataPathTrips: str - path to the semantic info folder
 
     """
-    rootPath = "../../4-Collection/DataParticipants/"
+    rootPath = "../data/raw/"
     path = rootPath + participantId + "/Takeout/"
     # English
     if os.path.exists(path + "Location History/"):        
@@ -402,9 +402,9 @@ def loc2shp(locs, dataname):
     # The format datetime cannot be read by shp files
     locs['date'] = locs['date'].astype(str)
     locs['datetimeUTC'] = locs['datetimeUTC'].astype(str)
-    if not(os.path.exists('../data/shp/'+ dataname + '/')):
-        os.makedirs('../data/shp/'+ dataname + '/')
-    locs.to_file('../data/shp/'+ dataname + '/Loc.shp')
+    if not(os.path.exists('../data/results/shp/'+ dataname + '/')):
+        os.makedirs('../data/results/shp/'+ dataname + '/')
+    locs.to_file('../data/results/shp/'+ dataname + '/Loc.shp')
     
 def trip2shp(trips, dataname):
     """
@@ -429,10 +429,10 @@ def trip2shp(trips, dataname):
     trips['startTime'] = trips['startTime'].astype(str)
     trips['endTime'] = trips['endTime'].astype(str)
     
-    if not(os.path.exists('../data/shp/'+ dataname + '/')):
-        os.makedirs('../data/shp/'+ dataname + '/')
+    if not(os.path.exists('../data/results/shp/'+ dataname + '/')):
+        os.makedirs('../data/results/shp/'+ dataname + '/')
     # Export the trips 
-    trips[trips['Type']=='activitySegment'].to_file('../data/shp/'+ dataname + '/Trip.shp')  
+    trips[trips['Type']=='activitySegment'].to_file('../data/results/shp/'+ dataname + '/Trip.shp')  
     # Export the places (actually there is now another function for that)
     #trips[trips['Type']=='placeVisit'].to_file('../data/shp/'+ dataname + '/Place.shp')
 
@@ -503,9 +503,9 @@ def loc2csv4ti(locs, dataname):
     # Rename so that it matches the layout from trackintel
     locs.rename(columns = {'latitudeE7':'latitude', 'longitudeE7': 'longitude', 'altitude':'elevation'}, inplace = True)
     locs.loc[:,'tracked_at'] = locs.index.astype(str)
-    if not(os.path.exists('../data/csv/'+ dataname + '/')):
-        os.makedirs('../data/csv/'+ dataname + '/')
-    locs.to_csv('../data/csv/' + dataname + '/' + dataname + '.csv', index=False, sep=';')
+    if not(os.path.exists('../data/results/csv/'+ dataname + '/')):
+        os.makedirs('../data/results/csv/'+ dataname + '/')
+    locs.to_csv('../data/results/csv/' + dataname + '/' + dataname + '.csv', index=False, sep=';')
     
 def trip2gpx(trips, dataname):
     """
@@ -521,8 +521,8 @@ def trip2gpx(trips, dataname):
     None
 
     """
-    if not(os.path.exists('../data/gpx/'+ dataname + '/')):
-        os.makedirs('../data/gpx/'+ dataname + '/')
+    if not(os.path.exists('../data/results/gpx/'+ dataname + '/')):
+        os.makedirs('../data/results/gpx/'+ dataname + '/')
 
     # Go through all trips
     for idx in trips.index:
@@ -541,10 +541,10 @@ def trip2gpx(trips, dataname):
             gpx_segment.points.append(gpxpy.gpx.GPXTrackPoint(coord[1], coord[0]))
         
         #print(gpx.to_xml())
-        with open('../data/gpx/' + dataname + '/' + trips.loc[idx,'id'] + '.gpx', 'w') as f:
+        with open('../data/results/gpx/' + dataname + '/' + trips.loc[idx,'id'] + '.gpx', 'w') as f:
             f.write(gpx.to_xml())
         # Prepare the gpx for the API call (add some attributes)
-        prepareGPXforAPI('../data/gpx/' + dataname + '/' + trips.loc[idx,'id'] + '.gpx', str(idx), trips.loc[idx,'id'])
+        prepareGPXforAPI('../data/results/gpx/' + dataname + '/' + trips.loc[idx,'id'] + '.gpx', str(idx), trips.loc[idx,'id'])
             
 def prepareGPXforAPI(path, routeId, pathId):
     """
@@ -595,7 +595,7 @@ def prepareGPXforAPI(path, routeId, pathId):
     # Save the gpx again
     tree.write(path,encoding="utf-8", xml_declaration=True, pretty_print=True)
 
-def selectLastMonth(dataPathLoc,dataPathTrip):
+def selectLastMonth(dataPathLoc,dataPathTrip, mac):
     """
     Splits the data so that there is only the last month
     (was not used in the end)   
@@ -977,7 +977,7 @@ def savecsv4js(dataName, places, trips, tripsSchematic):
     places['latitudeSchematic'] = places.geometry.y
     places['longitudeSchematic'] = places.geometry.x
     places = places.drop(columns = ['user_id', 'extent', 'center', 'centerSchematic'])
-    places.to_csv('../../5-Final Product/stat' + dataName+'/places.csv',  index = False, sep = ";")
+    places.to_csv('../data/results/stat/' + dataName+'/places.csv',  index = False, sep = ";")
  
     # Add the geometry for aggregated and also schematic, put all coordinates in a large array
     # That is just how the data is read from the JS files
@@ -992,7 +992,7 @@ def savecsv4js(dataName, places, trips, tripsSchematic):
 
     trips = trips.rename(columns = {'weight':'count'})
     trips = trips[['origin', 'destination','count','waypointsLong','waypointsLat','waypointsLatSchematic','waypointsLongSchematic']]
-    trips.to_csv('../../5-Final Product/stat' + dataName+'/tripsAgr.csv',  index = False, sep = ";")
+    trips.to_csv('../data/results/stat/' + dataName+'/tripsAgr.csv',  index = False, sep = ";")
 
 def savecsv4jsTrps(dataName, trips):  
     """
@@ -1016,7 +1016,7 @@ def savecsv4jsTrps(dataName, trips):
         trips.loc[i, "waypointsLat"] = ' '.join([str(j[1]) for j in trips.loc[i,'geom'].coords])
 
     trips = trips[['origin', 'destination','waypointsLong','waypointsLat']]
-    trips.to_csv('../../5-Final Product/stat' + dataName+'/trips.csv',  index = False, sep = ";")
+    trips.to_csv('../data/result/stat/' + dataName+'/trips.csv',  index = False, sep = ";")
 
     
 
