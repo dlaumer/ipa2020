@@ -1,0 +1,364 @@
+
+body {
+  margin: 0;
+  height: 100%;
+  background-color: white;
+  font-family: sans-serif;
+
+}
+
+h1{
+  font-size: 28px;
+}
+
+#zoomAll {
+  height: 40px;
+  width: 40px;
+}
+
+#removeLabelsButton {
+  height: 40px;
+  width: 40px;
+}
+
+
+.my-custom-control {
+  color: white; 
+  margin: 10px;
+  height: 30px;
+  width: 120px;
+  -webkit-border-radius: 10px;
+  -moz-border-radius: 10px;
+  border-radius: 10px;
+  -webkit-box-shadow: #666 0px 1px 1px;
+  -moz-box-shadow: #666 0px 1px 1px;
+  box-shadow: #666 0px 1px 1px;
+  background-color: #1F407A;
+}
+
+.flex-item {
+	flex-grow: 1; 
+  flex-shrink: 1; 
+  transition: all 2s;
+	}
+
+.flex-container {
+	display: flex; 
+	flex-flow: row wrap; 
+	justify-content: center; 
+	}
+
+#title-container {
+  height: 7%;
+  width: 100%;
+  background-color: rgb(172, 172, 172);
+  }
+
+#info-container {
+  height: 30%;
+  width: 100%;
+  visibility: visible;
+  transition: all 2s;
+}
+#info-title-div {
+  height: 15%; 
+}
+#info-container2 {
+  height: 85%;
+  width: 100%;
+}
+
+#info1 {
+  flex-basis: 20%; 
+  height: 100%; 
+  padding:20px;
+  text-align:justify;
+}
+
+#info2 {
+  flex-basis: 20%; 
+  height: 100%; 
+  padding:20px;
+  text-align:justify;
+}
+#info3 {
+  flex-basis: 20%; 
+  height: 100%; 
+  padding:20px;
+}
+
+#map-and-places-container {
+  height: 93%;
+  width: 100%;
+}
+#map-container {
+  background-color: #ececec;
+  flex-basis:45%; 
+  min-width: 400px; 
+  height: 100%;
+  }
+
+#mapboxx { 
+  position:relative; 
+  height: 100%;
+
+}
+
+#places-container {
+    flex-basis: 25%; 
+    min-width: 200px; 
+    height: 100%; 
+}
+
+#places-boxes {
+  height:100%;
+  display: flex; 
+  flex-direction: column;
+  justify-content: space-evenly;
+}
+
+#chart-container {
+  flex-grow: 5;
+  order:1;
+  display: flex; 
+  flex-direction: column;
+  justify-content: space-evenly;
+}
+
+#time-container {
+  flex-grow: 3;
+  order:99;
+  display: flex; 
+  flex-direction: column;
+  justify-content: space-evenly;
+}
+#timeline {
+  text-align:center;
+}
+
+#time {
+  text-align:center;
+  width:80%;
+}
+#timeExplain {
+  margin-left: 10px;
+  font-family: Segoe UI; 
+  font-size: 13px;
+  font-weight: bold;
+  width:50%;
+  height:12px;
+}
+
+
+.boxes {
+  flex-grow: 1;
+  min-width: 200px; 
+  margin:5px;
+ 
+  
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+  -webkit-box-shadow: #666 0px 1px 1px;
+  -moz-box-shadow: #666 0px 1px 1px;
+  box-shadow: #666 0px 1px 1px;
+  background: #1F407A;
+}
+
+.innerBox {
+  padding: 5px 0;
+  height:100%;
+  width:80%;
+  float:left;
+  margin-left:20px;
+}
+
+img {
+  max-width: 80%;
+  max-height: 80%;
+  object-fit: cover;
+  overflow: hidden;
+}
+
+.zoom {
+  position: relative;
+  width: 10%;
+  height: 100%;
+  float: right;
+}
+
+.boxes:hover {
+  opacity: 0.7;
+}
+
+.place {
+  fill: white;
+  stroke: #252525;
+}
+
+.trip {
+  fill: none;
+  stroke: #252525;
+  stroke-width: 1;
+}
+
+/* shadow trick from bl.ocks.org */
+#tooltip {
+  font-size: 12pt;
+}
+
+#collapeButton1 {
+  max-width: 15px;  
+  height: 100%; 
+  background-color: rgb(172, 172, 172);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+#collapeButton2 {
+  max-width: 15px;  
+  height: 100%; 
+  background-color: rgb(172, 172, 172);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+#homeWorkBalance-container {
+  flex-basis:25%; 
+  min-width: 200px;
+  height: 100%; 
+}
+
+/* For Pie Chart */
+.piechart-container{
+  text-align: center;
+  height:100%;
+  width: 100%;
+
+}
+.highcharts-figure, .highcharts-data-table table {
+  min-width: 120px; 
+  max-width: 800px;
+  margin: 1em auto;
+}
+
+.highcharts-data-table table {
+	font-family: Verdana, sans-serif;
+	border-collapse: collapse;
+	border: 1px solid #EBEBEB;
+	margin: 10px auto;
+	text-align: center;
+	width: 100%;
+	max-width: 500px;
+}
+.highcharts-data-table caption {
+  padding: 1em 0;
+  font-size: 1.2em;
+  color: #555;
+}
+.highcharts-data-table th {
+	font-weight: 600;
+  padding: 0.5em;
+}
+.highcharts-data-table td, .highcharts-data-table th, .highcharts-data-table caption {
+  padding: 0.5em;
+}
+.highcharts-data-table thead tr, .highcharts-data-table tr:nth-child(even) {
+  background: #f8f8f8;
+}
+.highcharts-data-table tr:hover {
+  background: #f1f7ff;
+}
+input[type="number"] {
+	min-width: 50px;
+}
+
+.collapse {
+  flex-basis:0% !important;
+  min-width: 0px !important;
+  flex-grow: 0.00001 !important; 
+}
+
+.collapseHoriz {
+  height: 0 !important;
+  visibility: hidden !important;
+  overflow: hidden !important;
+}
+
+
+#highcharts-container{
+  /* margin-bottom: 10%; */
+  height: 60%;
+}
+
+#container{
+  height:100%;
+  width: 100%;
+}
+
+#container2{
+  height:100%;
+  width: 100%;
+}
+
+
+#basicStatistics-container{
+  margin: 10px;
+}
+
+#buttonChangeHighcart {
+  width: 40%;
+  height: 3%;
+  background-color: #1F407A;
+  text-align:center;
+  margin:auto;
+  padding: 5px;
+}
+
+.hover-button {
+  transition: none !important;
+}
+.hover-button:hover {
+  opacity: 0.7;
+}
+
+#info-button {
+  flex-basis: 5%; 
+  height: 100%; 
+  background-color: #A8322D;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+#info-dataName {
+  flex-basis: 20%; 
+  height: 100%; 
+}
+
+#title-div {
+  flex-basis: 75%; 
+  min-width: 200px; 
+  height: 100%; 
+}
+
+h1 {
+  margin:0;
+  padding-left:10px;
+}
+
+h2 {
+  margin:0;
+  padding-left:10px;
+}
+
+#title-div h1,
+#title-div p {
+    display: inline;
+
+}
+
+#hitouchText{
+  font-size: 8pt;
+}
+

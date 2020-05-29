@@ -368,7 +368,7 @@ def plcsStayHour(stps, plcs, dataname):
         # os.makedirs('../data/stat/'+ dataname + '/')
     # plcstocsv_transpose.to_csv('../data/stat/'+ dataname + '/PlcsStayHour.csv', index = True)
     # plcstocsv_transpose.to_csv('../../5-Final Product/stat/'+ dataname + '/PlcsStayHour.csv', index = True)
-
+    plcstocsv_transpose.index.name='group'
     if not(os.path.exists('../data/results/stat/'+ dataname + '/')):
         os.makedirs('../data/results/stat/'+ dataname + '/stat/')
     plcstocsv_transpose.to_csv('../data/results/stat/'+ dataname + '/PlcsStayHour.csv', index = True)

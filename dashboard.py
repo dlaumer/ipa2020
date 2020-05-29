@@ -17,8 +17,13 @@ import math
 import os
 import numpy as np
 
+import http.server
+import socketserver
+import webbrowser
+
 from statistics import median 
-from shapely.geometry import Point
+from shapely.geometry import Point, LineString, Polygon
+from trackintel.geogr.distances import haversine_dist
 
 # Local files
 import main_functions as main
@@ -27,16 +32,12 @@ import poi_classification as poi
 import thresholds_function as thred
 import stat_functions as calstat
 import api_call as api
-import numpy as np
 
-from shapely.geometry import Point, LineString, Polygon
-
-from trackintel.geogr.distances import haversine_dist
 
 #import noiserm_functions as nrm
 dataNameList = ["1","2","3","4","5","6","7","17","20","25","28"]
 #dataNameListPreQ = ["3","4","5","6","7","10","11","15","17","18","20","25","28"]
-dataName = '1'
+dataName = '2'
 
 # Some datapaths are different for the mac, so this boolean
 mac = True
@@ -54,6 +55,7 @@ CLUSTER_TRPS =      True
 EXPORT_GPX =        True
 API_CALL =          True
 EXPORT_FOR_DASHBOARD = True
+START_LOCALHOST =   True
 
 exportShp =         True
 
@@ -316,3 +318,17 @@ if EXPORT_FOR_DASHBOARD:
     # outputFile.write(str(allthresholds))
     # outputFile.flush()
     # outputFile.close()
+
+#%%
+if START_LOCALHOST:
+    PORT = 8000
+    
+    web_dir = os.path.join(os.path.dirname(__file__), '../')
+    os.chdir(web_dir)
+    Handler = http.server.SimpleHTTPRequestHandler
+    
+    with socketserver.TCPServer(("", PORT), Handler) as httpd:
+        print("serving at port", PORT)
+        webbrowser.open("http://localhost:"+str(PORT)+"/ipa2020/jsProject/index.html")
+        httpd.serve_forever()
+    

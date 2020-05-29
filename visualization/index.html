@@ -1,0 +1,140 @@
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>Location Diary</title>
+
+  <script src="https://d3js.org/d3.v5.min.js"></script>
+  <script src="https://unpkg.com/topojson@3"></script>
+  <script src="https://unpkg.com/d3-delaunay@4"></script>
+  <script src="https://unpkg.com/d3-geo-voronoi@1"></script>
+  <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+  <script src="js/d3-path-morphing.min.js"></script>
+
+  <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+  <script src="https://code.highcharts.com/highcharts.js"></script>
+  <script src="https://code.highcharts.com/modules/exporting.js"></script>
+  <script src="https://code.highcharts.com/modules/export-data.js"></script>
+  <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+
+  <script src="https://code.highcharts.com/highcharts.js"></script>
+  <script src="https://code.highcharts.com/modules/exporting.js"></script>
+  <script src="https://code.highcharts.com/modules/export-data.js"></script>
+  <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+
+  <!-- <script src="tooltip.js"></script> -->
+  <script src='https://unpkg.com/simple-statistics@2.0.0/dist/simple-statistics.min.js'></script>
+
+  <link href="css/style.css" rel="stylesheet">
+  <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.52.0/mapbox-gl.css' rel='stylesheet' />
+
+</head>
+
+<body>
+  <div id="title-container" class="flex-container">
+    <div id="title-div" class="flex-item"><h1>Location Diary</h1><p style="padding-left:40px">"Discover your past based on your locations"</p></div>
+    <div id="info-dataName" class="flex-item"><p>Participant: </p></div>
+    <div id="info-button" class="flex-item"><img src="imgs/info-black-48dp.svg"/></div>
+  </div>
+
+  <div id="info-container" class= "collapseHoriz">
+    <div id="info-title-div"><h2>More information</h2></div>
+    <div id="info-container2" class="flex-container">
+    <div id="info1" class="flex-item"><b>General Information</b> </br> The project is an Interdisciplinary Project of Geomatics MS.c. Program at ETH Zurich, conducted by Daniel Laumer and Haojun Cai in Spring 2020. It is supported by the Institute of Cartography and Geoinformation and importantly, all active participants, and the Google Map Timeline function.</div>
+    <div id="info2" class="flex-item"><b>About Project</b> </br> To take advantage of everyday Google Timeline data, we provide summary information on spatial and temporal aspects, including basic statistics, the 24-hour timeline of the top-visited places, aggregated trajectories and schematic view, home work balance, and commuting habits. To be continued in the future.</div>
+    <div id="info3" class="flex-item"><b>Contact</b> </br>ipa.location.diary@gmail.com</br>daniel.laumer@gmail.com</br> haojuncai1996@gmail.com</div>
+  </div>
+  </div>
+
+
+  <div id="map-and-places-container" class="flex-container">
+
+    <div id="places-container" class="flex-item">
+      <div id="places-boxes">
+        <div class="boxes">
+          <div id="box-1" class="innerBox"></div>
+          <div id='zoom-1' class="zoom"><img src="imgs/zoom_in-24px.svg" /></div>
+        </div>
+        
+        <div id=chart-container>
+          <div id="timeline"></div>
+        </div>
+        <div id=time-container>
+          <div id="timeExplain">Select a time period here:</div>
+          <div id="time"></div>
+        </div>
+      </div>
+
+    </div>
+    <div id="collapeButton1" class="flex-item hover-button"><span style="transform:scale(1,5);">&lt;</span></div>
+
+    <div id="map-container" class="flex-item">
+      <div id="mapboxx">
+      </div>
+      <svg id="map">
+        <!-- must be in this order for drawing -->
+        <g id="basemap"></g>
+        <g id="trips"></g>
+        <g id="places"></g>
+        <text id="tooltip" style="display: none;"></text>
+      </svg>
+    </div>
+
+    <div id="collapeButton2" class="flex-item hover-button"><span style="transform:scale(1,5);">&gt;</span></div>
+
+    <div id="homeWorkBalance-container" class="flex-item">
+      <div id=highcharts-container>
+        <!-- Home and work balance negative stacked bar -->
+        <div id="balance-div" style="display:block;">
+          <figure class="highcharts-figure">
+            <div id="container"></div>
+            <p class="highcharts-description"></p>
+          </figure>
+        </div>        
+      </div>
+      <div id="buttonChangeHighcart" class="my-custom-control hover-button">Change Diagram</div>
+      <div id="basicStatistics-container">
+        <table>
+          <tbody>
+            <tr>
+              <td><img src="imgs/today-black-36dp.svg"/></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td><img src="imgs/phone_iphone-black-36dp.svg"/></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td><img src="imgs/scatter_plot-black-36dp.svg"/></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td><img src="imgs/timeline-black-36dp.svg"/></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td><img src="imgs/functions-black-36dp.svg"/></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td><img src="imgs/copyright-black-36dp.svg"/></td>
+              <td style="font-size: 8pt;">Copyright 2020, by Daniel Laumer and Haojun Cai</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+
+  <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.52.0/mapbox-gl.js'></script>
+  <script src="js/script.js"></script>
+
+</body>
+
+</html>
