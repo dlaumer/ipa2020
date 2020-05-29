@@ -903,3 +903,20 @@ def accuracyStat(dataName, dataNames, mac, timestart, timeend):
         
     dfStatistics.to_csv('../data/statisticsAll.csv', index=False)
     return dfStatistics
+
+
+def analysePreQuest():
+    
+    pre = pd.read_csv('../data/pre.csv')
+    labels2score = {"Very interested":5,"Somewhat interested":4,"Neither interested or uninterested":3,"Somewhat uninterested":2,"Very uninterested":1}
+    cols = [str(i) for i in range(1,10)]    
+    for col in cols:
+        pre=pre.replace({col: labels2score})
+    qmean = pre.mean()
+    highest = []
+    secHigh = []
+    for col in cols:
+        # col="2"
+        highest.append(len(pre[pre[col] == 5]))
+        secHigh.append(len(pre[pre[col] == 4]))
+    return qmean, highest, secHigh

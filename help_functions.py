@@ -746,7 +746,7 @@ def selectRange(dataPathLoc,dataPathTrip, mac, dateStart = 'beginning', dateEnd 
                         else:
                             copyfile(filePath , newFilePath)
                 
-    return newDataPathLoc,newDataPathTrip,labelStart,labelEnd
+    return newDataPathLoc,newDataPathTrip
 
 def _splitTripFile(filePath, newFilePath, dateStart, dateEnd):
     """

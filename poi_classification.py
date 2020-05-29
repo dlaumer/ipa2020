@@ -12,7 +12,7 @@
     
 import geopandas
 import help_functions as hlp
-import overpy
+#import overpy
 import pandas as pd
 from geopy.geocoders import Nominatim
 

@@ -35,8 +35,8 @@ from trackintel.geogr.distances import haversine_dist
 
 #import noiserm_functions as nrm
 dataNameList = ["3","4","5","6","7","17","20","25","28"]
-dataNameListPreQ = ["3","4","5","6","7","10","11","15","17","18","20","25","28"]
-dataName = '2'
+#dataNameListPreQ = ["3","4","5","6","7","10","11","15","17","18","20","25","28"]
+dataName = '1'
 
 # Some datapaths are different for the mac, so this boolean
 mac = True
@@ -66,7 +66,7 @@ HomeWorkStat =      True
 if IMPORT_THRES:
     import ast
     
-    inputFile = open("../data/stat/thresholds2405.txt", "r")
+    inputFile = open("../data/stat/thresholds200524.txt", "r")
     lines = inputFile.readlines()
     
     objects = []
@@ -77,41 +77,8 @@ if IMPORT_THRES:
     
     thresholds = allthresholds[dataName]
 
-# thresholds['accuracy_threshold'] = 200
-
 #%% Pre-Questionnaire analysis to rank the interested questions
-
-threshdf = pd.DataFrame.from_dict(allthresholds).T
-# threshdf.to_csv('../data/allthreshods2405.csv', index=False)
-dfStatistics = pd.read_csv('../data/statistics.csv',sep=",")
-threshdf['id'] = threshdf.index.astype(int)
-finalstat = pd.merge(threshdf,dfStatistics,left_on='id',right_on='id')
-finalstat.to_csv('../data/allthreshods2405.csv', index=False)
-
-pre = pd.read_csv('../data/pre.csv')
-labels2score = {"Very interested":5,"Somewhat interested":4,"Neither interested or uninterested":3,"Somewhat uninterested":2,"Very uninterested":1}
-cols = [str(i) for i in range(1,10)]    
-for col in cols:
-    pre=pre.replace({col: labels2score})
-qmean = pre.mean()
-highest = []
-secHigh = []
-for col in cols:
-    # col="2"
-    highest.append(len(pre[pre[col] == 5]))
-    secHigh.append(len(pre[pre[col] == 4]))
-
-#%% Merge the basic statistics of formal participants and Haojun & Daniel's
-
-dfStatisticsAll = pd.read_csv('../data/statisticsAll.csv',sep=",")
-dfStatistics = pd.read_csv('../data/statistics.csv',sep=",")
-updatedStat = dfStatisticsAll.append(dfStatistics.iloc[0], ignore_index=True)
-updatedStat = updatedStat.append(dfStatistics.iloc[1], ignore_index=True)
-columns =['id','phoneModel','NumDays', 'NumPoints', 'AvgNumPoints','TotalDist', 'AvgDist', 'OneQuatile','Median','ThreeQuatile','Avg','30','40','50','60','70']
-updatedStat = updatedStat[columns]
-updatedStat2 = updatedStat.drop(['TotalDist', 'AvgDist', 'OneQuatile','Median','ThreeQuatile'],axis=1)
-# labelsChange = {'Avg':'AvgAccuracy'}
-updatedStat2 = updatedStat2.rename(columns={'Avg': 'AvgAccuracy'})
+#qmean, highest, secHigh = analysePreQuest()
 
 #%% CHOOSE THRESHOLDS - PART 1
 if CHOOSE_THRES:
@@ -122,19 +89,11 @@ if CHOOSE_THRES:
     # stythred.to_csv('../data/csv'+'/StayDiffStatRange.csv', index=False)
     
     # Then read the data after the second time
-    # staythred = pd.read_csv('../data/csv'+'/StayDiffStat.csv') 
     staythredrange = pd.read_csv('../data/csv'+'/StayDiffStatRange.csv') 
     
     # dfStatistics = calstat.accuracyStat(dataName, dataNameListPreQ, mac, dateStart, dateEnd)
     dfStatistics = pd.read_csv('../data/statisticsAll.csv',sep=",")
-    
-    # staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
-    # staythredrange[staythredrange['dataName']==int(dataName)]['time_quarter'][dataNameList.index(dataName)],
-    
-    #allthresholds = {}
-    
-    # allthresholds.get('3')
-    
+
     thresholds = {
         "accuracy_threshold" : 0,
         "dist_threshold" : 0,
@@ -147,7 +106,6 @@ if CHOOSE_THRES:
         "dateStart": "2020-01-01",
         "dateEnd": "end"
         }
-    
     
     #% Choose thresholds
     dataStat = dfStatistics[dfStatistics['id']==int(dataName)]
@@ -264,76 +222,7 @@ if TimelineStat:
 
 if HomeWorkStat:
     homeworkplcs = calstat.homeworkStay(plcs, stps, dataName, places, threeQua)
-    
-    # homeplcs, homestps, workplcs, workstps = calstat.homeworkStay(stps, dataName, places, threeQua, thresholds["minDist"], thresholds["minPoints"])
-        
-    # homeplcs = hlp.findSemanticInfo(places, homeplcs, threeQua)
-    # workplcs = hlp.findSemanticInfo(places, workplcs, threeQua) 
 
-#%%
-#% HOME WORK DETECTION
-HOMEWORK = False
-if HOMEWORK:
-
-    homeworkplcs = pd.concat([homeplcs, workplcs], axis=0)
-    homeworkplcs = homeworkplcs.reset_index(drop=True)
-    homeworkplcs['place_id'] = homeworkplcs.index
-
-    homeworkplcs = hlp.findSemanticInfo(places, homeworkplcs, threeQua=100)
-
-    column_names = ["user_id","place_id","center","extent","location","placeName","id","totalStayDays","totalStayHrs","0","1","2","3","4","5","6"]
-    homeworkplcs = homeworkplcs.reindex(columns=column_names)
-    homeworkplcs = homeworkplcs.rename(columns={'0':'Mon','1':"Tues","2":"Wed","3":"Thur","4":"Fri","5":"Sat","6":"Sun"})  
-    
-    if not(os.path.exists('../data/stat/'+ dataName + '/')):
-        os.makedirs('../data/stat/'+ dataName + '/')
-    homeworkplcs.to_csv('../data/stat/'+ dataName + '/' + 'HomeWorkStay.csv', index = True)
-
-    if exportShp: 
-        HomeWork_shp = homeworkplcs.copy()
-        # stps_shp['started_at'] = HomeWork_shp['started_at'].astype(str)
-        HomeWork_shp['location'] = HomeWork_shp['location'].astype(str)
-        HomeWork_shp.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/HomeWork.shp')
-        # HomeWork_shp.to_file('../data/shp/'+dataName +'/HomeWork.shp')
-
-#%% CALCULATE HOME WORK HOURS
-HOMEWORKHRS = False
-if HOMEWORKHRS:
-    
-    # For dataName = '7'
-    # homeHrs = pd.DataFrame(homestps[cols].sum(axis=0))/3600
-    # workHrs = pd.DataFrame(workstps[cols].sum(axis=0))/3600
-    # totalStay = homeHrs+workHrs
-    
-    # For dataName = '17'
-    # homestps = homestps[homestps['place_id']==1]
-    # homeHrs = pd.DataFrame(homestps[cols].sum(axis=0))/3600
-    # workstps1 = workstps[workstps['place_id']==4]    
-    # workHrs1 = pd.DataFrame(workstps1[cols].sum(axis=0))/3600
-    # totalStay = homeHrs+workHrs
-    # workstps2 = workstps[workstps['place_id']==1]   
-    # workHrs2 = pd.DataFrame(workstps2[cols].sum(axis=0))/3600
-    # workstps3 = workstps[workstps['place_id']==2]    
-    # workHrs3 = pd.DataFrame(workstps3[cols].sum(axis=0))/3600   
-    homeworkplcs2 = homeworkplcs.loc[[2,4,5],:]
-    homeworkplcs2.to_csv('../data/stat/'+ dataName + '/' + 'HomeWorkStay.csv', index = True)
-    
-    #homeHrs = calstat.plcsStayHour(    , homeplcs, dataName)
-    workHrs = calstat.plcsStayHour(workstps, workplcs, dataName)
-    homeWorkHrs = pd.concat([homeHrs, workHrs], axis=0)
-
-    homestps2 = homestps[homestps['place_id']==3]
-    homeHrs2 = pd.DataFrame(homestps2[cols].sum(axis=0))/3600
-    
-    homeWorkHrsRep = homeWorkHrs.iloc[[0,1],]
-    cols = [str(i) for i in range(0,24)]
-    totalStay = pd.DataFrame(homeWorkHrsRep[cols].sum(axis=0))
-    totalStay.to_csv('../data/stat/'+ dataName + '/' + 'totalStayrep.csv', index = True)
-    
-    homeWorkHrsNotrep = homeWorkHrs.iloc[[3,4],]
-    totalStayNotrep = pd.DataFrame(homeWorkHrsNotrep[cols]).transpose()
-    totalStayNotrep.to_csv('../data/stat/'+ dataName + '/' + 'totalStayNotrep.csv', index = True)
-#%%
 if TransmodeStat:
     transtat = calstat.pieChartInfoPlus(trips)
     calstat.transModeCsv(transtat, dataName)
@@ -430,15 +319,9 @@ if EXPORT_FOR_DASHBOARD:
     hlp.savecsv4js(dataName, plcs, trpsAgr, tripsAgrSchematic)    
 
     # Uncomment and run this part, to change the final thresholds!
+    
     # allthresholds[dataName] = thresholds
     # outputFile = open("../data/stat/thresholds.txt", "w")
     # outputFile.write(str(allthresholds))
     # outputFile.flush()
     # outputFile.close()
-
-
-
-
-
-
-
