@@ -34,7 +34,7 @@ from shapely.geometry import Point, LineString, Polygon
 from trackintel.geogr.distances import haversine_dist
 
 #import noiserm_functions as nrm
-dataNameList = ["3","4","5","6","7","17","20","25","28"]
+dataNameList = ["1","2","3","4","5","6","7","17","20","25","28"]
 #dataNameListPreQ = ["3","4","5","6","7","10","11","15","17","18","20","25","28"]
 dataName = '1'
 
@@ -66,7 +66,7 @@ HomeWorkStat =      True
 if IMPORT_THRES:
     import ast
     
-    inputFile = open("../data/stat/thresholds200524.txt", "r")
+    inputFile = open("../data/input/thresholds.txt", "r")
     lines = inputFile.readlines()
     
     objects = []
@@ -77,27 +77,19 @@ if IMPORT_THRES:
     
     thresholds = allthresholds[dataName]
 
-#%% Pre-Questionnaire analysis to rank the interested questions
-#qmean, highest, secHigh = analysePreQuest()
-
 #%% CHOOSE THRESHOLDS - PART 1
 if CHOOSE_THRES:
     # For the first time, run the following four lines to save the data
     dateStart = '2020-01-01'
     dateEnd = 'end'
-    # stythred = thred.stydiffstat(dataNameList, SELECT_RANGE, dateStart, dateEnd)
-    # stythred.to_csv('../data/csv'+'/StayDiffStatRange.csv', index=False)
-    
-    # Then read the data after the second time
-    staythredrange = pd.read_csv('../data/csv'+'/StayDiffStatRange.csv') 
-    
+
     # dfStatistics = calstat.accuracyStat(dataName, dataNameListPreQ, mac, dateStart, dateEnd)
-    dfStatistics = pd.read_csv('../data/statisticsAll.csv',sep=",")
+    dfStatistics = pd.read_csv('../data/input/statistics.csv',sep=",")
 
     thresholds = {
         "accuracy_threshold" : 0,
         "dist_threshold" : 0,
-        "time_threshold" : 15*60, #staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
+        "time_threshold" : 15*60, 
         "timemax_threshold": 12*3600,
         "minDist" : 0,
         "minPoints" : 0,
@@ -128,7 +120,6 @@ if CHOOSE_THRES:
 print("-> Loading the data")
 dateStart = '2020-01-01'
 dateEnd = 'end'
-dataName = "21"
 dataPathLocs,dataPathTrips = hlp.getDataPaths(dataName)
 
 if SELECT_RANGE:    
@@ -158,7 +149,7 @@ if FIND_STAY_POINTS:
         stps_shp = stps.copy()
         stps_shp['started_at'] = stps_shp['started_at'].astype(str)
         stps_shp['finished_at'] = stps_shp['finished_at'].astype(str)
-        stps_shp.to_file('../data/shp/'+dataName +'/Staypoints.shp')
+        stps_shp.to_file('../data/results/shp/'+dataName +'/Staypoints.shp')
         
 #%% CHOOSE THRESHOLDS - PART 2
 if CHOOSE_THRES:
@@ -180,24 +171,24 @@ if FIND_PLACES:
     
     if exportShp:
         plcs_shp = plcs.copy()
-        plcs_shp.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/Places.shp')
+        plcs_shp.drop(columns = ['extent']).to_file('../data/results/shp/'+dataName +'/Places.shp')
         
         # The following parts are to export the extent of the clustered places, not needed right now   
         # plcs_shp = plcs.copy()
         # plcs_shp.geometry = plcs_shp['extent']
         # plcs_shp_polygon = plcs_shp[plcs_shp['extent'].apply(lambda x: isinstance(x, Polygon))]
-        # plcs_shp_polygon.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/Places_extent_polygon.shp')
+        # plcs_shp_polygon.drop(columns = ['extent']).to_file('../data/results/shp/'+dataName +'/Places_extent_polygon.shp')
         
         # plcs_shp = plcs.copy()
         # plcs_shp.geometry = plcs_shp['extent']               
         # plcs_shp_polyline = plcs_shp[plcs_shp['extent'].apply(lambda x: isinstance(x, LineString))]
-        # plcs_shp_polyline.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/Places_extent_polyline.shp')
+        # plcs_shp_polyline.drop(columns = ['extent']).to_file('../data/resuls/shp/'+dataName +'/Places_extent_polyline.shp')
 
     plcs = poi.reverseGeoCoding(plcs)                  
 
 #%% MATCH GOOGLE PLACES %%%%%%%
 if FIND_SEMANTIC_INFO:
-    dfStatistics = pd.read_csv('../data/statistics.csv', sep=',')
+    dfStatistics = pd.read_csv('../data/input/statistics.csv', sep=',')
     dataStat = dfStatistics[dfStatistics['id']==int(dataName)]    
     threeQua = dataStat['ThreeQuatile'][dataNameList.index(dataName)]
     
@@ -205,7 +196,7 @@ if FIND_SEMANTIC_INFO:
     places.drop_duplicates(subset ="placeId", keep = 'first', inplace = True) 
     places = places[~places.geometry.is_empty]
     
-    dfStatistics = pd.read_csv('../data/statistics.csv',sep=",")
+    dfStatistics = pd.read_csv('../data/input/statistics.csv',sep=",")
     dataStat = dfStatistics[dfStatistics['id']==int(dataName)]    
     threeQua = dataStat['ThreeQuatile'][dataNameList.index(dataName)]
 
@@ -214,7 +205,7 @@ if FIND_SEMANTIC_INFO:
     if exportShp:
         places['startTime'] = places['startTime'].astype(str)
         places['endTime'] = places['endTime'].astype(str)
-        places.to_file('../data/shp/'+dataName +'/Places_google.shp')
+        places.to_file('../data/results/shp/'+dataName +'/Places_google.shp')
  
 #%% OUTPUT STATISTICS %%%%%%%%%%
 if TimelineStat:
@@ -238,17 +229,17 @@ if FIND_TRIPS:
         tpls_shp = tpls.copy()
         tpls_shp['started_at'] = tpls_shp['started_at'].astype(str)
         tpls_shp['finished_at'] = tpls_shp['finished_at'].astype(str)
-        tpls_shp.to_file('../data/shp/'+dataName +'/Triplegs.shp')
+        tpls_shp.to_file('../data/results/shp/'+dataName +'/Triplegs.shp')
         
         trps_shp = trps.copy()
         trps_shp['started_at'] = trps_shp['started_at'].astype(str)
         trps_shp['finished_at'] = trps_shp['finished_at'].astype(str)
-        trps_shp.to_file('../data/shp/'+dataName +'/Trips.shp')
+        trps_shp.to_file('../data/results/shp/'+dataName +'/Trips.shp')
         
         trpsCount_shp = trpsCount.copy()
         trpsCount_shp['count'] = trpsCount_shp['count'].astype(int)
         trpsCount_shp = trpsCount_shp.drop(["trpIds"], axis = 1)
-        trpsCount_shp.to_file('../data/shp/'+dataName +'/TripsCount.shp')
+        trpsCount_shp.to_file('../data/results/shp/'+dataName +'/TripsCount.shp')
         
       
 #%% Cluster the trips
@@ -266,7 +257,7 @@ if CLUSTER_TRPS:
         
         trpsAgr_shp = trpsAgr.copy()
         trpsAgr_shp['weight'] = trpsAgr_shp['weight'].astype(int)
-        trpsAgr_shp.to_file('../data/shp/'+dataName +'/TripsAggregated.shp')
+        trpsAgr_shp.to_file('../data/results/shp/'+dataName +'/TripsAggregated.shp')
 
     
  #%% EXPORT GPX %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -278,8 +269,8 @@ if EXPORT_GPX:
         elif float(trpsAgr.loc[idx,'weight']) < 1:
             trpsAgr = trpsAgr.drop([idx])
     #hlp.savecsv4js(plcs, trpsAgr)
-    if os.path.exists("../data/gpx/" + dataName):
-        shutil.rmtree("../data/gpx/" + dataName)
+    if os.path.exists("../data/results/gpx/" + dataName):
+        shutil.rmtree("../data/results/gpx/" + dataName)
     hlp.trip2gpx(trpsAgr,dataName)   
     
 #%%
@@ -305,7 +296,7 @@ if API_CALL:
     
     trpsAgrSchematic_shp = tripsAgrSchematic.copy()
     trpsAgrSchematic_shp['weight'] = trpsAgrSchematic_shp['weight'].astype(int)
-    trpsAgrSchematic_shp.to_file('../data/shp/'+dataName +'/TripsAggregatedSchemtic.shp')
+    trpsAgrSchematic_shp.to_file('../data/results/shp/'+dataName +'/TripsAggregatedSchemtic.shp')
  
 #%%
 if EXPORT_FOR_DASHBOARD:
@@ -321,7 +312,7 @@ if EXPORT_FOR_DASHBOARD:
     # Uncomment and run this part, to change the final thresholds!
     
     # allthresholds[dataName] = thresholds
-    # outputFile = open("../data/stat/thresholds.txt", "w")
+    # outputFile = open("../data/input/thresholds.txt", "w")
     # outputFile.write(str(allthresholds))
     # outputFile.flush()
     # outputFile.close()

@@ -52,11 +52,11 @@ def findStayPoints(locs, dataName, accuracy_threshold, dist_threshold, time_thre
         locs = locs[locs['accuracy']<accuracy_threshold]
         #locs = locs[locs['accuracy']<locs['d_diff']]
     
-        if not(os.path.exists('../data/shp/'+ dataName + '/')):
-            os.makedirs('../data/shp/'+ dataName + '/')
+        if not(os.path.exists('../data/results/shp/'+ dataName + '/')):
+            os.makedirs('../data/results/shp/'+ dataName + '/')
                     
         hlp.loc2csv4ti(locs, dataName)
-    pfs = ti.read_positionfixes_csv('../data/csv/'+dataName +'/' + dataName + '.csv', sep=';')
+    pfs = ti.read_positionfixes_csv('../data/results/csv/'+dataName +'/' + dataName + '.csv', sep=';')
     
     # Find staypoints using a slightly modified version of the trackintel script
     stps = tim.extract_staypoints_ipa(pfs, method='sliding',dist_threshold=dist_threshold,time_threshold=time_threshold,timemax_threshold=timemax_threshold)
@@ -266,12 +266,12 @@ def clusterTrips(trps, trpsCount, minDistTh, factorTh, dataName, saveDendogramms
 
         # Maybe save the images of the trees
         if saveDendogramms:
-            if not os.path.exists('../data/clustering/' + dataName + '/'):
-                os.mkdir('../data/clustering/' + dataName + '/')
+            if not os.path.exists('../data/results/clustering/' + dataName + '/'):
+                os.mkdir('../data/results/clustering/' + dataName + '/')
             fig = plt.figure(figsize=(25, 10))
             dn = dendrogram(linkMatrix, leaf_font_size=12.)
             #plt.show()
-            fig.savefig('../data/clustering/' + dataName + '/' + str(startPlace) + '_' + str(endPlace) + '_' +  str(max(clusteringResult)) + '.png')
+            fig.savefig('../data/results/clustering/' + dataName + '/' + str(startPlace) + '_' + str(endPlace) + '_' +  str(max(clusteringResult)) + '.png')
         
 
         # Aggregate the trips per cluster
