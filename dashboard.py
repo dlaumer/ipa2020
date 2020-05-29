@@ -1,6 +1,9 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
+This is the main file. 
+From here all the functions are called the the whole workflow is described. 
+
 Created on Thu Feb 27 10:09:23 2020
 
 Authors:    Daniel Laumer (laumerd@ethz.ch)
@@ -35,12 +38,10 @@ dataNameList = ["3","4","5","6","7","17","20","25","28"]
 dataNameListPreQ = ["3","4","5","6","7","10","11","15","17","18","20","25","28"]
 dataName = '2'
 
-<<<<<<< HEAD
-mac = False
+# Some datapaths are different for the mac, so this boolean
+mac = True
 
-dataName = '1'
-
-
+# Here you can turn the different processing steps on and off and define what parts should be run
 IMPORT_THRES =      True
 CHOOSE_THRES =      False
 
@@ -74,7 +75,7 @@ if IMPORT_THRES:
     
     allthresholds = objects[0]
     
-    #thresholds = allthresholds[dataName]
+    thresholds = allthresholds[dataName]
 
 # thresholds['accuracy_threshold'] = 200
 
@@ -174,31 +175,25 @@ dataPathLocs,dataPathTrips = hlp.getDataPaths(dataName)
 
 if SELECT_RANGE:    
     dataPathLocs,dataPathTrips = hlp.selectRange(dataPathLocs, dataPathTrips, mac, dateStart = thresholds["dateStart"], dateEnd = thresholds["dateEnd"],)
-
-    #dataPathLocs,dataPathTrips = hlp.selectLastMonth(dataPathLocs, dataPathTrips)
     
 locs, locsgdf = hlp.parseLocs(dataPathLocs)
 trips, tripdf, tripsgdf = hlp.parseTrips(dataPathTrips)
 
-# add location data to the trips file
+# add location data to the trips file (not used now because only for visualization of google results)
 # tripsgdf = hlp.parseTripsWithLocs(dataPathTrips, locsgdf)
 
 locs['d_diff'] = np.append(haversine_dist(locs.longitudeE7[1:], locs.latitudeE7[1:], locs.longitudeE7[:-1], locs.latitudeE7[:-1]),0)
-thresholds['accuracy_threshold'] = np.quantile(locs['d_diff'], .95)
+if CHOOSE_THRES:
+    thresholds['accuracy_threshold'] = np.quantile(locs['d_diff'], .95)
 
 # export to shapefile
 if exportShp:
     hlp.loc2shp(locsgdf, dataName)
     hlp.trip2shp(tripsgdf, dataName)
 
-# locs['d_diff'] = np.append(haversine_dist(locs.longitudeE7[1:], locs.latitudeE7[1:], locs.longitudeE7[:-1], locs.latitudeE7[:-1]),0)
-# thresholds['accuracy_threshold'] = np.quantile(locs['d_diff'], .95)
-
-
 #%% FIND STAY POINTS
 if FIND_STAY_POINTS:
     print("-> Finding stay points ")
-    # NOTE: Delete csv file if range is changed!!!!!!
     pfs,stps = main.findStayPoints(locs, dataName,thresholds["accuracy_threshold"],thresholds["dist_threshold"],thresholds["time_threshold"],thresholds["timemax_threshold"])
   
     if exportShp: 
@@ -207,8 +202,6 @@ if FIND_STAY_POINTS:
         stps_shp['finished_at'] = stps_shp['finished_at'].astype(str)
         stps_shp.to_file('../data/shp/'+dataName +'/Staypoints.shp')
         
-# stps['t_diff'] = stps['finished_at'] - stps['started_at']
-
 #%% CHOOSE THRESHOLDS - PART 2
 if CHOOSE_THRES:
     minPnts = math.ceil(len(stps)/100)
@@ -222,16 +215,6 @@ if CHOOSE_THRES:
 
 #%% FIND PLACES (CLUSTER OF STAY POINTS)
 
-# minPnts = math.ceil(len(stps)/100)
-# if (minPnts >= 5):
-#     thresholds["minPoints"] = 5
-# elif (minPnts < 2):
-#       thresholds["minPoints"] = 2
-# else:
-#     thresholds["minPoints"] = minPnts
-thresholds["minPoints"] = 4
-thresholds["minDist"] = 100
-
 if FIND_PLACES:
     print("-> Finding the places ")
 
@@ -241,7 +224,7 @@ if FIND_PLACES:
         plcs_shp = plcs.copy()
         plcs_shp.drop(columns = ['extent']).to_file('../data/shp/'+dataName +'/Places.shp')
         
-                
+        # The following parts are to export the extent of the clustered places, not needed right now   
         # plcs_shp = plcs.copy()
         # plcs_shp.geometry = plcs_shp['extent']
         # plcs_shp_polygon = plcs_shp[plcs_shp['extent'].apply(lambda x: isinstance(x, Polygon))]
@@ -270,17 +253,15 @@ if FIND_SEMANTIC_INFO:
 
     plcs = hlp.findSemanticInfo(places, plcs, threeQua)
             
-    # if exportShp:
-    #     places['startTime'] = places['startTime'].astype(str)
-    #     places['endTime'] = places['endTime'].astype(str)
-    #     places.to_file('../data/shp/'+dataName +'/Places_google.shp')
+    if exportShp:
+        places['startTime'] = places['startTime'].astype(str)
+        places['endTime'] = places['endTime'].astype(str)
+        places.to_file('../data/shp/'+dataName +'/Places_google.shp')
  
 #%% OUTPUT STATISTICS %%%%%%%%%%
 if TimelineStat:
     plcs = calstat.plcsStayHour(stps, plcs, dataName)
 
-# HomeWorkStat = False
-#%
 if HomeWorkStat:
     homeworkplcs = calstat.homeworkStay(plcs, stps, dataName, places, threeQua)
     
@@ -382,9 +363,6 @@ if FIND_TRIPS:
         
       
 #%% Cluster the trips
-        
-# thresholds["minDistTh"] = 1
-# thresholds["factorTh"] = 2
 
 if CLUSTER_TRPS:
     print("-> Cluster the trips")
@@ -396,10 +374,6 @@ if CLUSTER_TRPS:
     #trps, trpsAgr = main.clusterTrips(trps, trpsCount, 0.2, 2, dataName, saveDendogramms=True)
 
     if exportShp:
-        #trpsShort_shp = trpsShort.copy()
-        #trpsShort_shp['started_at'] = trpsShort_shp['started_at'].astype(str)
-        #trpsShort_shp['finished_at'] = trpsShort_shp['finished_at'].astype(str)
-        #trpsShort_shp.to_file('../data/shp/'+dataName +'/TripsShort.shp')
         
         trpsAgr_shp = trpsAgr.copy()
         trpsAgr_shp['weight'] = trpsAgr_shp['weight'].astype(int)
@@ -425,30 +399,19 @@ if API_CALL:
     version = 6
 
     if CHOOSE_THRES:
-        thresholds["DP_tolerance"] = 0.002
-        thresholds["fisheye_factor"] = 0.7
+        thresholds["DP_tolerance"] = 0.00001
+        thresholds["fisheye_factor"] = 0.5
         thresholds["curver_max"] = 360
         thresholds["curver_min"] = 0
-        thresholds["curver_r"] = 500
-        
-    # thresholds["DP_tolerance"] = 0.00001
-    # thresholds["fisheye_factor"] = 0.5
-    # thresholds["curver_max"] = 360
-    # thresholds["curver_min"] = 0
-    # thresholds["curver_r"] = 20000
+        thresholds["curver_r"] = 20000
     
-    # homes = homeworkplcs.loc[homeworkplcs['id']=='work']
-    # homeCoords = homes.loc[homes['totalStayHrs'].idxmax()].center.coords[:][0]
+    # Find the coordinates of home (for the fisheye effect)
+    temp = plcs[plcs['totalStayHrs']==plcs['totalStayHrs'].max()]['center']
+    homeCoords = temp[temp.index[0]].coords[:][0]    
     
-
-    # For participant 17, change index to 13
-    homeCoords = plcs[plcs['totalStayHrs']==plcs['totalStayHrs'].max()]['center'][0].coords[:][0]    
-
-    # temp = plcs[plcs['totalStayHrs']==plcs['totalStayHrs'].max()]['center']
-    # homeCoords = temp[temp.index[0]].coords[:][0]    
-
-    
+    # Call the API
     api.apiCall(dataName, 1000 * int(dataName) + version, homeCoords, thresholds["DP_tolerance"], thresholds["fisheye_factor"],thresholds["curver_min"], thresholds["curver_max"], thresholds["curver_r"])
+    # Read the gpx response from the API 
     tripsAgrSchematic = api.readApiCall(trpsAgr.copy(), 1000*int(dataName)+version )
     
     trpsAgrSchematic_shp = tripsAgrSchematic.copy()
@@ -457,20 +420,16 @@ if API_CALL:
  
 #%%
 if EXPORT_FOR_DASHBOARD:
-    # drops = []
-    # for i in plcs.index:
-    #     if plcs.loc[i,'place_id'] not in set(trpsAgr['start_plc']) and plcs.loc[i,'place_id'] not in set(trpsAgr['end_plc']):
-    #         drops.append(i)
-    # plcs = plcs.drop(drops)  
     
     plcs['centerSchematic'] = None
     for i in range(len(tripsAgrSchematic)):
         plcs.loc[tripsAgrSchematic.loc[i,'start_plc']-1, 'centerSchematic'] = Point(tripsAgrSchematic.loc[i,'geom'].coords[0])
         plcs.loc[tripsAgrSchematic.loc[i,'end_plc']-1, 'centerSchematic'] = Point(tripsAgrSchematic.loc[i,'geom'].coords[-1])
 
-    # Read the gpx response and convert to csv
+    # Convert the final result to csv
     hlp.savecsv4js(dataName, plcs, trpsAgr, tripsAgrSchematic)    
 
+    # Uncomment and run this part, to change the final thresholds!
     # allthresholds[dataName] = thresholds
     # outputFile = open("../data/stat/thresholds.txt", "w")
     # outputFile.write(str(allthresholds))

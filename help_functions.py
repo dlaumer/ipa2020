@@ -627,14 +627,14 @@ def selectRange(dataPathLoc,dataPathTrip, mac, dateStart = 'beginning', dateEnd 
     mac: boolean - On the mac the paths are different, so we differente beteen this case
     dateStart: str - Date from where to start cutting (Format: "YYY-MM-DD", or "beginning")
     dateEnd: str - Date from where to end cutting (Format: "YYY-MM-DD", or "end")
-    timerange: int - Other possibility, just give a timerange in ms, either combined with beginning or end parameter
+    timerange: int - Other possibility, just give a timerange in ms, it will just take the last data until the end of collection, with this timerange
 
     Returns
     -------
     newDataPathLoc: str - (relative) path to the location file (only selected range)
     newDataPathTrip: str - (relative) path to the Semantic Info folder (only selected range)
-    labelStart: str - The effective start date (not "beginning anymore")
-    labelEnd: str - The effective end date (not "end anymore")
+    labelStart: str - The actual start date (not "beginning anymore")
+    labelEnd: str - The actual end date (not "end anymore")
 
     """
     # For mac, the slash is different...
@@ -658,6 +658,7 @@ def selectRange(dataPathLoc,dataPathTrip, mac, dateStart = 'beginning', dateEnd 
     collectDate = pd.to_datetime(int(jsonData["locations"][0]["timestampMs"]),  unit='ms')
     setDate = pd.to_datetime([dateStart])
 
+    # Find out the actual start and end date in case 
     if (collectDate < setDate):
         labelStart = str(dateStart)
         print("Start date: " + labelStart)
@@ -668,14 +669,11 @@ def selectRange(dataPathLoc,dataPathTrip, mac, dateStart = 'beginning', dateEnd 
     if (dateEnd == "end"):
         labelEnd = str(pd.to_datetime(int(jsonData["locations"][-1]["timestampMs"]),  unit='ms').date())
         print("End date: " + labelEnd)
-        # labelEnd = str(pd.to_datetime(int(jsonData["locations"][-1]["timestampMs"]),  unit='ms').date())
     else:
-        # print("End date: " + str(dateEnd))
         labelEnd = str(dateEnd)
         print("End date: " + labelEnd)
-    #dateStart = input("Choose a start date: ")
-    #dateEnd = input("Choose a end date: ")
 
+    # In case the timerange is given, select the part in the end inside this range
     if timerange:
         dateEnd = int(jsonData["locations"][-1]["timestampMs"])
         dateStart = dateEnd - timerange
@@ -692,27 +690,29 @@ def selectRange(dataPathLoc,dataPathTrip, mac, dateStart = 'beginning', dateEnd 
             dateTemp = pd.to_datetime([dateEnd])
             dateEnd = ((dateTemp - pd.Timestamp("1970-01-01")) // pd.Timedelta('1ms'))[0]  
 
+    # create a whole new folder, which looks the same as the original one but with just the data inside the range
     newPath = str(Path(dataPathLoc).parents[2]) + slash + str(pd.to_datetime(dateStart,  unit='ms').date()) + "_" + str(pd.to_datetime(dateEnd,  unit='ms').date()) + slash
 
-    
+    # Create the directories
     if os.path.exists(newPath):
         return newPath + "Location History.json", newPath + "Semantic Location History" + slash
     else:
         os.makedirs(newPath)
     
-    #timestamps = pd.json_normalize(jsonData, 'locations')['timestampMs'].astype(np.int64)
+    # Find where to cut the location file
     timestamps = pd.Series([x['timestampMs'] for x in jsonData['locations']]).astype(np.int64)
     
     indexStart = bisect.bisect_right(timestamps,dateStart)
     indexEnd = bisect.bisect_left(timestamps,dateEnd)
     
+    # Cut the location file and save it again
     jsonData["locations"] = jsonData["locations"][indexStart:indexEnd]
     if (type(dataPathLoc) is str):
         newDataPathLoc = newPath + "Location History.json"
         with open(newPath + "Location History.json", 'w') as outfile:
             json.dump(jsonData, outfile)
     
-    # Trip files
+    # Now the Semantic Info files
     for root,dirs,files in os.walk(dataPathTrip):
        years = dirs
        break
@@ -727,6 +727,7 @@ def selectRange(dataPathLoc,dataPathTrip, mac, dateStart = 'beginning', dateEnd 
     if not(os.path.exists(newDataPathTrip)):
         os.makedirs(newDataPathTrip)
     
+    #Go through all files, and if the range is inside the chosen one, keep the file (or cur it also)
     for year in years:
         if int(year) >= startYear and int(year) <=endYear:
             if not(os.path.exists(newDataPathTrip + year + slash)):
@@ -749,40 +750,46 @@ def selectRange(dataPathLoc,dataPathTrip, mac, dateStart = 'beginning', dateEnd 
 
 def _splitTripFile(filePath, newFilePath, dateStart, dateEnd):
     """
-    Info   
+    Sub function of the selectRange() function, only to cut the trip file   
 
     Parameters
     ----------
-    var : type - Info
+    filePath : str - Path to the semantic info file
+    newFilePath: str - Path the the new location of the info file
+    dateStart: str - Date from where to start cutting (timestamp in ms)
+    dateEnd: str - Date from where to end cutting (timestamp in ms)
 
     Returns
     -------
     var : type - Info
 
     """
+    # Open the file
     with open(filePath) as f:
         jsonData = json.load(f)
-            
+
+    # Find where to cut the file  
     timestamps = pd.Series([x[list(x)[0]]['duration']['startTimestampMs'] for x in jsonData['timelineObjects']]).astype(np.int64)
     
     indexStart = bisect.bisect_right(timestamps,dateStart)
     indexEnd = bisect.bisect_left(timestamps,dateEnd)
-    
+    # Cut it and save again
     jsonData["timelineObjects"] = jsonData["timelineObjects"][indexStart:indexEnd]
     with open(newFilePath, 'w') as outfile:
         json.dump(jsonData, outfile)
 
 def addDistancesToTrps(row):
     """
-    Info   
+    Calculate the distance of the different segments of a  LineString to the df row
+    (not used anymore)   
 
     Parameters
     ----------
-    var : type - Info
+    row : df - One row of a df
 
     Returns
     -------
-    var : type - Info
+    segments : array - Intermediate distances of the LienString
 
     """
     coords = row['geom'].coords
@@ -798,15 +805,15 @@ def addDistancesToTrps(row):
 
 def calc_length(row, epsg_code):  
     """
-    Info   
+    Calculates the distance of a LineString   
 
     Parameters
     ----------
-    var : type - Info
+    row : df - One row of a df
 
     Returns
     -------
-    var : type - Info
+    proj_line.length : float - Length of LineString in m
 
     """      
     project = partial(pyproj.transform,
@@ -819,41 +826,38 @@ def calc_length(row, epsg_code):
 
 def makeDistMatrix(traj):
     """
-    Info   
+    Creates the distance matrix for the clustering of the hierarchical clustering between the trajectories using DTW   
 
     Parameters
     ----------
-    var : type - Info
+    traj : Array - Array of trajectories
 
     Returns
     -------
-    var : type - Info
+    condensedDistMatrix : matrix - np matrix with the DTW distance from each trajectory to all others
 
     """
-    #distMatrix = np.empty([len(traj),len(traj)])
-    #distMatrix[:] = np.NaN
     condensedDistMatrix = []
     for i in range(len(traj)):
         for j in range(i+1, len(traj)):
             distance, path = fastdtw(traj[i], traj[j], dist=euclidean)
-            #distMatrix[i,j] = distance
             condensedDistMatrix.append(distance)
-    #i_lower = np.tril_indices(len(traj), -1)
-    #distMatrix[i_lower] = distMatrix.T[i_lower]
+
     condensedDistMatrix = np.array(condensedDistMatrix)
     return condensedDistMatrix
 
 def combineTrajectory(cluster1, cluster2):
     """
-    Info   
+    Aggregates two trajectories (clusters) into a single one, using a weighted average approach   
 
     Parameters
     ----------
-    var : type - Info
+    cluster1 : df - one row of the df, containing one partly aggregated trajectory
+    cluster1 : df - another row of the df, containing one partly aggregated trajectory
 
     Returns
     -------
-    var : type - Info
+    newGeom : Array - List of points with the new (aggregated) geometry
 
     """
     distance, path = fastdtw(cluster1['geom'], cluster2['geom'], dist=euclidean)
@@ -869,31 +873,35 @@ def findSemanticInfo(places, plcs, threeQua):
 
     Parameters
     ----------
-    var : type - Info
+    places : gdf - Places defined by google
+    plcs: gdf - Places defined by us
+    threeQua: float - Threshold when a google place is the same as our place
 
     Returns
     -------
-    var : type - Info
+    plcs : gdf - Places defined by us, added column with nameId
 
     """
     count = 0
     plcs['nameId'] = ""
 
+    # Go through all places
     for idx in plcs.index:
         minDist = math.inf
         minIdx = None
+        # Find the closest google point
         for jdx in places.index:
             dist = haversine_dist(plcs.loc[idx,'center'].x, plcs.loc[idx,'center'].y, places.loc[jdx,'geometry'].x, places.loc[jdx,'geometry'].y)
             if dist<minDist:
                 minDist = dist
                 minIdx = jdx
                 
-        #a = plcs.loc[idx,'extent'].bounds
-        #extent = haversine_dist(a[0],a[1],a[2],a[3])
+        # If closest point is less then threeQua away, add the semantic info from google
         if minDist < threeQua:
             plcs.loc[idx,'nameId'] = "Google"
             plcs.loc[idx,'placeName'] = places.loc[minIdx,'placeName']
             count += 1
+        # Else take the info from OpenStreetMap API
         else:
             plcs.loc[idx,'nameId'] = "OSMAPI"
             a = plcs.loc[idx,'location'][0].split(",")[0].strip()
@@ -905,21 +913,24 @@ def findSemanticInfo(places, plcs, threeQua):
             else:
                 plcs.loc[idx,'placeName'] = a + ' ' + b
         
-    print(str(count)+" plcs out of "+str(len(plcs))+" are macthed!")
+    print(str(count)+" plcs out of "+str(len(plcs))+" are matched!")
 
     return plcs
 
 def removeLongTrips(trps, trpsCount):
     """
-    Info   
+    Compare the length of the trips with the direct connection of the places as straight lines
+    Is kind of a filtering for non-usual trips
 
     Parameters
     ----------
-    var : type - Info
+    trps : gdf - All original trips
+    trpsCount : gdf - Only one trip per place pair, and geometry is a straight line
 
     Returns
     -------
-    var : type - Info
+    trps : gdf - All original trips, but too long trips removed
+    trpsCount : gdf - Only one trip per place pair, and geometry is a straight line,  but too long trips removed
 
     """
     for idx in trpsCount.index:
@@ -940,17 +951,21 @@ def removeLongTrips(trps, trpsCount):
     
 def savecsv4js(dataName, places, trips, tripsSchematic):
     """
-    Info   
+    Saves the final results of our analysis to a csv, so that it can be used in the visualization   
 
     Parameters
     ----------
-    var : type - Info
+    dataName : str - ID of participant
+    places: gdf - places defined by our analysis
+    trips: gdf - trips defined by our analysis
+    tripsSchematic: gdf - Schematic trips defined by the Hitouch API
 
     Returns
     -------
-    var : type - Info
+    None
 
     """
+    # Add some attributes that were needed in the template that we used on D3
     places['city'] = 'Zurich'
     places['state'] = 'Zurich'
     places['country'] = 'Switzerland'
@@ -964,7 +979,8 @@ def savecsv4js(dataName, places, trips, tripsSchematic):
     places = places.drop(columns = ['user_id', 'extent', 'center', 'centerSchematic'])
     places.to_csv('../../5-Final Product/stat' + dataName+'/places.csv',  index = False, sep = ";")
  
-    
+    # Add the geometry for aggregated and also schematic, put all coordinates in a large array
+    # That is just how the data is read from the JS files
     trips = trips.rename(columns = {'start_plc':'origin', 'end_plc':'destination', 'weight':'count'})
     trips["waypointsLat"] = ""
     trips["waypointsLong"] = ""
@@ -976,20 +992,20 @@ def savecsv4js(dataName, places, trips, tripsSchematic):
 
     trips = trips.rename(columns = {'weight':'count'})
     trips = trips[['origin', 'destination','count','waypointsLong','waypointsLat','waypointsLatSchematic','waypointsLongSchematic']]
-    #trips.to_csv('../jsProject/stat/trips.csv',  index = False, sep = ";")
     trips.to_csv('../../5-Final Product/stat' + dataName+'/tripsAgr.csv',  index = False, sep = ";")
 
 def savecsv4jsTrps(dataName, trips):  
     """
-    Info   
+    Saves the original trips of our analysis to a csv, so that it can be used in the visualization   
 
     Parameters
     ----------
-    var : type - Info
+    dataName : str - ID of participant
+    trips: gdf - original trips defined by our analysis
 
     Returns
     -------
-    var : type - Info
+    None
 
     """  
     trips = trips.rename(columns = {'start_plc':'origin', 'end_plc':'destination'})
@@ -1000,7 +1016,6 @@ def savecsv4jsTrps(dataName, trips):
         trips.loc[i, "waypointsLat"] = ' '.join([str(j[1]) for j in trips.loc[i,'geom'].coords])
 
     trips = trips[['origin', 'destination','waypointsLong','waypointsLat']]
-    #trips.to_csv('../jsProject/stat/trips.csv',  index = False, sep = ";")
     trips.to_csv('../../5-Final Product/stat' + dataName+'/trips.csv',  index = False, sep = ";")
 
     
