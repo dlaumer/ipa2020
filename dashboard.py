@@ -17,9 +17,6 @@ import numpy as np
 from statistics import median 
 from shapely.geometry import Point
 
-import plotly.io as pio
-pio.renderers.default = "browser"
-
 # Local files
 import main_functions as main
 import help_functions as hlp
@@ -38,7 +35,11 @@ dataNameList = ["3","4","5","6","7","17","20","25","28"]
 dataNameListPreQ = ["3","4","5","6","7","10","11","15","17","18","20","25","28"]
 dataName = '2'
 
+<<<<<<< HEAD
 mac = False
+
+dataName = '1'
+
 
 IMPORT_THRES =      True
 CHOOSE_THRES =      False
@@ -73,7 +74,7 @@ if IMPORT_THRES:
     
     allthresholds = objects[0]
     
-    thresholds = allthresholds[dataName]
+    #thresholds = allthresholds[dataName]
 
 # thresholds['accuracy_threshold'] = 200
 
@@ -136,7 +137,7 @@ if CHOOSE_THRES:
     thresholds = {
         "accuracy_threshold" : 0,
         "dist_threshold" : 0,
-        "time_threshold" : 5*60, #staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
+        "time_threshold" : 15*60, #staythredrange[staythredrange['dataName']==int(dataName)]['dist_quarter'][dataNameList.index(dataName)],
         "timemax_threshold": 12*3600,
         "minDist" : 0,
         "minPoints" : 0,
@@ -162,7 +163,7 @@ if CHOOSE_THRES:
     
     thresholds['minDist'] = thresholds['accuracy_threshold']
 
-    # thresholds['accuracy_threshold'] = 200   
+    thresholds['dist_threshold'] = 150   
 
 #%% IMPORT DATA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 print("-> Loading the data")
@@ -182,8 +183,8 @@ trips, tripdf, tripsgdf = hlp.parseTrips(dataPathTrips)
 # add location data to the trips file
 # tripsgdf = hlp.parseTripsWithLocs(dataPathTrips, locsgdf)
 
-# locs['d_diff'] = np.append(haversine_dist(locs.longitudeE7[1:], locs.latitudeE7[1:], locs.longitudeE7[:-1], locs.latitudeE7[:-1]),0)
-# thresholds['accuracy_threshold'] = np.quantile(locs['d_diff'], .95)
+locs['d_diff'] = np.append(haversine_dist(locs.longitudeE7[1:], locs.latitudeE7[1:], locs.longitudeE7[:-1], locs.latitudeE7[:-1]),0)
+thresholds['accuracy_threshold'] = np.quantile(locs['d_diff'], .95)
 
 # export to shapefile
 if exportShp:
@@ -219,14 +220,6 @@ if CHOOSE_THRES:
         thresholds["minPoints"] = minPnts
     #thresholds["minPoints"] = 1
 
-# Write threshodls
-# with open('../data/thresholds/' + dataName + '.json', 'w') as outfile:
-#    json.dump(thresholds, outfile)
-
-# if loadTh:   
-#     with open('../data/thresholds/' + dataName + '.json', 'r') as file:
-#         thresholds = json.load(file)
-
 #%% FIND PLACES (CLUSTER OF STAY POINTS)
 
 # minPnts = math.ceil(len(stps)/100)
@@ -236,7 +229,8 @@ if CHOOSE_THRES:
 #       thresholds["minPoints"] = 2
 # else:
 #     thresholds["minPoints"] = minPnts
-# #thresholds["minPoints"] = 1
+thresholds["minPoints"] = 4
+thresholds["minDist"] = 100
 
 if FIND_PLACES:
     print("-> Finding the places ")
@@ -429,18 +423,30 @@ if EXPORT_GPX:
 if API_CALL:
     print("-> Calling the API from Hitouch")
     version = 6
+
     if CHOOSE_THRES:
         thresholds["DP_tolerance"] = 0.002
         thresholds["fisheye_factor"] = 0.7
         thresholds["curver_max"] = 360
         thresholds["curver_min"] = 0
         thresholds["curver_r"] = 500
+        
+    # thresholds["DP_tolerance"] = 0.00001
+    # thresholds["fisheye_factor"] = 0.5
+    # thresholds["curver_max"] = 360
+    # thresholds["curver_min"] = 0
+    # thresholds["curver_r"] = 20000
     
     # homes = homeworkplcs.loc[homeworkplcs['id']=='work']
     # homeCoords = homes.loc[homes['totalStayHrs'].idxmax()].center.coords[:][0]
     
+
     # For participant 17, change index to 13
     homeCoords = plcs[plcs['totalStayHrs']==plcs['totalStayHrs'].max()]['center'][0].coords[:][0]    
+
+    # temp = plcs[plcs['totalStayHrs']==plcs['totalStayHrs'].max()]['center']
+    # homeCoords = temp[temp.index[0]].coords[:][0]    
+
     
     api.apiCall(dataName, 1000 * int(dataName) + version, homeCoords, thresholds["DP_tolerance"], thresholds["fisheye_factor"],thresholds["curver_min"], thresholds["curver_max"], thresholds["curver_r"])
     tripsAgrSchematic = api.readApiCall(trpsAgr.copy(), 1000*int(dataName)+version )
@@ -465,11 +471,11 @@ if EXPORT_FOR_DASHBOARD:
     # Read the gpx response and convert to csv
     hlp.savecsv4js(dataName, plcs, trpsAgr, tripsAgrSchematic)    
 
-    allthresholds[dataName] = thresholds
-    outputFile = open("../data/stat/thresholds.txt", "w")
-    outputFile.write(str(allthresholds))
-    outputFile.flush()
-    outputFile.close()
+    # allthresholds[dataName] = thresholds
+    # outputFile = open("../data/stat/thresholds.txt", "w")
+    # outputFile.write(str(allthresholds))
+    # outputFile.flush()
+    # outputFile.close()
 
 
 

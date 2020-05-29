@@ -5,7 +5,11 @@ Authors: Haojun Cai and Daniel Laumer
 
 ## Getting Started
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
+Analysis:
+In order to use the analysis part of our code you need to run the file dashboard.py
+
+Visualisation:
+In order to see the visualisation, you need to open a local host in the folder "vsualisation" and open the index.html.
 
 ### Prerequisites
 
@@ -16,6 +20,23 @@ Thw following python packages are required:
 * pandas
 * plotly
 * shapefile
+* numpy
+* scipy
+* pandas
+* geopandas
+* fastdtw
+* fiona
+* geopy
+* gpxpy
+* haversine
+* lxml
+* matplotlib
+* overpy
+* pyproj
+* requests
+* scikit-learn
+* shapely
+* trackintel
 ```
 
 ### Installing
@@ -66,13 +87,13 @@ Add additional notes about how to deploy this on a live system
 
 ## Authors
 
-* **Haojun Cai** - *Initial work* - caihao@student.ethz.ch
+* **Haojun Cai*** *Initial work** caihao@student.ethz.ch
 
-* **Daniel Laumer** - *Initial work* - laumerd@student.ethz.ch
+* **Daniel Laumer*** *Initial work** laumerd@student.ethz.ch
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the MIT License* see the [LICENSE.md](LICENSE.md) file for details
 
 ## Acknowledgments
 
