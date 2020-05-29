@@ -1082,7 +1082,7 @@ function updateTimeline(selectedVar) {
 
   // Add Y axis
   yScale.domain([0, d3.max(timelineData, function (d) { return +d[selectedVar] })]);
-  yAxis.transition().duration(1000).call(d3.axisLeft(yScale).ticks(5));
+  yAxis.transition().duration(1000).call(d3.axisLeft(yScale).ticks(3));
 
   // variable u: map data to existing bars
   var u = svgTimeline.selectAll("rect")

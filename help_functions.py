@@ -33,27 +33,43 @@ import math
 
 from trackintel.geogr.distances import haversine_dist
 
-
 from scipy.spatial.distance import euclidean
 from fastdtw import fastdtw
 
 
 def getDataPaths(participantId):
+    """
+    Get the path to the data files for different participants (because of different languages, the paths differ quite a lot)
+
+    Parameters
+    ----------
+    participantId : str - ID of the participant, normally an integer as a str
+
+    Returns
+    -------
+    dataPathLocs: str - path to the location.json file
+    dataPathTrips: str - path to the semantic info folder
+
+    """
     rootPath = "../../4-Collection/DataParticipants/"
     path = rootPath + participantId + "/Takeout/"
+    # English
     if os.path.exists(path + "Location History/"):        
         dataPathLocs = path + '/Location History/Location History.json'
         dataPathTrips = path + '/Location History/Semantic Location History/'
+    # German
     elif os.path.exists(path + "Standortverlauf/"): 
         dataPathLocs =  path + '/Standortverlauf/Standortverlauf.json'
         dataPathTrips =  path + '/Standortverlauf/Semantic Location History/'
+    # French
     elif os.path.exists(path + "Historique des positions/"): 
         dataPathLocs =  path + '/Historique des positions/Historique des positions.json'
         dataPathTrips =  path + '/Historique des positions/Semantic Location History/'
+    # Chinese
     elif os.path.exists(path + "位置记录/"): 
         dataPathLocs =  path + '/位置记录/位置记录.json'
         dataPathTrips =  path + '/位置记录/Semantic Location History/'
-
+    # Possibly add more here?
     else:
         raise TypeError('The files are not in the needed format!')
     return dataPathLocs,dataPathTrips
@@ -69,19 +85,26 @@ def parseLocs(dataPath):
 
     Returns
     -------
+    df: df - pandas dataframe of the data
     gdf : gpd - geopandas dataframe of the data
 
     """
     with open(dataPath) as f:
         data = json.load(f)
     f.close()
+    # Flatten the json and convert to df
     df = pd.json_normalize(data, 'locations')
+    # Read Timestamp as date format
     df['datetimeUTC'] = pd.to_datetime(df['timestampMs'],  unit='ms')
+    # Change to Swiss Timezone
     df['datetimeCH'] = df['datetimeUTC'] + pd.DateOffset(hours=1)
+    # Extract the day
     df['date'] = df['datetimeUTC'].dt.date
     df = df.set_index('datetimeCH')
+    # Read the coordinates as float numbers
     df['latitudeE7'] = df['latitudeE7'].astype(float)/10000000
     df['longitudeE7'] = df['longitudeE7'].astype(float)/10000000
+    # Convert to geopandas
     gdf = gpd.GeoDataFrame(
     df, geometry=gpd.points_from_xy(df['longitudeE7'], df['latitudeE7']))
     return df, gdf
@@ -92,33 +115,42 @@ def parseTrips(dataPath):
 
     Parameters
     ----------
-    dataPath : str - (relative) path to the location file
+    dataPath : str - (relative) path to the semantic info folder
 
     Returns
     -------
     allData: dict - nested dict of the trips file
-    df : df - pandas dataframe of the data
+    df: df - pandas dataframe of the data
+    gdf: gdf - geopandas dataframe of the data
 
     """
+    # Prepare the gdf
     gdf = gpd.GeoDataFrame(crs={'init':'epsg:4326'})
     gdf['geometry'] = None
 
+    # Prepare an empty dict
     allData = {}
     d = []
     dirs = os.listdir(dataPath)
     i = 0
+    # Go throug all years
+    # In this loop, the nested dict, the df and the gdf are filled in simultaneously
+    # They are for different needs later. But would probably be more efficient to just use one format
     for year in dirs:
         if year.isdigit():
             dataPathYear = os.path.join(dataPath, year)
             allData[year] = {}
             for root, dirs, files in os.walk(dataPathYear):
+                # Go through all Months
                 for fil in files:
                     if fil.endswith('.json'):
+                        # Open the file
                         dataPathFile = os.path.join(dataPathYear, fil)
                         with open(dataPathFile) as f:
-                            month = fil[5:-5]
+                            month = fil[5:-5]   # Read the month from the filename
                             data = json.load(f)
                             allData[year][month] = data['timelineObjects']
+                            # Read the different objects
                             for obj in data['timelineObjects']:
                                 typ = list(obj)[0]
                                 tempData = {'Year':year, 'Month': month, 'Type':typ}
@@ -131,8 +163,10 @@ def parseTrips(dataPath):
                                 entry = obj[typ]                                
                                 gdf.loc[i,'startTime'] = pd.to_datetime(entry['duration']['startTimestampMs'],  unit='ms') + pd.DateOffset(hours=1)
                                 gdf.loc[i,'endTime'] = pd.to_datetime(entry['duration']['endTimestampMs'],  unit='ms') + pd.DateOffset(hours=1)
+                                # Case 1: Activity Segment
                                 if typ == 'activitySegment':
                                     coordinates = []
+                                    # Sometimes there is no location
                                     try:
                                         coordinates.append((entry['startLocation']['longitudeE7']/10000000,entry['startLocation']['latitudeE7']/10000000))
                                         if 'waypointPath' in list(entry):
@@ -145,13 +179,16 @@ def parseTrips(dataPath):
                                     gdf.loc[i,'distance'] = entry.get('distance',None)
                                     gdf.loc[i,'actType'] = entry['activityType']
                                     gdf.loc[i,'confidence'] = entry.get('confidence',None)
+                                # Case 2: Place visit
                                 else:
                                     pass
                                     gdf.loc[i,'confidence'] = entry.get('placeConfidence',None)
+                                    # Sometimes the location is missing, so just try
                                     try:
                                         coordinates = (entry['centerLngE7']/10000000,entry['centerLatE7']/10000000)
                                         shape = Point(coordinates)
                                     except:
+                                        # Another possibility on how the location could be provided
                                         try:
                                             coordinates = (entry['location']['longitudeE7']/10000000,entry['location']['latitudeE7']/10000000)
                                             shape = Point(coordinates)
@@ -163,29 +200,35 @@ def parseTrips(dataPath):
                                 gdf.loc[i, 'geometry'] = shape
                                 i = i + 1
                         f.close()                       
+    # Convert to dataframe
     df = pd.DataFrame(d)
+    # Return all three parsed objects
     return allData, df, gdf
 
 def parseTripsWithLocs(dataPath, locs):
     """
-    Parse the trips file
+    Combine the information from the Semantic info folder with the points from the location file. 
+    Basically this means just completing the geometry of the trips
+    This function adds all waypoints (by timestamp) to the "activitySegments" 
+    It is mainly for visualization purpose, but actually not needed for the final result
 
     Parameters
     ----------
-    dataPath : str - (relative) path to the location file
+    dataPath : str - (relative) path to the semantic info folder
 
     Returns
     -------
-    allData: dict - nested dict of the trips file
-    df : df - pandas dataframe of the data
+    gdf : gdf - geopandas dataframe of the data
 
     """
     timestamps = locs["timestampMs"].astype(np.int64)
     
+    # Prepare the df
     df = pd.DataFrame(columns=['Year', 'Month', 'Type', 'startTime', 'endTime', 'geom', 'distance', 'actType', 'confidence', 'correspondingLocs'])
 
     dirs = os.listdir(dataPath)
     generated_trips = []
+    # Same loop as in function parseTrips()
     for year in dirs:
         if year.isdigit():
             dataPathYear = os.path.join(dataPath, year)
@@ -198,9 +241,11 @@ def parseTripsWithLocs(dataPath, locs):
                             data = json.load(f)
                             for obj in data['timelineObjects']:
                                 typ = list(obj)[0]
-                                entry = obj[typ]   
+                                entry = obj[typ]  
+                                # Case 1: Activity Segment 
                                 if typ == 'activitySegment':
                                     
+                                    # Here we find the corresponding waypoints from the location file
                                     dateStart = int(entry['duration']['startTimestampMs'])
                                     dateEnd = int(entry['duration']['endTimestampMs'])
                                     indexStart = bisect.bisect_left(timestamps,dateStart)
@@ -208,13 +253,13 @@ def parseTripsWithLocs(dataPath, locs):
                                     try:
                                         shape = LineString(locs['geometry'][indexStart:indexEnd+1])
                                     except: 
-                                        print("Upsi")
                                         shape = LineString()
                                     correspondingLocs = range(indexStart,indexEnd+1)
                                     
                                     distance = entry.get('distance',None)
                                     actType = entry['activityType']
                                     confidence = entry.get('confidence',None)
+                                # Case 2: Place visit
                                 else:
                                     distance = None
                                     actType = None
@@ -335,7 +380,6 @@ def haversine_built(lat1,lon1,lat2,lon2):
     m = 6367 * c * 1000
     return m
 
-#%%
 def loc2shp(locs, dataname):
     """
     This function saves the location data to a shapefile
@@ -350,10 +394,12 @@ def loc2shp(locs, dataname):
     None.
 
     """
+    # Sometimes there is an attribute activity which gives errors, because it is nested
     try:
         locs = locs.drop('activity', axis=1)
     except:
         pass
+    # The format datetime cannot be read by shp files
     locs['date'] = locs['date'].astype(str)
     locs['datetimeUTC'] = locs['datetimeUTC'].astype(str)
     if not(os.path.exists('../data/shp/'+ dataname + '/')):
@@ -374,16 +420,20 @@ def trip2shp(trips, dataname):
     None.
 
     """
+    # Sometimes there is an attribute correspondingLocs which gives errors, because it is nested
     try:
         trips = trips.drop('correspondingLocs', axis=1)
     except:
         pass
+    # The format datetime cannot be read by shp files
     trips['startTime'] = trips['startTime'].astype(str)
     trips['endTime'] = trips['endTime'].astype(str)
     
     if not(os.path.exists('../data/shp/'+ dataname + '/')):
         os.makedirs('../data/shp/'+ dataname + '/')
+    # Export the trips 
     trips[trips['Type']=='activitySegment'].to_file('../data/shp/'+ dataname + '/Trip.shp')  
+    # Export the places (actually there is now another function for that)
     #trips[trips['Type']=='placeVisit'].to_file('../data/shp/'+ dataname + '/Place.shp')
 
 def haversine_np(lon1, lat1, lon2, lat2):
@@ -391,7 +441,18 @@ def haversine_np(lon1, lat1, lon2, lat2):
     Calculate the great circle distance between two points
     on the earth (specified in decimal degrees)
 
-    All args must be of equal length.    
+    All args must be of equal length.   
+
+    Parameters
+    ----------
+    lat1 : float - latitude of point 1
+    lon1 : float - longitude of point 1
+    lat2 : float - latitude of point 2
+    lon2 : float - longitude of point 2
+
+    Returns
+    -------
+    km : float - Distance between points in km 
 
     """
     lon1, lat1, lon2, lat2 = map(np.radians, [lon1, lat1, lon2, lat2])
@@ -406,13 +467,40 @@ def haversine_np(lon1, lat1, lon2, lat2):
     return km
 
 def distance(x):
+    """
+    Calculates the distance between two consectuive points   
+
+    Parameters
+    ----------
+    x - Coordinates of one point
+
+    Returns
+    -------
+    haversine_np : float - Distance to consecutive next points
+
+    """
     y = x.shift()
     return haversine_np(x['latitudeE7'], x['longitudeE7'], y['latitudeE7'], y['longitudeE7']).fillna(0)
 
 def loc2csv4ti(locs, dataname):
+    """
+    Saves the location data as csv in order that the trackintel framework can read it
+
+    Parameters
+    ----------
+    locs : gdf - individual location data
+    dataname : str - ID of participant
+
+    Returns
+    -------
+    None
+
+    """
     fields = set(['latitudeE7', 'longitudeE7', 'altitude', 'accuracy', 'velocity']).intersection(set(locs.keys()))
     locs = locs[list(fields)]
+    # User ID is not important, is only required by trackintel
     locs.loc[:,'user_id'] = '1'
+    # Rename so that it matches the layout from trackintel
     locs.rename(columns = {'latitudeE7':'latitude', 'longitudeE7': 'longitude', 'altitude':'elevation'}, inplace = True)
     locs.loc[:,'tracked_at'] = locs.index.astype(str)
     if not(os.path.exists('../data/csv/'+ dataname + '/')):
@@ -420,8 +508,23 @@ def loc2csv4ti(locs, dataname):
     locs.to_csv('../data/csv/' + dataname + '/' + dataname + '.csv', index=False, sep=';')
     
 def trip2gpx(trips, dataname):
+    """
+    Saves the trip information as a gpx file, in order to send it to the API from Hitouch   
+
+    Parameters
+    ----------
+    trips : gdf - geopandas df for the different trips, geometry is LineString
+    dataname: str - ID of participant
+
+    Returns
+    -------
+    None
+
+    """
     if not(os.path.exists('../data/gpx/'+ dataname + '/')):
         os.makedirs('../data/gpx/'+ dataname + '/')
+
+    # Go through all trips
     for idx in trips.index:
         gpx = gpxpy.gpx.GPX()
     
@@ -440,22 +543,40 @@ def trip2gpx(trips, dataname):
         #print(gpx.to_xml())
         with open('../data/gpx/' + dataname + '/' + trips.loc[idx,'id'] + '.gpx', 'w') as f:
             f.write(gpx.to_xml())
+        # Prepare the gpx for the API call (add some attributes)
         prepareGPXforAPI('../data/gpx/' + dataname + '/' + trips.loc[idx,'id'] + '.gpx', str(idx), trips.loc[idx,'id'])
             
 def prepareGPXforAPI(path, routeId, pathId):
+    """
+    Prepares the gpx for the API call (add some attributes)   
+
+    Parameters
+    ----------
+    path : str - path to the gps file
+    routeId: str - id of the route
+    pathId: str - id of the path
+
+    Returns
+    -------
+    None
+
+    """
+    # Start parsing
     parser = etree.XMLParser(remove_blank_text=True)
     tree = etree.parse(path, parser)  
-    #etree.register_namespace('gpx',"http://www.topografix.com/GPX/1/1")
     root = tree.getroot()
     
+    # Add a element metadata
     meta = etree.Element('metadata')
     
+    #Add an element ETH.GEO.ZPHERES.001
     name = etree.SubElement(meta, 'name')
     name.text = 'ETH.GEO.ZPHERES.001'
     
     extensions = etree.SubElement(meta, 'extensions')
     ZpheresMetadata = etree.SubElement(extensions, 'ZpheresMetadata')
     
+    # add all the attributes required by the API (almost all the same)
     etree.SubElement(ZpheresMetadata, 'ZPathName').text = '1-A'
     etree.SubElement(ZpheresMetadata, 'PathRefID').text = pathId
     etree.SubElement(ZpheresMetadata, 'routeid').text = '1'
@@ -471,15 +592,52 @@ def prepareGPXforAPI(path, routeId, pathId):
     
     root.insert(0, meta)
     etree.dump(root)
+    # Save the gpx again
     tree.write(path,encoding="utf-8", xml_declaration=True, pretty_print=True)
 
 def selectLastMonth(dataPathLoc,dataPathTrip):
+    """
+    Splits the data so that there is only the last month
+    (was not used in the end)   
+
+    Parameters
+    ----------
+    dataPathLoc : str - (relative) path to the location file
+    dataPathTrip : str - (relative) path to the Semantic Info folder
+
+    Returns
+    -------
+    dataPathLocs : str - (relative) path to the location file (only last month)
+    dataPathTrip : str - (relative) path to the Semantic Info folder (only last month)
+
+    """
     oneMonth = 2592000000 # in ms
+    # Use the function selectRange() to select only the last month
     dataPathLocs,dataPathTrips = selectRange(dataPathLoc,dataPathTrip, mac, timerange = oneMonth)
     return dataPathLocs,dataPathTrips
 
 def selectRange(dataPathLoc,dataPathTrip, mac, dateStart = 'beginning', dateEnd = 'end', timerange = None):
+    """
+    Info   
 
+    Parameters
+    ----------
+    dataPathLoc : str - (relative) path to the location file
+    dataPathTrip : str - (relative) path to the Semantic Info folder
+    mac: boolean - On the mac the paths are different, so we differente beteen this case
+    dateStart: str - Date from where to start cutting (Format: "YYY-MM-DD", or "beginning")
+    dateEnd: str - Date from where to end cutting (Format: "YYY-MM-DD", or "end")
+    timerange: int - Other possibility, just give a timerange in ms, either combined with beginning or end parameter
+
+    Returns
+    -------
+    newDataPathLoc: str - (relative) path to the location file (only selected range)
+    newDataPathTrip: str - (relative) path to the Semantic Info folder (only selected range)
+    labelStart: str - The effective start date (not "beginning anymore")
+    labelEnd: str - The effective end date (not "end anymore")
+
+    """
+    # For mac, the slash is different...
     if mac:
         slash = "/"
     else:
@@ -489,36 +647,31 @@ def selectRange(dataPathLoc,dataPathTrip, mac, dateStart = 'beginning', dateEnd 
     if os.path.exists(newPath):
         return newPath + "Location History.json", newPath + "Semantic Location History" + slash
     
-    # Location File
+    # Read Location File
     if (type(dataPathLoc) is str):
         with open(dataPathLoc) as f:
             jsonData = json.load(f)
     else:
         jsonData = dataPathLoc
     
+    # Convert to df
     collectDate = pd.to_datetime(int(jsonData["locations"][0]["timestampMs"]),  unit='ms')
     setDate = pd.to_datetime([dateStart])
 
     if (collectDate < setDate):
-        # print("Start date: " + str(dateStart))
         labelStart = str(dateStart)
         print("Start date: " + labelStart)
     else:
-        # print("Start date: " + str(pd.to_datetime(int(jsonData["locations"][0]["timestampMs"]),  unit='ms').date()))
         labelStart = str(pd.to_datetime(int(jsonData["locations"][0]["timestampMs"]),  unit='ms').date())
         print("Start date: " + labelStart)
-        
-    # print("Collected Start date: " + str(pd.to_datetime(int(jsonData["locations"][0]["timestampMs"]),  unit='ms').date()))
-    # print("Setted Start date: " + str(dateStart))
 
     if (dateEnd == "end"):
         labelEnd = str(pd.to_datetime(int(jsonData["locations"][-1]["timestampMs"]),  unit='ms').date())
         print("End date: " + labelEnd)
-        # print("End date: " + str(pd.to_datetime(int(jsonData["locations"][-1]["timestampMs"]),  unit='ms').date()))
         # labelEnd = str(pd.to_datetime(int(jsonData["locations"][-1]["timestampMs"]),  unit='ms').date())
     else:
         # print("End date: " + str(dateEnd))
-        lebelEnd = str(dateEnd)
+        labelEnd = str(dateEnd)
         print("End date: " + labelEnd)
     #dateStart = input("Choose a start date: ")
     #dateEnd = input("Choose a end date: ")
@@ -595,6 +748,18 @@ def selectRange(dataPathLoc,dataPathTrip, mac, dateStart = 'beginning', dateEnd 
     return newDataPathLoc,newDataPathTrip,labelStart,labelEnd
 
 def _splitTripFile(filePath, newFilePath, dateStart, dateEnd):
+    """
+    Info   
+
+    Parameters
+    ----------
+    var : type - Info
+
+    Returns
+    -------
+    var : type - Info
+
+    """
     with open(filePath) as f:
         jsonData = json.load(f)
             
@@ -608,6 +773,18 @@ def _splitTripFile(filePath, newFilePath, dateStart, dateEnd):
         json.dump(jsonData, outfile)
 
 def addDistancesToTrps(row):
+    """
+    Info   
+
+    Parameters
+    ----------
+    var : type - Info
+
+    Returns
+    -------
+    var : type - Info
+
+    """
     coords = row['geom'].coords
     length = row['length']
     segments = []
@@ -619,7 +796,19 @@ def addDistancesToTrps(row):
             segments.append(cumsum)
     return segments
 
-def calc_length(row, epsg_code):        
+def calc_length(row, epsg_code):  
+    """
+    Info   
+
+    Parameters
+    ----------
+    var : type - Info
+
+    Returns
+    -------
+    var : type - Info
+
+    """      
     project = partial(pyproj.transform,
                       pyproj.Proj(init='EPSG:4326'),
                       pyproj.Proj(init='EPSG:{}'.format(epsg_code)))
@@ -629,6 +818,18 @@ def calc_length(row, epsg_code):
     return round(proj_line.length,2)
 
 def makeDistMatrix(traj):
+    """
+    Info   
+
+    Parameters
+    ----------
+    var : type - Info
+
+    Returns
+    -------
+    var : type - Info
+
+    """
     #distMatrix = np.empty([len(traj),len(traj)])
     #distMatrix[:] = np.NaN
     condensedDistMatrix = []
@@ -643,6 +844,18 @@ def makeDistMatrix(traj):
     return condensedDistMatrix
 
 def combineTrajectory(cluster1, cluster2):
+    """
+    Info   
+
+    Parameters
+    ----------
+    var : type - Info
+
+    Returns
+    -------
+    var : type - Info
+
+    """
     distance, path = fastdtw(cluster1['geom'], cluster2['geom'], dist=euclidean)
     #TODO: Vectorize?
     newGeom = []
@@ -651,6 +864,18 @@ def combineTrajectory(cluster1, cluster2):
     return newGeom
 
 def findSemanticInfo(places, plcs, threeQua):
+    """
+    Info   
+
+    Parameters
+    ----------
+    var : type - Info
+
+    Returns
+    -------
+    var : type - Info
+
+    """
     count = 0
     plcs['nameId'] = ""
 
@@ -685,6 +910,18 @@ def findSemanticInfo(places, plcs, threeQua):
     return plcs
 
 def removeLongTrips(trps, trpsCount):
+    """
+    Info   
+
+    Parameters
+    ----------
+    var : type - Info
+
+    Returns
+    -------
+    var : type - Info
+
+    """
     for idx in trpsCount.index:
         trpIds = []
         for jdx in trpsCount.loc[idx,'trpIds']:
@@ -702,6 +939,18 @@ def removeLongTrips(trps, trpsCount):
     
     
 def savecsv4js(dataName, places, trips, tripsSchematic):
+    """
+    Info   
+
+    Parameters
+    ----------
+    var : type - Info
+
+    Returns
+    -------
+    var : type - Info
+
+    """
     places['city'] = 'Zurich'
     places['state'] = 'Zurich'
     places['country'] = 'Switzerland'
@@ -730,7 +979,19 @@ def savecsv4js(dataName, places, trips, tripsSchematic):
     #trips.to_csv('../jsProject/stat/trips.csv',  index = False, sep = ";")
     trips.to_csv('../../5-Final Product/stat' + dataName+'/tripsAgr.csv',  index = False, sep = ";")
 
-def savecsv4jsTrps(dataName, trips):    
+def savecsv4jsTrps(dataName, trips):  
+    """
+    Info   
+
+    Parameters
+    ----------
+    var : type - Info
+
+    Returns
+    -------
+    var : type - Info
+
+    """  
     trips = trips.rename(columns = {'start_plc':'origin', 'end_plc':'destination'})
     trips["waypointsLat"] = ""
     trips["waypointsLong"] = ""
