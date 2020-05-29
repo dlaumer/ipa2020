@@ -844,7 +844,10 @@ def homeworkStayMonth(pfs, dataname, dist_threshold, time_threshold, minDist, mi
 def accuracyStat(dataName, dataNames, mac, timestart, timeend):
     # Trip files
     if len(dataNames) == 0:
-        for root,dirs,files in os.walk("../../4-Collection/DataParticipants/"):
+        # for root,dirs,files in os.walk("../../4-Collection/DataParticipants/"):
+        #     dataNames = dirs
+        #     break
+        for root,dirs,files in os.walk("E:/Google Drive/IPA 2020/4-Collection/DataParticipants"):
             dataNames = dirs
             break
     
@@ -898,5 +901,5 @@ def accuracyStat(dataName, dataNames, mac, timestart, timeend):
         generated_dfStatistics.append(tempStat)
         dfStatistics = dfStatistics.append(generated_dfStatistics)
         
-    dfStatistics.to_csv('../data/statistics.csv', index=False)
+    dfStatistics.to_csv('../data/statisticsAll.csv', index=False)
     return dfStatistics
