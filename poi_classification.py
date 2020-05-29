@@ -124,8 +124,8 @@ def poiClassify2(plcs):
     plcs: with one more column for the place tag
 
     """ 
-    pois = pd.read_csv("E:/1_IPA/3_project/data/poiZurich/poiZurich.csv")
-    poisOut = pd.read_csv("E:/1_IPA/3_project/data/poiOutZurich/poiOutZurich.csv")
+    pois = pd.read_csv("../data/input/poiZurich/poiZurich.csv")
+    poisOut = pd.read_csv("../data/input/poiOutZurich.csv")
     
     plcs['tag'] = ""
     mindist = []

@@ -142,7 +142,7 @@ def transModeCsv(transtat, dataname):
     transtatdf=transtatdf.replace({"name": labels2modes})
     
     # Read the file of CO2 emission per km for each transportation mode    
-    co2 = pd.read_csv('../data/Co2Emission.csv')
+    co2 = pd.read_csv('../data/input/Co2Emission.csv')
     allModes = list(co2['name'])
     
     # dataname = "1"
@@ -369,10 +369,9 @@ def plcsStayHour(stps, plcs, dataname):
     # plcstocsv_transpose.to_csv('../data/stat/'+ dataname + '/PlcsStayHour.csv', index = True)
     # plcstocsv_transpose.to_csv('../../5-Final Product/stat'+ dataname + '/PlcsStayHour.csv', index = True)
 
-    if not(os.path.exists('../../5-Final Product/stat'+ dataname + '/')):
-        os.makedirs('../../5-Final Product/stat'+ dataname + '/')
-    #plcstocsv_transpose.to_csv('../data/stat/'+ dataname + '/PlcsStayHour.csv', index = True)
-    plcstocsv_transpose.to_csv('../../5-Final Product/stat'+ dataname + '/PlcsStayHour.csv', index = True)
+    if not(os.path.exists('../data/results/stat/'+ dataname + '/')):
+        os.makedirs('../data/results/stat/'+ dataname + '/stat')
+    plcstocsv_transpose.to_csv('../data/results/stat/'+ dataname + '/PlcsStayHour.csv', index = True)
 
     # V2: with more information
     plcs = poi.reverseGeoCoding(plcs)
@@ -380,9 +379,7 @@ def plcsStayHour(stps, plcs, dataname):
     plcsInfoT = plcsInfo.T
     plcsInfoT.columns = plcs['place_id']
 
-    # plcsInfoT.to_csv('../../5-Final Product/stat'+ dataname + '/PlcsInfo.csv', index = True)
-
-    plcsInfoT.to_csv('../../5-Final Product/stat'+ dataname + '/PlcsInfo.csv', index = False)
+    plcsInfoT.to_csv('../data/results/stat/'+ dataname + '/PlcsInfo.csv', index = False)
 
 
     # column_names = ["user_id","place_id","center","extent","location","placeName","nameId",'totalStayHrs',"0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23"]
@@ -688,7 +685,7 @@ def homeworkStay(plcs, stps, dataname, places, threeQua):
         homeworkplcs = homeworkplcs.reindex(columns=column_names)
         homeworkplcs = homeworkplcs.rename(columns={'0':'Mon','1':"Tues","2":"Wed","3":"Thur","4":"Fri","5":"Sat","6":"Sun"})  
         
-        if not(os.path.exists('../../5-Final Product/stat'+ dataname + '/')):
+        if not(os.path.exists('../data/results'+ dataname + '/stat)):
             os.makedirs('../../5-Final Product/stat'+ dataname + '/')
         homeworkplcs.to_csv('../../5-Final Product/stat'+ dataname + '/' + 'HomeWorkStay.csv', index = True)
         
@@ -712,146 +709,21 @@ def homeworkStay(plcs, stps, dataname, places, threeQua):
         homeplcs = homeplcs.reindex(columns=column_names)
         homeplcs = homeplcs.rename(columns={'0':'Mon','1':"Tues","2":"Wed","3":"Thur","4":"Fri","5":"Sat","6":"Sun"})  
         homeworkplcs = homeplcs
-        if not(os.path.exists('../../5-Final Product/stat'+ dataname + '/')):
-            os.makedirs('../../5-Final Product/stat'+ dataname + '/')
-        homeworkplcs.to_csv('../../5-Final Product/stat'+ dataname + '/' + 'HomeWorkStay.csv', index = True)
+        if not(os.path.exists('../data/results/stat/'+ dataname + '/')):
+            os.makedirs('../data/results/stat/'+ dataname + '/')
+        homeworkplcs.to_csv('../data/results/stat/'+ dataname + '/' + 'HomeWorkStay.csv', index = True)
         
     return homeworkplcs
 
-    # return homeplcs, homestps, workplcs, workstps
-
-def homeworkStayMonth(pfs, dataname, dist_threshold, time_threshold, minDist, minPoints):
-    """
-    Calculate stay time statistics of home and work places for all past data by Month
-
-    Parameters
-    ----------
-    pfs : dataframe - location points
-    dataname: str
-    dist_threshold, time_threshold - parameters for stay point detection
-    minDist, minPoints - parameters for DBSCAN Clustering
-    
-    Returns
-    -------
-    None
-    """
-    
-    pfs['tracked_at_hour'] = 0
-    for i in range(0,len(pfs)): pfs['tracked_at_hour'].iloc[i] = pfs['tracked_at'].iloc[i].hour
-    
-    ### For home address ###
-    # homepfs = pfs[(pfs['tracked_at_hour']<=6)]
-    homepfs = pfs[(pfs['tracked_at_hour']<=7) | (pfs['tracked_at_hour']>=22)]
-    homestps = tim.extract_staypoints_ipa(homepfs, method='sliding',dist_threshold=dist_threshold, time_threshold=time_threshold)
-    # homestps = tim.extract_staypoints_ipa(homepfs, method='sliding',dist_threshold=5, time_threshold=1*60)
-    # homeplcs = homestps.as_staypoints.extract_places(method='dbscan',epsilon=meters_to_decimal_degrees(10,2), num_samples=6)
-    
-    homestps['started_at_hour'] = 0
-    for i in range(0,len(homestps)): homestps['started_at_hour'].iloc[i] = homestps['started_at'].iloc[i].hour
-    homestps['started_at_month'] = 0
-    for i in range(0,len(homestps)): homestps['started_at_month'].iloc[i] = homestps['started_at'].iloc[i].month
-    homestps['started_at_weekday'] = 0
-    for i in range(0,len(homestps)): homestps['started_at_weekday'].iloc[i] = homestps['started_at'].iloc[i].weekday() # 0 for Monday, 6 for Sunday
-    
-    homestps['stay_time'] = 0 
-    for i in range(0,len(homestps)): # calculate stay time
-        homestps['stay_time'].iloc[i] = (homestps['finished_at'].iloc[i]-homestps['started_at'].iloc[i]).total_seconds()
-    
-    ### For working address ###
-    pfs['tracked_at_weekday'] = 0
-    for i in range(0,len(pfs)): pfs['tracked_at_weekday'].iloc[i] = pfs['tracked_at'].iloc[i].weekday() # 0 for Monday, 6 for Sunday
-    
-    workpfs = pfs[pfs['tracked_at_weekday']<=4] 
-    workpfs = workpfs[((workpfs['tracked_at_hour']>=9) & (workpfs['tracked_at_hour']<=12)) | ((workpfs['tracked_at_hour']>=14) & (workpfs['tracked_at_hour']<=17))]
-    workstps = tim.extract_staypoints_ipa(workpfs, method='sliding',dist_threshold=dist_threshold, time_threshold=time_threshold)
-    
-    workstps['started_at_hour'] = 0
-    for i in range(0,len(workstps)): workstps['started_at_hour'].iloc[i] = workstps['started_at'].iloc[i].hour
-    workstps['started_at_month'] = 0
-    for i in range(0,len(workstps)): workstps['started_at_month'].iloc[i] = workstps['started_at'].iloc[i].month
-    workstps['started_at_weekday'] = 0
-    for i in range(0,len(workstps)): workstps['started_at_weekday'].iloc[i] = workstps['started_at'].iloc[i].weekday() # 0 for Monday, 6 for Sunday
-    
-    workstps['stay_time'] = 0
-    for i in range(0,len(workstps)):
-        workstps['stay_time'].iloc[i] = (workstps['finished_at'].iloc[i]-workstps['started_at'].iloc[i]).total_seconds()
-    
-    months = np.unique(homestps['started_at_month'])
-    
-    for month in months:
-        # month = 2
-        # Select data by month
-        homestps_month = homestps[homestps['started_at_month']==month]
-        homeplcs = homestps_month.as_staypoints.extract_places(method='dbscan',epsilon=meters_to_decimal_degrees(minDist, 47.5), num_samples=minPoints)
-        workstps_month = workstps[workstps['started_at_month']==month]
-        workplcs = workstps.as_staypoints.extract_places(method='dbscan',epsilon=meters_to_decimal_degrees(minDist, 47.5), num_samples=minPoints)
-    
-        # summarize stay time by weekday for each clustered place
-        cols = ['Mon','Tues','Wed','Thur','Fri','Sat','Sun']
-        for col in cols: homeplcs[col] = 0
-        for i in range(0,len(homeplcs)):
-            place_id = i+1
-            homestps_placeid = homestps_month[homestps_month['place_id']==place_id]
-            homestps_placeid_weekday1 = homestps_placeid[homestps_placeid['started_at_weekday']==0]
-            homeplcs.loc[homeplcs['place_id']==place_id,'Mon']=homestps_placeid_weekday1['stay_time'].sum()
-            homestps_placeid_weekday2 = homestps_placeid[homestps_placeid['started_at_weekday']==1]
-            homeplcs.loc[homeplcs['place_id']==place_id,'Tues']=homestps_placeid_weekday2['stay_time'].sum()
-            homestps_placeid_weekday3 = homestps_placeid[homestps_placeid['started_at_weekday']==2]
-            homeplcs.loc[homeplcs['place_id']==place_id,'Wed']=homestps_placeid_weekday3['stay_time'].sum()
-            homestps_placeid_weekday4 = homestps_placeid[homestps_placeid['started_at_weekday']==3]
-            homeplcs.loc[homeplcs['place_id']==place_id,'Thur']=homestps_placeid_weekday4['stay_time'].sum()
-            homestps_placeid_weekday5 = homestps_placeid[homestps_placeid['started_at_weekday']==4]
-            homeplcs.loc[homeplcs['place_id']==place_id,'Fri']=homestps_placeid_weekday5['stay_time'].sum()
-            homestps_placeid_weekday6 = homestps_placeid[homestps_placeid['started_at_weekday']==5]
-            homeplcs.loc[homeplcs['place_id']==place_id,'Sat']=homestps_placeid_weekday6['stay_time'].sum()
-            homestps_placeid_weekday7 = homestps_placeid[homestps_placeid['started_at_weekday']==6]
-            homeplcs.loc[homeplcs['place_id']==place_id,'Sun']=homestps_placeid_weekday7['stay_time'].sum()
-        
-        for col in cols: workplcs[col] = 0
-        for i in range(0,len(workplcs)):
-            place_id = i+1
-            workstps_placeid = workstps[workstps['place_id']==place_id]
-            workstps_placeid_weekday1 = workstps_placeid[workstps_placeid['started_at_weekday']==0]
-            workplcs.loc[workplcs['place_id']==place_id,'Mon']=workstps_placeid_weekday1['stay_time'].sum()
-            workstps_placeid_weekday2 = workstps_placeid[workstps_placeid['started_at_weekday']==1]
-            workplcs.loc[workplcs['place_id']==place_id,'Tues']=workstps_placeid_weekday2['stay_time'].sum()
-            workstps_placeid_weekday3 = workstps_placeid[workstps_placeid['started_at_weekday']==2]
-            workplcs.loc[workplcs['place_id']==place_id,'Wed']=workstps_placeid_weekday3['stay_time'].sum()
-            workstps_placeid_weekday4 = workstps_placeid[workstps_placeid['started_at_weekday']==3]
-            workplcs.loc[workplcs['place_id']==place_id,'Thur']=workstps_placeid_weekday4['stay_time'].sum()
-            workstps_placeid_weekday5 = workstps_placeid[workstps_placeid['started_at_weekday']==4]
-            workplcs.loc[workplcs['place_id']==place_id,'Fri']=workstps_placeid_weekday5['stay_time'].sum()
-            workstps_placeid_weekday6 = workstps_placeid[workstps_placeid['started_at_weekday']==5]
-            workplcs.loc[workplcs['place_id']==place_id,'Sat']=workstps_placeid_weekday6['stay_time'].sum()
-            workstps_placeid_weekday7 = workstps_placeid[workstps_placeid['started_at_weekday']==6]
-            workplcs.loc[workplcs['place_id']==place_id,'Sun']=workstps_placeid_weekday7['stay_time'].sum()
-        
-        for col in cols: 
-            homeplcs[col] =  homeplcs[col]/60
-            workplcs[col] =  workplcs[col]/60
-    
-        homeplcs = poi.reverseGeoCoding(homeplcs)
-        homeplcs['id'] = 'home'
-        workplcs = poi.reverseGeoCoding(workplcs)
-        workplcs['id'] = 'work'
-        homeworkplcs = pd.concat([homeplcs, workplcs], axis=0)
-
-        if not(os.path.exists('../data/stat/'+ dataname + '/')):
-            os.makedirs('../data/stat/'+ dataname + '/')
-        homeworkplcs.to_csv('../data/stat/'+ dataname + '/' + str(month) + 'HomeWorkStaybyMonth.csv', index = True)
-    
     
 def accuracyStat(dataName, dataNames, mac, timestart, timeend):
-    # Trip files
+
     if len(dataNames) == 0:
-        # for root,dirs,files in os.walk("../../4-Collection/DataParticipants/"):
-        #     dataNames = dirs
-        #     break
-        for root,dirs,files in os.walk("E:/Google Drive/IPA 2020/4-Collection/DataParticipants"):
+        for root,dirs,files in os.walk("../data/results/questionnaires"):
             dataNames = dirs
             break
     
-    dfQuestionnaire = pd.read_csv("../data/Pre-Questionnaire - Location Diary.csv")
+    dfQuestionnaire = pd.read_csv("../data/results/questionnaires/Pre-Questionnaire - Location Diary.csv")
     dfPhoneModel = dfQuestionnaire[["Enter your participant ID:","What is your mobile phone's brand used to collect data?"]]
     dfPhoneModel = dfPhoneModel.rename(columns = {"id":"Enter your participant ID:", "phoneModel":"What is your mobile phone's brand used to collect data?"})
     
@@ -901,13 +773,13 @@ def accuracyStat(dataName, dataNames, mac, timestart, timeend):
         generated_dfStatistics.append(tempStat)
         dfStatistics = dfStatistics.append(generated_dfStatistics)
         
-    dfStatistics.to_csv('../data/statisticsAll.csv', index=False)
+    dfStatistics.to_csv('../data/results/EDAResults.csv', index=False)
     return dfStatistics
 
 
 def analysePreQuest():
     
-    pre = pd.read_csv('../data/pre.csv')
+    pre = pd.read_csv('../data/results/questionnaires/Pre-Questionnaire - Location Diary.csv')
     labels2score = {"Very interested":5,"Somewhat interested":4,"Neither interested or uninterested":3,"Somewhat uninterested":2,"Very uninterested":1}
     cols = [str(i) for i in range(1,10)]    
     for col in cols:
