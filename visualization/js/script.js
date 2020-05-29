@@ -13,8 +13,9 @@ Authors:    Daniel Laumer (laumerd@ethz.ch)
 */
 
 // Data files to import
+// Options: 1 - Daniel's statistics, 2 - Haojun's statistics
 var path = "./../../data/results/stat/"
-var dataName = "2";
+var dataName = "1";
 var urls = {
   places:
   path + dataName + "/places.csv",
@@ -115,7 +116,7 @@ map.addControl(myCustomControl3, 'top-right');
 map.addControl(myCustomControl4, 'top-left');
 map.addControl(myCustomText, 'bottom-right');
 
-// add functionality and content
+// Add functionality and content
 var elem = document.createElement("img");
 elem.setAttribute("src", "imgs/zoom_out_map-white-48dp.svg");
 document.getElementById("zoomAll").appendChild(elem);
@@ -289,7 +290,7 @@ var topkPlaces
 
 // LOAD DATA  //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// load all the data together
+// Load all the data together
 let promises = [
   d3.dsv(';', urls.places, typePlace),
   d3.dsv(';', urls.trips, typeTrip),
@@ -303,7 +304,7 @@ let promises = [
 
 Promise.all(promises).then(processData);
 
-// process place and trip data
+// Process place and trip data
 function processData(values) {
   // Read the values out
   places = values[0];
@@ -320,7 +321,7 @@ function processData(values) {
 
   // Find extents to 
   extents = getExtentofPlaces(places)
-  // convert places array (pre filter) into map for fast lookup
+  // Convert places array (pre filter) into map for fast lookup
   // Basically make a dictionary (like in python) with placeId as key
   placeId = new Map(places.map(node => [node.placeId, node]));
   console.log("places: " + places.length);
@@ -362,7 +363,7 @@ function processData(values) {
     .attr("transform",
       "translate(" + margin.left + "," + margin.top + ")")
 
-  // text label for the y axis
+  // Text label for the y axis
   svgTimeline.append("text")
     .attr("font-size", "10px")
     .attr("transform", "rotate(-90)")
@@ -394,7 +395,7 @@ function processData(values) {
 
   // PREPARE TIME AXIS ////////////////////////////////////////////////////////////////////////////////////
 
-  // set the dimensions and margins of the graph
+  // Set the dimensions and margins of the graph
   marginTime = { top: 10, right: 20, bottom: 0, left: 50 };
 
   widthTime = d3
@@ -430,8 +431,8 @@ function processData(values) {
 
   // PREPARE MAP  ////////////////////////////////////////////////////////////////////////////////////
 
-  // calculate incoming and outgoing degree based on trips
-  // trips are given by place placeId code (not index)
+  // Calculate incoming and outgoing degree based on trips
+  // Trips are given by place placeId code (not index)
   trips.forEach(function (link) {
     link.source = placeId.get(link.origin);
     link.target = placeId.get(link.destination);
@@ -440,20 +441,20 @@ function processData(values) {
     link.target.incoming += link.count;
   });
 
-  // calculate incoming and outgoing degree based on trips
-  // trips are given by place placeId code (not index)
+  // Calculate incoming and outgoing degree based on trips
+  // Trips are given by place placeId code (not index)
   tripsOriginal.forEach(function (link) {
     link.source = placeId.get(link.origin);
     link.target = placeId.get(link.destination);
 
   });
 
-  // sort places by outgoing degree
+  // Sort places by outgoing degree
   places.sort((a, b) => d3.descending(a.outgoing, b.outgoing));
 
-  // done filtering places can draw
+  // Done filtering places can draw
   drawPlaces(places);
-  // done filtering trips can draw
+  // Done filtering trips can draw
   geojsons = addWaypoints(trips);
   geojsonOriginal = addWaypointsOriginal(tripsOriginal);
   drawTrips(places, trips, false);
@@ -487,7 +488,7 @@ function processData(values) {
 
   // PREPARE HOMEWORKBALANCE DATA  ////////////////////////////////////////////////////////////////////////////////////
 
-  // reformat homeworkbalance data
+  // Reformat homeworkbalance data
   // Make monochrome colors
   var barColors = (function () {
     var colors = [],
@@ -533,7 +534,7 @@ function processData(values) {
 
   // PREPARE TRANSORTION DATA  ////////////////////////////////////////////////////////////////////////////////////
 
-  // reformat transportation data
+  // Reformat transportation data
   for (let i = 0; i < transportationmode.length; i++) {
     var transportationi = transportationmode[i];
     var mode = transportationi['name']
@@ -581,10 +582,10 @@ function drawTimeline() {
     .attr("dy", ".15em")
     .attr("transform", "rotate(-65)")
 
-  //add brush
+  // Add brush
   var brush = d3.brushX()
-    .extent([[0, 1], [widthTime, heightTime]])//(x0,y0)  (x1,y1)
-    .on("brush", brushend)//when mouse up, move the selection to the exact tick //start(mouse down), brush(mouse move), end(mouse up)
+    .extent([[0, 1], [widthTime, heightTime]]) //(x0,y0)  (x1,y1)
+    .on("brush", brushend) //when mouse up, move the selection to the exact tick //start(mouse down), brush(mouse move), end(mouse up)
 
   svgTime.append("g")
     .attr("class", "brush")
@@ -671,16 +672,16 @@ function colorPlacesBoxes(startTime, endTime) {
 function drawMap(map) {
   // Draws the underlying map (not in use right now, we used Mapbox instead)
 
-  // use projection; data is not already projected
+  // Use projection; data is not already projected
   pathBaseMap = d3.geoPath(projection);
 
-  // draw base map
+  // Draw base map
   g.basemap.append("path")
     .datum(map)
     .attr("class", "land")
     .attr("d", pathBaseMap);
 
-  // draw interior borders
+  // Draw interior borders
   g.basemap.append("path")
     .datum(map)
     .attr("class", "border")
@@ -690,11 +691,11 @@ function drawMap(map) {
 function drawPlaces(places) {
   // Draw the places on the map and color and scale them accordingly
 
-  // adjust scale
+  // Adjust scale
   let extent = d3.extent(places, d => d.outgoing);
   scales.places.domain(extent);
 
-  // draw place bubbles
+  // Draw place bubbles
 
   bubbles = g.places.selectAll("circle.place")
     .remove()
@@ -708,8 +709,8 @@ function drawPlaces(places) {
     .attr("cy", d => project(d).y)
     .attr("class", "place")
     .each(function (d) {
-      // adds the circle object to our place
-      // makes it fast to select places on hover
+      // Add the circle object to our place
+      // Make it fast to select places on hover
       d.bubble = this;
     })
     .on("mouseover", function (d, i) {
@@ -744,7 +745,7 @@ function drawPlaces(places) {
 function drawPolygons(places) {
   // From the template, used to have polygons n the background
 
-  // convert array of places into geojson format
+  // Convert array of places into geojson format
   let geojsonPoly = places.map(function (place) {
     return {
       type: "Feature",
@@ -756,7 +757,7 @@ function drawPolygons(places) {
     };
   });
 
-  // calculate voronoi polygons
+  // Calculate voronoi polygons
   let polygons = d3.geoVoronoi().polygons(geojsonPoly);
 
   g.voronoi.selectAll("path")
@@ -775,7 +776,7 @@ function drawPolygons(places) {
         .call(highlight)
         .raise();
 
-      // make tooltip take up space but keep it invisible
+      // Make tooltip take up space but keep it invisible
       tooltip.style("display", null);
       tooltip.style("visibility", "hidden");
 
@@ -783,16 +784,16 @@ function drawPolygons(places) {
       var x = pos.left + pos.width / 2, y = pos.top + pos.height / 2;
 
 
-      // set default tooltip positioning
+      // Set default tooltip positioning
       tooltip.attr("text-anchor", "middle");
       //tooltip.attr("dy", -scales.places(place.outgoing));
       tooltip.attr("x", x);
       tooltip.attr("y", y - scales.places(place.outgoing));
 
-      // set the tooltip text
+      // Set the tooltip text
       tooltip.text(semanticInfo[place.placeId]);
 
-      // double check if the anchor needs to be changed
+      // Double check if the anchor needs to be changed
       let bbox = tooltip.node().getBBox();
 
       if (bbox.x <= 0) {
@@ -816,7 +817,7 @@ function drawPolygons(places) {
       d3.select("text#tooltip").style("visibility", "hidden");
     })
     .on("dblclick", function (d) {
-      // toggle voronoi outline
+      // Toggle voronoi outline
       let toggle = d3.select(this).classed("highlight");
       d3.select(this).classed("highlight", !toggle);
     });
@@ -849,8 +850,8 @@ function drawTrips(places, trips, orig) {
     .attr("id", function (d) { return "id_" + d.properties.id })
     .style("stroke-width", d => d.properties.count)
     .each(function (d) {
-      // adds the path object to our source place
-      // makes it fast to select outgoing paths
+      // Add the path object to our source place
+      // Make it fast to select outgoing paths
       tripTemp = this;
       ind = 0;
       places.forEach(function (dd, ii) {
@@ -867,7 +868,7 @@ function drawTrips(places, trips, orig) {
 // be used for simple edge bundling.
 function addWaypoints(links) {
   // Called before the drawing of the trips
-  // Creates the geojson of the trips based onthe csv data
+  // Create the geojson of the trips based onthe csv data
 
   var geojsonSchematic = {
     "name": "NewFeatureType",
@@ -1029,7 +1030,7 @@ function typeTripOriginal(trip) {
 
 
 function distance(source, target) {
-  // calculates the distance between two nodes
+  // Calculates the distance between two nodes
   // sqrt( (x2 - x1)^2 + (y2 - y1)^2 )
   var dx2 = Math.pow(target.x - source.x, 2);
   var dy2 = Math.pow(target.y - source.y, 2);
@@ -1097,7 +1098,7 @@ function updateTimeline(selectedVar) {
   var u = svgTimeline.selectAll("rect")
     .data(timelineData)
 
-  // update bars
+  // Update bars
   u
     .enter()
     .append("rect")
@@ -1168,7 +1169,7 @@ function mousoverFunction(i) {
       .call(highlight)
       .raise();
 
-    // make tooltip take up space but keep it invisible
+    // Make tooltip take up space but keep it invisible
     tooltip.style("display", null);
     tooltip.style("visibility", "hidden");
 
@@ -1176,16 +1177,16 @@ function mousoverFunction(i) {
     var x = pos.x + pos.width / 2, y = pos.y + pos.height / 2;
 
 
-    // set default tooltip positioning
+    // Set default tooltip positioning
     tooltip.attr("text-anchor", "middle");
     tooltip.attr("dy", -scales.places(place.outgoing));
     tooltip.attr("x", x);
     tooltip.attr("y", y - scales.places(place.outgoing));
 
-    // set the tooltip text
+    // Set the tooltip text
     tooltip.text(semanticInfo[place.placeId]);
 
-    // double check if the anchor needs to be changed
+    // Double check if the anchor needs to be changed
     let bbox = tooltip.node().getBBox();
 
     if (bbox.x <= 0) {
@@ -1331,7 +1332,7 @@ function changeData(mapMode) {
 }
 
 function zoomToAll() {
-  // zoom to the full extent
+  // Zoom to the full extent
 
   if (!mapBlank) {
     extent = extents[0];
@@ -1368,24 +1369,13 @@ function drawNegativeBar(HomeWorkSeries, yAxisMax) {
         fontFamily: 'Arial'
       }
     },
-    // subtitle: {
-    //   text: ''
-    // },
     accessibility: {
       point: {
         valueDescriptionFormat: '{index}. StayTime {xDescription}, {value}hrs.'
       }
     },
     exporting: {
-      enabled: false, // disable all buttons
-      // buttons: { 
-      //   exportButton: {
-      //       enabled:false
-      //   },
-      //   printButton: {
-      //       enabled:false
-      //   }
-      // }
+      enabled: false, 
     },
     xAxis: [{
       categories: categories,
@@ -1419,10 +1409,6 @@ function drawNegativeBar(HomeWorkSeries, yAxisMax) {
           return Math.abs(this.value);
         }
       },
-      // accessibility: {
-      //   description: 'Stay Time in Minutes',
-      //   rangeDescription: 'above 0'
-      // }
     },
 
     plotOptions: {
@@ -1474,7 +1460,6 @@ function drawTransPieChart(transportationSeries, totalCo2) {
     },
     subtitle: {
       text: 'Your total CO2 emission is: ' + totalCo2.toFixed(2) + ' kg',
-      // align: "left"
     },
     tooltip: {
       headerFormat: '<span style="font-size:11px">{series.name}</span><br>',
@@ -1486,15 +1471,7 @@ function drawTransPieChart(transportationSeries, totalCo2) {
       }
     },
     exporting: {
-      enabled: false, // disable all buttons
-      // buttons: { 
-      //   exportButton: {
-      //       enabled:false
-      //   },
-      //   printButton: {
-      //       enabled:false
-      //   }
-      // }
+      enabled: false,
     },
     plotOptions: {
       pie: {
@@ -1514,7 +1491,6 @@ function drawTransPieChart(transportationSeries, totalCo2) {
           },
           style: {
             fontSize: '10px',
-            // fontWeight: 'bold',
             fontFamily: 'Arial',
             textOutline: '0px contrast'
           }
@@ -1529,7 +1505,7 @@ function drawTransPieChart(transportationSeries, totalCo2) {
   });
 }
 
-// add functionalty to the info button
+// Add functionalty to the info button
 document.getElementById("info-button").addEventListener("click", function () {
   let toggle = d3.select("#info-container").classed("collapseHoriz");
   d3.select('#info-container')
