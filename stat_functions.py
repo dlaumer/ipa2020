@@ -111,37 +111,37 @@ def pieChartInfoPlus(trips):
 
 def transModeCsv(transtat, dataname):
     """
-    Generate csv including percentage for transportation modes
+    Generate csv with CO2 emission informatioin
 
     Parameters
     ----------
     transtat : tuple - returned results of pieChartInfoPlus() function
-    dataname: str
+    dataname: str - indicate the participant ID
     
     Returns
     -------
     None
-    """
-    import pandas as pd    
+    """  
     transtatdf = pd.DataFrame(list(transtat))
     transtatdf = transtatdf.T
     transtatdf['percentage'] = ""
     transtatdf.columns = ['mode','value','percentage']
     
+    # Calculate the percenatge of total distance for each transportation mode
     for i in range(0,len(transtatdf)):
         valsum = transtatdf['value'].sum(axis=0)
         transtatdf.iloc[i,2] = round(transtatdf.iloc[i,1]/valsum,4)
     
+    # Sort the mode based on the percentage of total distance
     transtatdf.sort_values("percentage", axis = 0, ascending = False, 
                      inplace = True, na_position ='last') 
 
-    # labels = ["IN_PASSENGER_VEHICLE","STILL","WALKING","IN_BUS","CYCLING","FLYING","RUNNING","IN_FERRY","IN_TRAIN","SKIING","SAILING","IN_SUBWAY","IN_TRAM","IN_VEHICLE"]
-    # modes = ['by Car','by Train','by Plane','Walking','by Bus','by Bike','by Ferry','by Tram','Running']
+    # Interpret the Google's transportation mode into a nicer name
     labels2modes = {"IN_PASSENGER_VEHICLE":'by Car',"STILL":'Still',"WALKING": 'Walking',"IN_BUS": 'by Bus',"CYCLING":'by Bike',"FLYING":'by Plane',"RUNNING":'Running',"IN_FERRY":'by Ferry',"IN_TRAIN": 'by Train',"SKIING": 'Skiing',"SAILING": 'Sailing',"IN_SUBWAY": 'by Subway',"IN_TRAM": 'by Tram',"IN_VEHICLE":'in Vehicle'} 
-
     transtatdf['name'] = transtatdf['mode']
     transtatdf=transtatdf.replace({"name": labels2modes})
-        
+    
+    # Read the file of CO2 emission per km for each transportation mode    
     co2 = pd.read_csv('../data/Co2Emission.csv')
     allModes = list(co2['name'])
     

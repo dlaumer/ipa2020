@@ -1,20 +1,36 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri May 15 12:47:14 2020
 
-Authors:    Daniel Laumer (laumerd@ethz.ch)
-            Haojun Cai (caihao@ethz.ch)
+""" Thresholds Functions
+    This file helps to calculate useful statistics to further choose thresholds
+    
+    Created on Fri May 15 12:47:14 2020
+    Authors:    Daniel Laumer (laumerd@ethz.ch)
+                Haojun Cai (caihao@ethz.ch)
 """
 
 import numpy as np
 import pandas as pd
 from trackintel.geogr.distances import haversine_dist
 
+# Local files
 import help_functions as hlp
 
-# dataName = "1"
-
 def stydiffstat(dataNameList, SELECT_RANGE, dateStart, dateEnd):
+    """
+    Return the place name of input places   
+
+    Parameters
+    ----------
+    dataNameList : list - list of strings of all participant id with shared data
+    SELECT_RANGE: var - flag to define if select certain period
+    dateStart: str - the start date of the period if selecting certain period
+    dateEnd: str - the end date of the period if selecting certain period
+        
+    Returns
+    -------
+    staythredstat: useful statistics to semi-automatically choose thresholds
+
+    """ 
     ddiff_max = []
     ddiff_min = []
     ddiff_mean = []
@@ -28,9 +44,6 @@ def stydiffstat(dataNameList, SELECT_RANGE, dateStart, dateEnd):
     tdiff_quar = []
     
     for dataName in dataNameList:
-    
-        # dataName = "2"
-        
         dataPathLocs,dataPathTrips = hlp.getDataPaths(dataName)
         
         if SELECT_RANGE:    
@@ -53,7 +66,7 @@ def stydiffstat(dataNameList, SELECT_RANGE, dateStart, dateEnd):
         ddiff_median.append(mediani)
         quari = np.quantile(locs['d_diff'], .25)
         ddiff_quar.append(quari)
-        
+      
         maxi = max(locs['t_diff'])
         tdiff_max.append(maxi)  
         mini = min(locs['t_diff'])
@@ -88,18 +101,18 @@ def stydiffstat(dataNameList, SELECT_RANGE, dateStart, dateEnd):
     tdiff_quar = np.transpose(tdiff_quar)
     
     thredstat = {'dataName': np.array(dataNameList),
-            'dist_max': ddiff_max,
-            'dist_min': ddiff_min,
-            'dist_range': ddiff_max-ddiff_min,
-            'dist_mean': ddiff_mean,
-            'dist_median': ddiff_median,
-            'dist_quarter': ddiff_quar,
-            'time_max': tdiff_max,
-            'time_min': tdiff_min,
-            'time_range': tdiff_max-tdiff_min,
-            'time_mean': tdiff_mean,
-            'time_median': tdiff_median,
-            'time_quarter': tdiff_quar}
+                'dist_max': ddiff_max,
+                'dist_min': ddiff_min,
+                'dist_range': ddiff_max-ddiff_min,
+                'dist_mean': ddiff_mean,
+                'dist_median': ddiff_median,
+                'dist_quarter': ddiff_quar,
+                'time_max': tdiff_max,
+                'time_min': tdiff_min,
+                'time_range': tdiff_max-tdiff_min,
+                'time_mean': tdiff_mean,
+                'time_median': tdiff_median,
+                'time_quarter': tdiff_quar}
             
     staythredstat = pd.DataFrame(thredstat)
 
