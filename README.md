@@ -3,6 +3,11 @@
 Title: Location Diary
 Authors: Haojun Cai and Daniel Laumer
 
+## Introduction
+This research project came up with a product idea: Location Diary, to present individual traveling behavior patterns through a personalized interactive dashboard based on collected Google Maps Timeline data. A complete GPS data processing and analysis pipeline was developed from detecting stay points, clustering places, and adding semantic information to clustering and aggregating trajectories. Furthermore, useful information was extracted and visualized in several types of statistical diagrams and charts using an interactive browser-end dashboard. Besides, a complete product design workflow was conducted using surveys and follow-up interviews from investigating user needs to collecting final feedback. A final score of 7.44/10.0 has been rated by our ten final participates, denoting their willingness to continue to use this product.
+
+Poster: https://ethz.ch/content/dam/ethz/special-interest/baug/ikg/geoinformation-engineering-dam/Lehre/Studienarbeiten/IPA/20_FS_IPA_Laumer_Cai.pdf
+
 ## Getting Started
 
 Analysis:
